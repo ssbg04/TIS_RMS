@@ -7,15 +7,18 @@ import '../../../providers/student_provider.dart';
 
 class StudentFilterDialog extends ConsumerStatefulWidget {
   final StudentQueryParams initialQuery;
+  final bool isEnrolledTab;
 
   const StudentFilterDialog({
     super.key,
     required this.initialQuery,
+    this.isEnrolledTab = false,
   });
 
   static Future<void> show(
     BuildContext context, {
     required StudentQueryParams query,
+    bool isEnrolledTab = false,
   }) {
     return showDialog(
       context: context,
@@ -31,7 +34,10 @@ class StudentFilterDialog extends ConsumerStatefulWidget {
             maxWidth: 460,
             maxHeight: MediaQuery.of(context).size.height * 0.88,
           ),
-          child: StudentFilterDialog(initialQuery: query),
+          child: StudentFilterDialog(
+            initialQuery: query,
+            isEnrolledTab: isEnrolledTab,
+          ),
         ),
       ),
     );
@@ -57,9 +63,8 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
     'Completed',
     'Pending',
   ];
-  static const _statusItems = [
+  static const _allTabStatusItems = [
     'All Status',
-    'Enrolled',
     'Graduated',
     'Transferred',
     'Dropped',
@@ -77,6 +82,9 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
     _pendingGradeLevel = q.gradeLevel.isEmpty ? 'All Grades' : q.gradeLevel;
     _pendingSection = q.section.isEmpty ? 'All Sections' : q.section;
     _pendingStatus = q.status.isEmpty ? 'All Status' : q.status;
+    if (!widget.isEnrolledTab && _pendingStatus == 'Enrolled') {
+      _pendingStatus = 'All Status';
+    }
     _pending4Ps =
         q.is4Ps.isEmpty ? 'All' : (q.is4Ps == 'true' ? 'Yes' : 'No');
     _pendingSortBy = q.sortBy;
@@ -226,7 +234,9 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      'Filter Students',
+                      widget.isEnrolledTab
+                          ? 'Filter Enrolled Students'
+                          : 'Filter All Students',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -266,32 +276,33 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 1. School Year (Cascades to Grade & Section)
-                  _buildFilterSection(
-                    label: 'School Year',
-                    hasActiveFilter:
-                        _pendingSchoolYear != 'All School Years',
-                    onReset: () => setState(() {
-                      _pendingSchoolYear = 'All School Years';
-                      _pendingGradeLevel = 'All Grades';
-                      _pendingSection = 'All Sections';
-                    }),
-                    child: _buildCleanDropdown(
-                      value: _pendingSchoolYear,
-                      items: syItems,
-                      onChanged: (v) {
-                        if (v != null) {
-                          setState(() {
-                            _pendingSchoolYear = v;
-                            _pendingGradeLevel = 'All Grades';
-                            _pendingSection = 'All Sections';
-                          });
-                        }
-                      },
+                  // 1. School Year (Cascades to Grade & Section) - only shown for All Students
+                  if (!widget.isEnrolledTab) ...[
+                    _buildFilterSection(
+                      label: 'School Year',
+                      hasActiveFilter:
+                          _pendingSchoolYear != 'All School Years',
+                      onReset: () => setState(() {
+                        _pendingSchoolYear = 'All School Years';
+                        _pendingGradeLevel = 'All Grades';
+                        _pendingSection = 'All Sections';
+                      }),
+                      child: _buildCleanDropdown(
+                        value: _pendingSchoolYear,
+                        items: syItems,
+                        onChanged: (v) {
+                          if (v != null) {
+                            setState(() {
+                              _pendingSchoolYear = v;
+                              _pendingGradeLevel = 'All Grades';
+                              _pendingSection = 'All Sections';
+                            });
+                          }
+                        },
+                      ),
                     ),
-                  ),
-
-                  _buildDivider(isDark),
+                    _buildDivider(isDark),
+                  ],
 
                   // 2. Grade Level (Cascades to Section)
                   _buildFilterSection(
@@ -342,21 +353,22 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
 
                   _buildDivider(isDark),
 
-                  // 4. Status Filter
-                  _buildFilterSection(
-                    label: 'Status',
-                    hasActiveFilter: _pendingStatus != 'All Status',
-                    onReset: () => setState(() {
-                      _pendingStatus = 'All Status';
-                    }),
-                    child: _buildFilterChipGroup(
-                      items: _statusItems,
-                      selectedValue: _pendingStatus,
-                      onSelected: (v) => setState(() => _pendingStatus = v),
+                  // 4. Status Filter - only shown for All Students, with 'Enrolled' removed
+                  if (!widget.isEnrolledTab) ...[
+                    _buildFilterSection(
+                      label: 'Status',
+                      hasActiveFilter: _pendingStatus != 'All Status',
+                      onReset: () => setState(() {
+                        _pendingStatus = 'All Status';
+                      }),
+                      child: _buildFilterChipGroup(
+                        items: _allTabStatusItems,
+                        selectedValue: _pendingStatus,
+                        onSelected: (v) => setState(() => _pendingStatus = v),
+                      ),
                     ),
-                  ),
-
-                  _buildDivider(isDark),
+                    _buildDivider(isDark),
+                  ],
 
                   // 5. 4Ps Beneficiary
                   _buildFilterSection(
@@ -460,10 +472,15 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
                     ),
                     onPressed: () {
                       setState(() {
-                        _pendingSchoolYear = 'All School Years';
+                        _pendingSchoolYear = widget.isEnrolledTab
+                            ? (widget.initialQuery.schoolYear.isEmpty
+                                ? 'All School Years'
+                                : widget.initialQuery.schoolYear)
+                            : 'All School Years';
                         _pendingGradeLevel = 'All Grades';
                         _pendingSection = 'All Sections';
-                        _pendingStatus = 'All Status';
+                        _pendingStatus =
+                            widget.isEnrolledTab ? 'Enrolled' : 'All Status';
                         _pending4Ps = 'All';
                         _pendingSortBy = '';
                         _pendingSortOrder = '';
@@ -499,19 +516,22 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
                       if (_pending4Ps == 'No') is4psVal = 'false';
 
                       ref.read(studentQueryProvider.notifier).setFilters(
-                            schoolYear:
-                                _pendingSchoolYear == 'All School Years'
+                            schoolYear: widget.isEnrolledTab
+                                ? widget.initialQuery.schoolYear
+                                : (_pendingSchoolYear == 'All School Years'
                                     ? ''
-                                    : _pendingSchoolYear,
+                                    : _pendingSchoolYear),
                             gradeLevel: _pendingGradeLevel == 'All Grades'
                                 ? ''
                                 : _pendingGradeLevel,
                             section: _pendingSection == 'All Sections'
                                 ? ''
                                 : _pendingSection,
-                            status: _pendingStatus == 'All Status'
-                                ? ''
-                                : _pendingStatus,
+                            status: widget.isEnrolledTab
+                                ? 'Enrolled'
+                                : (_pendingStatus == 'All Status'
+                                    ? ''
+                                    : _pendingStatus),
                             is4Ps: is4psVal,
                             sortBy: _pendingSortBy,
                             sortOrder: _pendingSortOrder,

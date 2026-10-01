@@ -29,8 +29,6 @@ import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
 
-enum _StudentViewTab { enrolled, all }
-
 class StudentsScreen extends ConsumerStatefulWidget {
   final String userRole;
   const StudentsScreen({super.key, this.userRole = 'teacher'});
@@ -53,7 +51,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   ProviderSubscription<String>? _tabListener;
 
   /// Whether the screen is showing enrolled-only (current year) or all students.
-  _StudentViewTab _viewTab = _StudentViewTab.enrolled;
+  StudentViewTab _viewTab = StudentViewTab.enrolled;
 
   final ScrollController _scrollController = ScrollController();
   bool _showTopFade = false;
@@ -95,10 +93,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       final initialQuery = ref.read(studentQueryProvider).search;
       if (initialQuery.isNotEmpty) {
         _searchController.text = initialQuery;
-        if (mounted) setState(() => _viewTab = _StudentViewTab.all);
+        if (mounted) setState(() => _viewTab = StudentViewTab.all);
+        ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
       } else {
         // Apply the default enrolled-tab filter on first load
-        _applyViewTab(_StudentViewTab.enrolled);
+        _applyViewTab(StudentViewTab.enrolled);
       }
       if (ref.read(activeTabProvider) == 'Students') {
         _shortcutFocusNode.requestFocus();
@@ -112,7 +111,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           if (_searchController.text.isNotEmpty) _searchController.clear();
           ref.read(studentQueryProvider.notifier).reset();
           // Reset view tab to enrolled for next visit
-          if (mounted) setState(() => _viewTab = _StudentViewTab.enrolled);
+          if (mounted) setState(() => _viewTab = StudentViewTab.enrolled);
+          ref.read(studentViewTabProvider.notifier).state = StudentViewTab.enrolled;
           if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
             _updateSelection(() {
               _showMultiSelect = false;
@@ -137,7 +137,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             if (mounted) setState(() {});
           }
           if (currentQuery.isNotEmpty) {
-            if (mounted) setState(() => _viewTab = _StudentViewTab.all);
+            if (mounted) setState(() => _viewTab = StudentViewTab.all);
+            ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
           } else if (mounted) {
             // Re-apply the enrolled filter when returning to this tab
             _applyViewTab(_viewTab);
@@ -167,8 +168,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   void _onSearchChanged() {
     _debounce?.cancel();
     final text = _searchController.text;
-    if (text.trim().isNotEmpty && _viewTab != _StudentViewTab.all) {
-      if (mounted) setState(() => _viewTab = _StudentViewTab.all);
+    if (text.trim().isNotEmpty && _viewTab != StudentViewTab.all) {
+      if (mounted) setState(() => _viewTab = StudentViewTab.all);
+      ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
       ref.read(studentQueryProvider.notifier).setFilters(
         status: '',
         schoolYear: '',
@@ -184,11 +186,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // ----------------------------------------------------------------
   // VIEW TAB: Enrolled (current year) vs All Students
   // ----------------------------------------------------------------
-  Future<void> _applyViewTab(_StudentViewTab tab) async {
+  Future<void> _applyViewTab(StudentViewTab tab) async {
     if (!mounted) return;
     setState(() => _viewTab = tab);
+    ref.read(studentViewTabProvider.notifier).state = tab;
 
-    if (tab == _StudentViewTab.enrolled) {
+    if (tab == StudentViewTab.enrolled) {
       // Clear any search when switching back to the enrolled tab
       if (_searchController.text.isNotEmpty) {
         _searchController.clear();
@@ -228,8 +231,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   void _onSearchSubmitted(String query) {
     _debounce?.cancel();
-    if (query.trim().isNotEmpty && _viewTab != _StudentViewTab.all) {
-      if (mounted) setState(() => _viewTab = _StudentViewTab.all);
+    if (query.trim().isNotEmpty && _viewTab != StudentViewTab.all) {
+      if (mounted) setState(() => _viewTab = StudentViewTab.all);
+      ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
       ref.read(studentQueryProvider.notifier).setFilters(
         status: '',
         schoolYear: '',
@@ -1015,15 +1019,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   Widget build(BuildContext context) {
     final query = ref.watch(studentQueryProvider);
     final pageAsync = ref.watch(studentPageProvider);
-    final activeCount = [
-      query.schoolYear.isNotEmpty,
-      query.gradeLevel.isNotEmpty,
-      query.section.isNotEmpty,
-      query.status.isNotEmpty,
-      query.is4Ps.isNotEmpty,
-      query.sortBy.isNotEmpty,
-      query.limit != 20,
-    ].where((v) => v).length;
+    final activeCount = ref.watch(studentActiveFilterCountProvider);
 
     ref.listen<bool>(studentMultiSelectProvider, (previous, next) {
       if (_showMultiSelect != next) {
@@ -1046,7 +1042,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     ref.listen<AsyncValue<List<AcademicYearModel>>>(academicYearsListProvider, (prev, next) {
       if (!mounted) return;
       final years = next.asData?.value;
-      if (years != null && years.isNotEmpty && _viewTab == _StudentViewTab.enrolled) {
+      if (years != null && years.isNotEmpty && _viewTab == StudentViewTab.enrolled) {
         final currentQuery = ref.read(studentQueryProvider);
         if (currentQuery.search.isEmpty) {
           final active = years.firstWhere(
@@ -1380,8 +1376,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
               // Filter IconButton with Badge
               IconButton(
-                onPressed: () =>
-                    StudentFilterDialog.show(context, query: query),
+                onPressed: () => StudentFilterDialog.show(
+                  context,
+                  query: query,
+                  isEnrolledTab: _viewTab == StudentViewTab.enrolled,
+                ),
                 padding: const EdgeInsets.all(8),
                 constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 icon: Badge(
@@ -1492,7 +1491,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     }
     final yearLabel = activeYear != null ? ' · ${activeYear.yearRange}' : '';
 
-    final isEnrolled = _viewTab == _StudentViewTab.enrolled;
+    final isEnrolled = _viewTab == StudentViewTab.enrolled;
 
     return Container(
       height: 36,
@@ -1516,7 +1515,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             isDark: isDark,
             isMobile: isMobile,
             isMobileOrAndroid: isMobileOrAndroid,
-            onTap: () => _applyViewTab(_StudentViewTab.enrolled),
+            onTap: () => _applyViewTab(StudentViewTab.enrolled),
           ),
           const SizedBox(width: 2),
           _buildSegmentedTabItem(
@@ -1527,7 +1526,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             isDark: isDark,
             isMobile: isMobile,
             isMobileOrAndroid: isMobileOrAndroid,
-            onTap: () => _applyViewTab(_StudentViewTab.all),
+            onTap: () => _applyViewTab(StudentViewTab.all),
           ),
         ],
       ),

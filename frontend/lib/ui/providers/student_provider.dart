@@ -206,8 +206,29 @@ class StudentQueryNotifier extends Notifier<StudentQueryParams> {
 final studentMultiSelectProvider = StateProvider<bool>((ref) => false);
 final studentSelectedIdsProvider = StateProvider<List<int>>((ref) => []);
 
+// ============================================================
+// View Tab Provider (Enrolled vs All Students)
+// ============================================================
+enum StudentViewTab { enrolled, all }
+
+final studentViewTabProvider =
+    StateProvider<StudentViewTab>((ref) => StudentViewTab.enrolled);
+
 final studentActiveFilterCountProvider = Provider<int>((ref) {
   final query = ref.watch(studentQueryProvider);
+  final tab = ref.watch(studentViewTabProvider);
+
+  if (tab == StudentViewTab.enrolled) {
+    // In enrolled tab, status and schoolYear are inherent to the tab, not user overrides
+    return [
+      query.gradeLevel.isNotEmpty,
+      query.section.isNotEmpty,
+      query.is4Ps.isNotEmpty,
+      query.sortBy.isNotEmpty,
+      query.limit != 20,
+    ].where((v) => v).length;
+  }
+
   return [
     query.gradeLevel.isNotEmpty,
     query.section.isNotEmpty,

@@ -757,7 +757,11 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                   message: 'Filter Students',
                                   child: IconButton(
                                     onPressed: () =>
-                                        StudentFilterDialog.show(context, query: query),
+                                        StudentFilterDialog.show(
+                                          context,
+                                          query: query,
+                                          isEnrolledTab: ref.read(studentViewTabProvider) == StudentViewTab.enrolled,
+                                        ),
                                     icon: Badge(
                                       isLabelVisible: activeCount > 0,
                                       label: Text(activeCount.toString()),

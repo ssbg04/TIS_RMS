@@ -943,6 +943,10 @@ Files backup/restore - mirror mode or zip -->
 - [DONE] remove the "Student Directory" and copy the design of top header tab on attached picture 
   - Removed "Students Directory" page title heading and unified the header into a floating card (`height: 52`, `margin: horizontal 16/24, vertical 8`, rounded 12 with border and subtle shadow).
   - Left side contains segmented tab switcher (`Enrolled` & `All Students`), right side contains search button, filter button with badge, elevated `Add Student` primary CTA button, and bulk import button.
+- [DONE] students tab make the filter not the same for enrolled and all, in the enrolled remove the status and school year, now in all tab remove the enrolled status
+  - Enrolled tab: Filter dialog hides both "School Year" and "Status" sections (locked to current active school year + Enrolled status). Resetting filters clears grade/section/4Ps/sorting/limit without unsetting the enrolled school year or status.
+  - All Students tab: Filter dialog displays "School Year" dropdown and "Status" filter chips with `'Enrolled'` removed (options: `'All Status'`, `'Graduated'`, `'Transferred'`, `'Dropped'`, `'Inactive'`).
+  - Added `studentViewTabProvider` and updated `studentActiveFilterCountProvider` so the filter badge count accurately counts active user overrides per tab.
 
 # USERS SCREEN
 - [DONE] use tabs for filter of all, admin, teacher, inactive -> copy the design on attached picture
