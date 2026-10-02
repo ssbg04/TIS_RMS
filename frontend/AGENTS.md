@@ -1011,8 +1011,9 @@ Files backup/restore - mirror mode or zip -->
 - [x] remove Ctrl + A for filter (removed from documentation shortcuts table) -->
 
 
-# HISTORY SCREEN
-- PRINTED_HISTORY card has a overflowed for date and time
+# HISTORY SCREEN [DONE]
+- [x] PRINTED_HISTORY card has a overflowed for date and time
+  - Made card headers in `audit_trail_screen.dart` responsive using `Wrap` layout so badges, entity types, and timestamps never overflow on any screen size.
 
 # Documentation website
 - fix FAQs make sure its on the current system features 
