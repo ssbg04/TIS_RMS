@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TIS-RMS User Guide & System Documentation</title>
-  <meta name="description" content="Official technical and operational manual for Talisay Integrated School - Records Management System on Windows and Android.">
+  <title>TIS-RMS User Guide - Student Records Management System</title>
+  <meta name="description" content="Friendly user guide and operational manual for Talisay Integrated School Records Management System on Windows and Android.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -24,8 +24,8 @@
       <a href="#overview" class="header-brand">
         <img src="assets/logo.png" alt="TIS-RMS Logo">
         <div class="brand-text">
-          <h1>TIS-RMS Docs</h1>
-          <span>Talisay Integrated School v1.0</span>
+          <h1>TIS-RMS Guide</h1>
+          <span>Talisay Integrated School</span>
         </div>
       </a>
     </div>
@@ -33,7 +33,7 @@
     <div class="header-search" id="headerSearchBox">
       <div class="search-input-wrap">
         <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="docSearchInput" class="search-input" placeholder="Search documentation, modules, FAQs..." autocomplete="off">
+        <input type="text" id="docSearchInput" class="search-input" placeholder="Search guide, features, questions..." autocomplete="off">
         <span class="search-kbd">Ctrl+K</span>
       </div>
     </div>
@@ -79,21 +79,21 @@
           <a href="#overview" class="nav-link active">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
             System Overview
-            <span class="nav-badge">Intro</span>
+            <span class="nav-badge">Guide</span>
           </a>
         </li>
         <li>
           <a href="#roles" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
-            Role Permissions
-            <span class="nav-badge">RBAC</span>
+            Staff Roles & Access
+            <span class="nav-badge">Roles</span>
           </a>
         </li>
         <li>
           <a href="#login" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
-            Login & Access
-            <span class="nav-badge">Auth</span>
+            Sign In & Access
+            <span class="nav-badge">Sign In</span>
           </a>
         </li>
       </ul>
@@ -103,7 +103,7 @@
         <li>
           <a href="#dashboard" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg></span>
-            Dashboard & Analytics
+            Dashboard & Overview
           </a>
         </li>
         <li>
@@ -121,31 +121,31 @@
         <li>
           <a href="#archives" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
-            Archival Vault
+            Student Archives
           </a>
         </li>
         <li>
           <a href="#batchprint" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></span>
-            Batch Print Queue
+            Batch Print Records
           </a>
         </li>
         <li>
           <a href="#reports" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span>
-            Reports & SF10 Engine
+            Student Records & Forms
           </a>
         </li>
         <li>
           <a href="#users" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg></span>
-            Users & Audit Trail
+            User Accounts & History
           </a>
         </li>
         <li>
           <a href="#settings" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
-            Settings & Backup
+            Settings & Checklists
           </a>
         </li>
       </ul>
@@ -168,7 +168,7 @@
         <li>
           <a href="#troubleshooting" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span>
-            Diagnostics & Setup
+            Help & Troubleshooting
           </a>
         </li>
       </ul>
@@ -179,96 +179,96 @@
 
       <!-- Hero Banner -->
       <section id="overview" class="hero-banner">
-        <span class="hero-tag">System Manual & Operational Reference</span>
+        <span class="hero-tag">User Guide & System Handbook</span>
         <h1 class="hero-title">Talisay Integrated School - Records Management System</h1>
         <p class="hero-subtitle">
-          An institutional records management and document archiving system built for secondary schools. Supports offline SQLite operation, Socket.IO real-time LAN synchronization, automated DepEd SF10 PDF compiling, multi-page batch scanning, and role-based access control.
+          A user-friendly records management and document archiving system created for Talisay Integrated School. Easily manage learner information, keep track of required school documents, scan student papers, and print permanent records on Windows computers and Android tablets without needing an internet connection.
         </p>
         <div class="hero-badges">
-          <span class="badge-item">Windows</span>
-          <span class="badge-item">Android</span>
-          <span class="badge-item">Socket.IO Real-Time Sync</span>
-          <span class="badge-item">Port 18484</span>
-          <span class="badge-item">DepEd SF10 Engine</span>
-          <span class="badge-item">RA 10173 Audit Ledger</span>
+          <span class="badge-item">Windows Desktop</span>
+          <span class="badge-item">Android Tablet</span>
+          <span class="badge-item">Works Without Internet</span>
+          <span class="badge-item">Live Updates</span>
+          <span class="badge-item">Easy Batch Printing</span>
+          <span class="badge-item">Learner Information Tracking</span>
         </div>
       </section>
 
-      <!-- System Architecture & Roles Section -->
+      <!-- Roles & Permissions Section -->
       <section id="roles" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">User Roles & Security Matrix</h2>
-          <p class="section-subtitle">Role-based access control policies governing registrar and teacher duties.</p>
+          <h2 class="section-title">Staff Roles & Access</h2>
+          <p class="section-subtitle">A clear guide to what Administrators and Teachers can view and do in the system.</p>
         </div>
 
         <div class="module-summary">
           <div class="module-summary-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-            Security Overview
+            Roles Overview
           </div>
           <ul class="module-summary-list">
-            <li><strong>Administrator:</strong> Unrestricted access to master data, user accounts, system configuration, permanent deletions, and school-wide reporting.</li>
-            <li><strong>Teacher / Staff:</strong> Scoped access to assigned sections, student enrollment profiles, document scanning, and Form 138/SF9 grade entry.</li>
-            <li><strong>Audit Logging:</strong> Every record access, print action, and modification is committed to an append-only audit trail with workstation IP and timestamp.</li>
+            <li><strong>Administrator (Registrar):</strong> Full access to view all grade levels and sections, create staff accounts, manage document checklists, restore archived files, and save backups.</li>
+            <li><strong>Teacher / Adviser:</strong> Dedicated access to view their assigned class sections, register new students, and upload scanned student documents.</li>
+            <li><strong>Activity History:</strong> Automatically keeps a clear record of who viewed, added, or printed student records so files remain safe and organized.</li>
           </ul>
         </div>
 
         <p class="paragraph">
-          TIS-RMS separates duties between the school registrar (Administrator) and classroom advisors (Teachers). This ensures student records are safeguarded in accordance with DepEd orders and the Philippine Data Privacy Act of 2012 (RA 10173).
+          The system makes it easy to collaborate while keeping student information safe and organized. Permissions are arranged so teachers can smoothly manage their advisory classes while school administrators oversee records across all grade levels.
         </p>
 
         <div class="table-wrap">
           <table class="doc-table">
             <thead>
               <tr>
-                <th>Operation / Capability</th>
+                <th>Feature / Action</th>
                 <th>Administrator</th>
                 <th>Teacher / Staff</th>
-                <th>Enforcement Rule</th>
+                <th>Description</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td><strong>Access System Dashboard</strong></td>
+                <td><strong>View Dashboard & Overview</strong></td>
                 <td><span class="badge success">School-Wide</span></td>
                 <td><span class="badge info">Assigned Section</span></td>
-                <td>Scoped by teacher ID</td>
+                <td>Shows statistics and missing document counters</td>
               </tr>
               <tr>
-                <td><strong>Create / Edit Student Profile</strong></td>
-                <td><span class="badge success">Allowed</span></td>
-                <td><span class="badge success">Allowed</span></td>
-                <td>Logged in audit trail</td>
-              </tr>
-              <tr>
-                <td><strong>Upload Scanned Documents (SF9, PSA)</strong></td>
-                <td><span class="badge success">Allowed</span></td>
-                <td><span class="badge success">Allowed</span></td>
-                <td>File type & size validated</td>
-              </tr>
-              <tr>
-                <td><strong>Archive Completed Records</strong></td>
+                <td><strong>Add & Edit Student Profiles</strong></td>
                 <td><span class="badge success">Allowed</span></td>
                 <td><span class="badge danger">Restricted</span></td>
-                <td>Admin-only authorization</td>
+                <td>Recorded in activity history</td>
               </tr>
               <tr>
-                <td><strong>Generate Official SF10 Form</strong></td>
+                <td><strong>Upload Student Documents (SF9, PSA)</strong></td>
                 <td><span class="badge success">Allowed</span></td>
                 <td><span class="badge success">Allowed</span></td>
-                <td>Watermark applied to drafts</td>
+                <td>Neatly saved directly to student folders</td>
               </tr>
               <tr>
-                <td><strong>Manage User Accounts & Passwords</strong></td>
+                <td><strong>Archive Inactive / Graduated Students</strong></td>
                 <td><span class="badge success">Allowed</span></td>
                 <td><span class="badge danger">Restricted</span></td>
-                <td>Generates 10-char random temporary password</td>
+                <td>Keeps active section rosters clean and current</td>
               </tr>
               <tr>
-                <td><strong>Export Database Snapshots</strong></td>
+                <td><strong>Print Student Documents & Forms</strong></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td>Prints official student records and forms</td>
+              </tr>
+              <tr>
+                <td><strong>Manage Staff Accounts & Passwords</strong></td>
                 <td><span class="badge success">Allowed</span></td>
                 <td><span class="badge danger">Restricted</span></td>
-                <td>Direct SQLite backup</td>
+                <td>Creates staff accounts with automatic temporary passwords</td>
+              </tr>
+              <tr>
+                <td><strong>Save System Backup Copies</strong></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td><span class="badge danger">Restricted</span></td>
+                <td>Safeguards all school records to an external drive</td>
               </tr>
             </tbody>
           </table>
@@ -278,19 +278,19 @@
       <!-- Access & Authentication Section -->
       <section id="login" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">Login & System Access</h2>
-          <p class="section-subtitle">Secure access portal for desktop workstations and Android devices.</p>
+          <h2 class="section-title">Sign In & System Access</h2>
+          <p class="section-subtitle">How to log into your account on desktop computers and Android tablets.</p>
         </div>
 
         <div class="module-summary">
           <div class="module-summary-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            Authentication Summary
+            Sign-In Summary
           </div>
           <ul class="module-summary-list">
-            <li><strong>Single Sign-On Terminal:</strong> Users sign in using their registered username and encrypted password.</li>
-            <li><strong>Role Auto-Detection:</strong> Upon successful sign-in, the system automatically tailors the navigation drawer to either Administrator or Teacher permissions.</li>
-            <li><strong>Local Server Connection:</strong> The Android client connects directly to the school host machine via local network configuration (port 18484).</li>
+            <li><strong>Simple Sign-In:</strong> Sign in with the username and temporary password provided by your school administrator.</li>
+            <li><strong>Automatic Workspace Setup:</strong> When you sign in, the system automatically opens the tools and sections you need based on your role.</li>
+            <li><strong>School Wi-Fi Connection:</strong> Connect your tablet or desktop to the school's local Wi-Fi network to start working immediately.</li>
           </ul>
         </div>
 
@@ -302,24 +302,24 @@
           </div>
 
           <div class="mockup-pane active" id="win-login">
-            <figure class="doc-figure" data-lightbox="assets/images/windows/login.webp" data-caption="Windows Login Screen with credential entry and server status">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/login.webp" data-caption="Windows Sign In Screen">
               <div class="doc-figure-img-wrap">
-                <img src="assets/images/windows/login.webp" alt="Windows Login Screen" loading="lazy">
+                <img src="assets/images/windows/login.webp" alt="Windows Sign In Screen" loading="lazy">
               </div>
               <figcaption>
-                <span>Figure 1A: Windows Authentication Screen</span>
+                <span>Figure 1A: Windows Sign In Screen</span>
                 <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
               </figcaption>
             </figure>
           </div>
 
           <div class="mockup-pane" id="and-login" style="display:none;">
-            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/login.webp" data-caption="Android Login Interface with host connection settings">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/login.webp" data-caption="Android Sign In Screen">
               <div class="doc-figure-img-wrap">
-                <img src="assets/images/android/login.webp" alt="Android Login Screen" loading="lazy">
+                <img src="assets/images/android/login.webp" alt="Android Sign In Screen" loading="lazy">
               </div>
               <figcaption>
-                <span>Figure 1B: Android Authentication Screen</span>
+                <span>Figure 1B: Android Sign In Screen</span>
                 <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
               </figcaption>
             </figure>
@@ -327,27 +327,27 @@
         </div>
       </section>
 
-      <!-- Module 1: Dashboard & Analytics -->
+      <!-- Module 1: Dashboard & Overview -->
       <section id="dashboard" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">Module 1: Dashboard & Analytics</h2>
-          <p class="section-subtitle">Real-time status indicators, enrollment charts, and missing document flags.</p>
+          <h2 class="section-title">Module 1: Dashboard & Overview</h2>
+          <p class="section-subtitle">At-a-glance summaries, student counts, and reminders for missing documents.</p>
         </div>
 
         <div class="module-summary">
           <div class="module-summary-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-            Key Capabilities
+            Key Highlights
           </div>
           <ul class="module-summary-list">
-            <li><strong>Summary Counters:</strong> Instant visibility into Total Students, Incomplete Requirements, Total Documents, and Active Cohorts.</li>
-            <li><strong>Socket.IO Live Synchronization:</strong> Counters update reactively whenever students or documents are added across the local network.</li>
-            <li><strong>Activity Feed:</strong> Shows chronological stream of recent scans, edits, and status transitions.</li>
+            <li><strong>Helpful Summary Cards:</strong> Instant counts for Total Students, Students with Incomplete Requirements, Total Uploaded Documents, and Active Sections.</li>
+            <li><strong>Live Updates:</strong> Counts update immediately on your screen whenever a teacher or staff member adds a student or uploads a document on another device.</li>
+            <li><strong>Recent Activity Feed:</strong> A quick, easy-to-read list showing recent actions taken across the school.</li>
           </ul>
         </div>
 
         <p class="paragraph">
-          The Dashboard serves as the central operational hub for both administrative staff and classroom advisers. Statistics are updated reactively from local SQLite queries and Socket.IO broadcasts, ensuring zero latency even when internet connectivity is unavailable.
+          The Dashboard is your main home screen. It gives teachers and administrators a clear view of student enrollment, quick reminders for incomplete documents, and recent file activities—all updated automatically in real time without needing an internet connection.
         </p>
 
         <!-- Platform Mockup Showcase -->
@@ -358,77 +358,77 @@
           </div>
 
           <div class="mockup-pane active" id="win-dash">
-            <figure class="doc-figure" data-lightbox="assets/images/windows/dashboard.webp" data-caption="Windows Dashboard with Metric Cards and Grade Level Distribution">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/dashboard.webp" data-caption="Windows Dashboard with Summary Cards and Grade Level Distribution">
               <div class="doc-figure-img-wrap">
                 <img src="assets/images/windows/dashboard.webp" alt="Windows Dashboard" loading="lazy">
               </div>
               <figcaption>
-                <span>Figure 2A: Windows Dashboard & Real-Time Analytics</span>
+                <span>Figure 2A: Windows Dashboard & Overview</span>
                 <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
               </figcaption>
             </figure>
           </div>
 
           <div class="mockup-pane" id="and-dash" style="display:none;">
-            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/dashboard.webp" data-caption="Android Dashboard Interface">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/dashboard.webp" data-caption="Android Dashboard Overview">
               <div class="doc-figure-img-wrap">
                 <img src="assets/images/android/dashboard.webp" alt="Android Dashboard" loading="lazy">
               </div>
               <figcaption>
-                <span>Figure 2B: Android Dashboard & Analytics</span>
+                <span>Figure 2B: Android Dashboard & Overview</span>
                 <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
               </figcaption>
             </figure>
           </div>
         </div>
 
-        <h3 class="subheading">Dashboard Metric Breakdown</h3>
+        <h3 class="subheading">What You Can See on the Dashboard</h3>
         <div class="feature-grid">
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
             </div>
-            <h4 class="card-title">Real-Time Stat Counters</h4>
-            <p class="card-desc">Active Enrollees, Archived Students, Total Scanned Pages, and Incomplete Student Folders updated instantaneously through local reactive streams.</p>
+            <h4 class="card-title">Live Summary Counters</h4>
+            <p class="card-desc">See the total count of enrolled students, archived records, uploaded files, and students who still need to submit documents.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
             </div>
-            <h4 class="card-title">Grade & Strand Ratios</h4>
-            <p class="card-desc">Visual distribution graphs indicating cohort sizes across Grade 7 through Grade 12, allowing administrators to balance section loading.</p>
+            <h4 class="card-title">Grade Level Distribution</h4>
+            <p class="card-desc">Clear visual charts showing student numbers across Grade 7 through Grade 12 so teachers and administrators can see class sizes at a glance.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
             </div>
-            <h4 class="card-title">Live Audit Stream</h4>
-            <p class="card-desc">Continuous audit trail logging user authentication, student profile edits, document attachments, and batch print executions.</p>
+            <h4 class="card-title">Recent Activity Feed</h4>
+            <p class="card-desc">A continuous list of recent actions, such as newly registered students, uploaded documents, and printed records.</p>
           </div>
         </div>
       </section>
 
-      <!-- Module 2: Student Information Management -->
+      <!-- Module 2: Student Information System -->
       <section id="students" class="doc-section">
         <div class="section-header">
           <h2 class="section-title">Module 2: Student Information System</h2>
-          <p class="section-subtitle">Learner profiles, enrollment management, requirement tracking, and optical character recognition (OCR).</p>
+          <p class="section-subtitle">Learner profiles, enrollment details, requirement status, and fast SF9/SF10 document scanning.</p>
         </div>
 
         <div class="module-summary">
           <div class="module-summary-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-            Key Capabilities
+            Key Highlights
           </div>
           <ul class="module-summary-list">
-            <li><strong>LRN Master Index:</strong> All records are keyed by DepEd's unique 12-digit Learner Reference Number to prevent duplication.</li>
-            <li><strong>OCR-Assisted Data Entry:</strong> Scan birth certificates or SF9 cards to auto-populate demographic fields into the registration form.</li>
-            <li><strong>Missing Requirements Flag:</strong> Red status badges immediately indicate students with missing birth certificates or Form 137 records.</li>
+            <li><strong>12-Digit LRN Tracking:</strong> Every student record is organized by their unique Learner Reference Number to prevent duplicate entries.</li>
+            <li><strong>Quick Data Entry with SF9 & SF10 (OCR):</strong> When adding a new student, scan an SF9 (Form 138) or SF10 (Form 137) to automatically fill in basic form fields like Name, LRN, Birthday, and Sex.</li>
+            <li><strong>Missing Document Reminders:</strong> A clear status badge shows right away if a student still needs to submit any required documents.</li>
           </ul>
         </div>
 
         <p class="paragraph">
-          The Student module holds complete demographic and academic records. Search queries match against LRN, last name, first name, grade level, and section in real-time as you type.
+          The Student Information module holds essential learner details in one convenient place. You can search for students quickly by typing their LRN, last name, first name, grade level, or section.
         </p>
 
         <!-- Mockup Display -->
@@ -439,21 +439,21 @@
           </div>
 
           <div class="mockup-pane active" id="win-stud">
-            <figure class="doc-figure" data-lightbox="assets/images/windows/students.webp" data-caption="Student Master List with Quick Search, Filter Badges, and Action Menu">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/students.webp" data-caption="Student List with Quick Search and Action Menu">
               <div class="doc-figure-img-wrap">
-                <img src="assets/images/windows/students.webp" alt="Windows Student Master List" loading="lazy">
+                <img src="assets/images/windows/students.webp" alt="Windows Student List" loading="lazy">
               </div>
               <figcaption>
-                <span>Figure 3A: Windows Students Master List</span>
+                <span>Figure 3A: Windows Students List</span>
                 <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
               </figcaption>
             </figure>
           </div>
 
           <div class="mockup-pane" id="and-stud" style="display:none;">
-            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/students.webp" data-caption="Android Student List with Tab Filters">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/students.webp" data-caption="Android Student List with Section Filters">
               <div class="doc-figure-img-wrap">
-                <img src="assets/images/android/students.webp" alt="Android Student Master List" loading="lazy">
+                <img src="assets/images/android/students.webp" alt="Android Student List" loading="lazy">
               </div>
               <figcaption>
                 <span>Figure 3B: Android Students List</span>
@@ -468,29 +468,29 @@
           <div class="step-card">
             <div class="step-number">1</div>
             <div class="step-content">
-              <h4>Open Registration Form</h4>
-              <p>Navigate to the Students screen and select <strong>Add Student</strong> or press keyboard shortcut <kbd>Ctrl+N</kbd>.</p>
+              <h4>Open the Registration Form</h4>
+              <p>Navigate to the Students screen and click <strong>Add Student</strong>, or press keyboard shortcut <kbd>Ctrl+N</kbd> on your desktop.</p>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number">2</div>
             <div class="step-content">
-              <h4>Provide Learner Profile</h4>
-              <p>Enter the 12-digit LRN, legal name (Last, First, Middle, Suffix), date of birth, sex, grade level, section, and guardian contact numbers. Alternatively, choose <strong>Scan with OCR</strong> to extract details automatically.</p>
+              <h4>Enter Details or Scan SF9 / SF10 (OCR)</h4>
+              <p>Type in the student's basic details: 12-digit LRN, full name, sex, birthday, grade, section, and 4Ps status. To save time, you can click <strong>Scan Document</strong> and scan their SF9 or SF10—the scanner will automatically read the document and fill in these text fields for you! <em>(Note: The scanner only fills in the form text fields; it does not automatically attach the scanned file to the student's folder).</em></p>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number">3</div>
             <div class="step-content">
-              <h4>Automatic Folder Provisioning</h4>
-              <p>The system creates a student folder with standard requirement slots: PSA Birth Certificate, SF9 (Form 138), Good Moral, and 2x2 Photo.</p>
+              <h4>Automatic Folder Setup</h4>
+              <p>The system creates a personal digital folder for the student with slots for required documents like their PSA Birth Certificate, SF9, Good Moral Certificate, and 2x2 Photo.</p>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number">4</div>
             <div class="step-content">
-              <h4>Save and Commit</h4>
-              <p>Click <strong>Save Record</strong>. The student is immediately indexed in local SQLite storage and Socket.IO broadcasts the update to all connected Windows and Android clients.</p>
+              <h4>Save Record</h4>
+              <p>Click <strong>Save Record</strong>. The student is saved immediately and becomes visible to staff across all connected school computers and tablets.</p>
             </div>
           </div>
         </div>
@@ -500,23 +500,23 @@
       <section id="documents" class="doc-section">
         <div class="section-header">
           <h2 class="section-title">Module 3: Documents & Virtual Folders</h2>
-          <p class="section-subtitle">Tree directory structure, requirement taxonomy, and high-performance in-app WebP rendering.</p>
+          <p class="section-subtitle">Organized digital filing cabinets, flexible document requirements, and instant document viewing.</p>
         </div>
 
         <div class="module-summary">
           <div class="module-summary-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-            Key Capabilities
+            Key Highlights
           </div>
           <ul class="module-summary-list">
-            <li><strong>Virtual Filing Cabinets:</strong> Organizes student documents by School Year, Grade Level, and Section without file path conflicts.</li>
-            <li><strong>Standard DepEd Taxonomy:</strong> Categorizes documents into PSA Birth Certificates, SF9 Progress Reports, SF10 Permanent Records, and Ancillary Certifications.</li>
-            <li><strong>Server-Side WebP Conversion:</strong> Multi-page documents and scanned PDFs are converted into optimized WebP images for immediate in-app viewing without external PDF viewer software.</li>
+            <li><strong>Virtual Filing Cabinets:</strong> Neatly organizes student documents by School Year, Grade Level, and Section—just like a physical filing cabinet.</li>
+            <li><strong>Dynamically Add, Edit, and Enable/Disable Documents:</strong> School administrators can add new document types anytime, edit existing document names, and turn specific requirements on or off as school policies change.</li>
+            <li><strong>Instant Built-in Viewer:</strong> Click any document to open a full preview directly inside the app to read, zoom, and rotate pages without needing extra software.</li>
           </ul>
         </div>
 
         <p class="paragraph">
-          TIS-RMS implements a tree-based <strong>Virtual Folder Architecture</strong> mimicking physical registrar filing cabinets. Folders are automatically maintained per school year and section.
+          TIS-RMS keeps student files neatly sorted and accessible. Instead of searching through paper filing cabinets, staff can find and view any student document in seconds. Document requirements are completely flexible—administrators can easily add new document types, rename them, or enable and disable requirements as needed.
         </p>
 
         <!-- Document Mockups -->
@@ -527,7 +527,7 @@
           </div>
 
           <div class="mockup-pane active" id="win-doc">
-            <figure class="doc-figure" data-lightbox="assets/images/windows/documents.webp" data-caption="Windows Document Explorer showing virtual school year folders and student document intake">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/documents.webp" data-caption="Windows Documents Explorer showing school year folders and student files">
               <div class="doc-figure-img-wrap">
                 <img src="assets/images/windows/documents.webp" alt="Windows Documents Explorer" loading="lazy">
               </div>
@@ -539,7 +539,7 @@
           </div>
 
           <div class="mockup-pane" id="and-doc" style="display:none;">
-            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/documents.webp" data-caption="Android Document Viewer and scanning interface">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/documents.webp" data-caption="Android Documents View with easy document preview">
               <div class="doc-figure-img-wrap">
                 <img src="assets/images/android/documents.webp" alt="Android Documents View" loading="lazy">
               </div>
@@ -551,35 +551,35 @@
           </div>
         </div>
 
-        <h3 class="subheading">Supported Document Classifications</h3>
+        <h3 class="subheading">Common Document Examples</h3>
         <div class="feature-grid">
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
             </div>
             <h4 class="card-title">PSA / NSO Birth Certificate</h4>
-            <p class="card-desc">Legal record verifying student name, date of birth, sex, and parentage during enrollment intake.</p>
+            <p class="card-desc">Confirms official learner legal name, date of birth, sex, and parent information.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
             </div>
             <h4 class="card-title">DepEd Form 138 (SF9)</h4>
-            <p class="card-desc">Report card displaying quarterly learning area ratings, attendance marks, and observed behavioral values.</p>
+            <p class="card-desc">Report card copy kept in the student's folder for records tracking.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
             </div>
             <h4 class="card-title">Certificate of Good Moral</h4>
-            <p class="card-desc">Character certification required for transferring in, scholarship verification, and graduation clearance.</p>
+            <p class="card-desc">Character certification required for student records, transfers, and graduation.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"></circle><path d="M5.5 21h13a2 2 0 0 0 2-2v-2a7 7 0 0 0-14 0v2a2 2 0 0 0 2 2z"></path></svg>
             </div>
-            <h4 class="card-title">2x2 Formal Identification Photo</h4>
-            <p class="card-desc">Official student identification portrait used for Form 137 records, diploma inserts, and examination badges.</p>
+            <h4 class="card-title">2x2 Student Identification Photo</h4>
+            <p class="card-desc">Formal identification portrait used for official school records and certificates.</p>
           </div>
         </div>
       </section>
@@ -587,24 +587,24 @@
       <!-- Module 4: Archive System -->
       <section id="archives" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">Module 4: Archival Vault & Records Retention</h2>
-          <p class="section-subtitle">Long-term preservation for graduated, transferred-out, and dropped student records.</p>
+          <h2 class="section-title">Module 4: Student Archives & Records Retention</h2>
+          <p class="section-subtitle">Safe, long-term storage for graduated, transferred, and inactive student records.</p>
         </div>
 
         <div class="module-summary">
           <div class="module-summary-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
-            Key Capabilities
+            Key Highlights
           </div>
           <ul class="module-summary-list">
-            <li><strong>Cohort Separation:</strong> Separates graduated or transferred students from active enrollment while keeping scholastic history accessible.</li>
-            <li><strong>Real-Time Backend Filter:</strong> Archive search queries execute asynchronous SQLite queries with debouncing, returning results in under 10ms.</li>
-            <li><strong>Reinstatement:</strong> Administrators can restore incorrectly archived students with a single click, preserving all attached document links.</li>
+            <li><strong>Separate Inactive Storage:</strong> Keeps graduated and transferred students separate from your active classes while keeping all their files permanently accessible.</li>
+            <li><strong>Fast Archive Search:</strong> Quickly search and filter through past school years, grade levels, and sections to locate past records in seconds.</li>
+            <li><strong>One-Click Restore:</strong> Administrators can restore any student back to an active section at any time with all their documents intact.</li>
           </ul>
         </div>
 
         <p class="paragraph">
-          Under national educational records policies, records of graduated students must be retained for permanent access. TIS-RMS isolates archived students from active section rosters while preserving full document searchability.
+          Student records must be kept permanently for future reference and verification. TIS-RMS stores completed student records safely in the Archives so your active student lists stay clean, while past records remain easy to find whenever a graduate requests their papers.
         </p>
 
         <!-- Mockup Display -->
@@ -615,132 +615,132 @@
           </div>
 
           <div class="mockup-pane active" id="win-arch">
-            <figure class="doc-figure" data-lightbox="assets/images/windows/archives.webp" data-caption="Archive Explorer with Real-time Filters for Status, School Year, and Grade">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/archives.webp" data-caption="Archive Explorer with Filters for Status, School Year, and Grade">
               <div class="doc-figure-img-wrap">
                 <img src="assets/images/windows/archives.webp" alt="Windows Archive Explorer" loading="lazy">
               </div>
               <figcaption>
-                <span>Figure 5A: Windows Archival Vault</span>
+                <span>Figure 5A: Windows Student Archives</span>
                 <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
               </figcaption>
             </figure>
           </div>
 
           <div class="mockup-pane" id="and-arch" style="display:none;">
-            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/archives.webp" data-caption="Android Archive Vault View">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/archives.webp" data-caption="Android Archive View">
               <div class="doc-figure-img-wrap">
                 <img src="assets/images/android/archives.webp" alt="Android Archive View" loading="lazy">
               </div>
               <figcaption>
-                <span>Figure 5B: Android Archival Vault</span>
+                <span>Figure 5B: Android Student Archives</span>
                 <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
               </figcaption>
             </figure>
           </div>
         </div>
 
-        <h3 class="subheading">Archival Guardrails</h3>
+        <h3 class="subheading">Archive Safeguards</h3>
         <div class="feature-grid">
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
             </div>
-            <h4 class="card-title">Read-Only Locking</h4>
-            <p class="card-desc">Archived transcripts are locked in read-only mode to prevent inadvertent grade changes after graduation certificates are issued.</p>
+            <h4 class="card-title">Protected Records</h4>
+            <p class="card-desc">Archived student profiles are safely locked to prevent accidental changes while preserving complete details.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
             </div>
             <h4 class="card-title">Instant Restoration</h4>
-            <p class="card-desc">Students archived by mistake can be restored to active registry status with all prior grades and documents preserved.</p>
+            <p class="card-desc">Easily return a student to active enrollment if they return or were archived by accident, with all their documents intact.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             </div>
-            <h4 class="card-title">Cohort Multi-Filtering</h4>
-            <p class="card-desc">Filter archives across School Year (e.g., 2023–2024), Grade Level, Section, or Status (Graduated, Transferred Out, Dropped).</p>
+            <h4 class="card-title">Easy Group Filtering</h4>
+            <p class="card-desc">Filter archived records by School Year (e.g., 2023–2024), Grade Level, Section, or Status (Graduated, Transferred Out, or Dropped).</p>
           </div>
         </div>
       </section>
 
-      <!-- Module 5: Batch Print Queue & PDF Compilation -->
+      <!-- Module 5: Batch Print Queue -->
       <section id="batchprint" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">Module 5: Batch Print Queue & PDF Compilation</h2>
-          <p class="section-subtitle">Multi-record merging, auto-duplex formatting, official watermarking, and print spooling.</p>
+          <h2 class="section-title">Module 5: Batch Print Records</h2>
+          <p class="section-subtitle">Print multiple student files or entire sections together in one easy step.</p>
         </div>
 
         <div class="module-summary">
           <div class="module-summary-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-            Key Capabilities
+            Key Highlights
           </div>
           <ul class="module-summary-list">
-            <li><strong>Automated Compilation:</strong> Merges multiple student records into a single consolidated PDF package for division audits.</li>
-            <li><strong>Background Queue:</strong> Large print jobs process asynchronously in the background so workstation responsiveness is maintained.</li>
-            <li><strong>Watermark Enforcement:</strong> Embeds official school seal, verification hash, and "OFFICIAL COPY" watermarks on exported files.</li>
+            <li><strong>Print Multiple Students at Once:</strong> Select several students or an entire section to print their records together in one go.</li>
+            <li><strong>Smooth Background Preparation:</strong> The system prepares print jobs smoothly in the background so you can keep using the app without delays.</li>
+            <li><strong>Ready for Official Submission:</strong> Prepares clean, professional printed copies ready for district audits, transfers, and graduation requirements.</li>
           </ul>
         </div>
 
         <p class="paragraph">
-          Generating records for an entire graduating section can be time-consuming. TIS-RMS compiles and spools documents in batches of 10 to prevent memory pressure while producing clean, standardized vector PDF packages.
+          Preparing physical documents for an entire class can take hours if done one by one. TIS-RMS lets you select an entire section and print their records in a single coordinated batch.
         </p>
 
         <div class="steps-container">
           <div class="step-card">
             <div class="step-number">1</div>
             <div class="step-content">
-              <h4>Select Target Students</h4>
-              <p>In the Students or Archives screen, check the target student rows or choose <strong>Select All in Section</strong>.</p>
+              <h4>Select Students</h4>
+              <p>On the Students or Archives screen, check the boxes for the students you wish to print, or click <strong>Select All in Section</strong>.</p>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number">2</div>
             <div class="step-content">
-              <h4>Launch Batch Print Dialog</h4>
-              <p>Click the <strong>Batch Print</strong> toolbar icon or press keyboard shortcut <kbd>Ctrl+P</kbd>.</p>
+              <h4>Open Batch Print</h4>
+              <p>Click the <strong>Batch Print</strong> toolbar icon or press keyboard shortcut <kbd>Ctrl+P</kbd> on your desktop.</p>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number">3</div>
             <div class="step-content">
-              <h4>Configure Compilation Options</h4>
-              <p>Choose document types to compile (SF10 only, SF9 only, or Full Dossier including PSA birth certificates). Toggle duplex page alignment if your printer supports double-sided printing.</p>
+              <h4>Choose Documents to Print</h4>
+              <p>Select which documents you need for the selected students (such as SF10 forms or full student folder packages).</p>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number">4</div>
             <div class="step-content">
-              <h4>Compile & Print</h4>
-              <p>Click <strong>Compile Dossier</strong>. TIS-RMS streams the merged output directly to the system print dialogue or saves a merged PDF.</p>
+              <h4>Send to Printer</h4>
+              <p>Click <strong>Print</strong> to send the documents directly to your connected printer or save them as a ready-to-print file.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Module 6: DepEd SF10 & Reports -->
+      <!-- Module 6: Student Records & Forms -->
       <section id="reports" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">Module 6: DepEd SF10 & Reports Engine</h2>
-          <p class="section-subtitle">Official DepEd Form 137/SF10 compilation directly from Excel templates into standardized PDF outputs.</p>
+          <h2 class="section-title">Module 6: Student Records & Forms</h2>
+          <p class="section-subtitle">Standardized DepEd SF10 forms and student summary sheets focusing on essential learner information.</p>
         </div>
 
         <div class="module-summary">
           <div class="module-summary-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-            Key Capabilities
+            Key Highlights
           </div>
           <ul class="module-summary-list">
-            <li><strong>DepEd Standard Templates:</strong> Reads official DepEd SF10 Excel workbooks for Junior High (JHS) and Senior High (SHS).</li>
-            <li><strong>Automated Computation:</strong> Calculates general averages, remedial subject credits, and promotion remarks automatically.</li>
-            <li><strong>Direct PDF Rendering:</strong> Produces print-ready vector PDF files with correct DepEd header seals and signatory blocks.</li>
+            <li><strong>Standard Form Layout:</strong> Generates clean SF10 forms and learner summary sheets with official school headers.</li>
+            <li><strong>Core Learner Information Only:</strong> Strictly scopes essential student details: Full Name, LRN, Sex, Birthday, and 4Ps Beneficiary Status (Yes or No).</li>
+            <li><strong>No Academic Grades or Remarks:</strong> The system is built for student identity and document tracking—it does not track, calculate, or manage grades, subjects, or teacher remarks.</li>
           </ul>
         </div>
 
         <p class="paragraph">
-          The system includes a dedicated <strong>Excel-to-PDF Template Engine</strong>. It loads official DepEd SF10 spreadsheets, fills demographic and scholastic data into template cells, and renders standardized vector PDFs.
+          The Student Records &amp; Forms feature prepares official DepEd SF10 templates and student summary sheets. To keep records management focused and straightforward, the system scopes only basic student identification information and does not handle academic grades, subject lists, or promotional remarks.
         </p>
 
         <!-- Reports Mockup -->
@@ -751,52 +751,84 @@
           </div>
 
           <div class="mockup-pane active" id="win-rep">
-            <figure class="doc-figure" data-lightbox="assets/images/windows/reports.webp" data-caption="Reports Generator Interface with Grade Selection and Export Formats">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/reports.webp" data-caption="Forms and Reports Interface with Section Selection">
               <div class="doc-figure-img-wrap">
-                <img src="assets/images/windows/reports.webp" alt="Windows Reports Generator" loading="lazy">
+                <img src="assets/images/windows/reports.webp" alt="Windows Forms & Reports" loading="lazy">
               </div>
               <figcaption>
-                <span>Figure 6A: Windows Reports & SF10 Generator</span>
+                <span>Figure 6A: Windows Student Forms & Reports</span>
                 <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
               </figcaption>
             </figure>
           </div>
 
           <div class="mockup-pane" id="and-rep" style="display:none;">
-            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/reports.webp" data-caption="Android Reports Screen with template selectors">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/reports.webp" data-caption="Android Forms and Reports Screen">
               <div class="doc-figure-img-wrap">
-                <img src="assets/images/android/reports.webp" alt="Android Reports Generator" loading="lazy">
+                <img src="assets/images/android/reports.webp" alt="Android Forms & Reports" loading="lazy">
               </div>
               <figcaption>
-                <span>Figure 6B: Android Reports & Form Generator</span>
+                <span>Figure 6B: Android Student Forms & Reports</span>
                 <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
               </figcaption>
             </figure>
           </div>
         </div>
+
+        <h3 class="subheading">Information Handled by the System</h3>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+            </div>
+            <h4 class="card-title">Learner Legal Name</h4>
+            <p class="card-desc">Accurately records Last Name, First Name, Middle Name, and Name Extension (e.g., Jr., III).</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+            <h4 class="card-title">12-Digit LRN</h4>
+            <p class="card-desc">The official unique Learner Reference Number issued by DepEd.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            </div>
+            <h4 class="card-title">Sex & Birthday</h4>
+            <p class="card-desc">Verified gender and date of birth as stated in official PSA records.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <h4 class="card-title">4Ps Status (Yes or No)</h4>
+            <p class="card-desc">Clear record indicating whether the student is a member of the 4Ps assistance program.</p>
+          </div>
+        </div>
       </section>
 
-      <!-- Module 7: Users & Immutable Audit Trail -->
+      <!-- Module 7: User Accounts & Activity History -->
       <section id="users" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">Module 7: User Accounts & Audit Trail</h2>
-          <p class="section-subtitle">Account provisioning, role assignments, security sessions, and tamper-evident audit history.</p>
+          <h2 class="section-title">Module 7: User Accounts & Activity History</h2>
+          <p class="section-subtitle">Manage staff accounts, set permissions, and see a clear history of system actions.</p>
         </div>
 
         <div class="module-summary">
           <div class="module-summary-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-            Key Capabilities
+            Key Highlights
           </div>
           <ul class="module-summary-list">
-            <li><strong>Data Privacy Act Compliance:</strong> Maintains an immutable activity log recording user ID, target student LRN, action type, IP address, and timestamp.</li>
-            <li><strong>Cryptographic Password Generation:</strong> Newly created user accounts and password resets generate a 10-character randomized temporary password displayed directly on screen.</li>
-            <li><strong>Access Forensics:</strong> Filter audit logs by user, action (View, Update, Delete, Print, Login), or student record. Responsive badge layout ensures zero text clipping.</li>
+            <li><strong>Account Management:</strong> Administrators can easily add new staff members and assign their role as Administrator or Teacher.</li>
+            <li><strong>Automatic Temporary Passwords:</strong> When creating an account or resetting a password, the system provides a secure temporary password displayed directly on screen.</li>
+            <li><strong>Clear Activity History:</strong> A simple history log records who viewed, added, updated, or printed records so staff always know what was done.</li>
           </ul>
         </div>
 
         <p class="paragraph">
-          To comply with the Philippine Data Privacy Act of 2012 (RA 10173), all actions performed within TIS-RMS—including viewing, downloading, printing, editing, and deleting records—are committed to an immutable audit ledger.
+          Keeping student records safe is essential. TIS-RMS ensures each teacher and staff member has their own login, while maintaining a clear, readable activity history to protect school records.
         </p>
 
         <!-- Users Mockup -->
@@ -807,7 +839,7 @@
           </div>
 
           <div class="mockup-pane active" id="win-usr">
-            <figure class="doc-figure" data-lightbox="assets/images/windows/users.webp" data-caption="User Accounts Screen with Role Assignment and Security Status">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/users.webp" data-caption="User Accounts Screen with Staff Roles and Status">
               <div class="doc-figure-img-wrap">
                 <img src="assets/images/windows/users.webp" alt="Windows User Accounts" loading="lazy">
               </div>
@@ -831,9 +863,9 @@
           </div>
         </div>
 
-        <h3 class="subheading">Audit History & Activity Ledger</h3>
+        <h3 class="subheading">Activity History Log</h3>
         <p class="paragraph">
-          The History screen logs every operation performed in the system. Entries cannot be cleared or modified by non-root users.
+          The History screen gives administrators a friendly, chronological summary of recent school records actions. It shows who performed each action, which student record was accessed, and what date and time it occurred.
         </p>
 
         <!-- Audit History Mockup -->
@@ -844,24 +876,24 @@
           </div>
 
           <div class="mockup-pane active" id="win-hist">
-            <figure class="doc-figure" data-lightbox="assets/images/windows/history.webp" data-caption="Windows Audit Ledger recording user IP, action type, student LRN, and timestamp">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/history.webp" data-caption="Windows Activity History Log showing staff actions and timestamps">
               <div class="doc-figure-img-wrap">
                 <img src="assets/images/windows/history.webp" alt="Windows History Log" loading="lazy">
               </div>
               <figcaption>
-                <span>Figure 8A: Windows Immutable Audit History Log</span>
+                <span>Figure 8A: Windows Activity History Log</span>
                 <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
               </figcaption>
             </figure>
           </div>
 
           <div class="mockup-pane" id="and-hist" style="display:none;">
-            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/history.webp" data-caption="Android Audit Ledger View">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/history.webp" data-caption="Android Activity History View">
               <div class="doc-figure-img-wrap">
                 <img src="assets/images/android/history.webp" alt="Android History View" loading="lazy">
               </div>
               <figcaption>
-                <span>Figure 8B: Android Immutable Audit Ledger</span>
+                <span>Figure 8B: Android Activity History Log</span>
                 <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
               </figcaption>
             </figure>
@@ -869,27 +901,27 @@
         </div>
       </section>
 
-      <!-- Module 8: Settings & Mandatory Requirements -->
+      <!-- Module 8: Settings & Document Checklist -->
       <section id="settings" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">Module 8: Settings & Mandatory Checklist</h2>
-          <p class="section-subtitle">System customization, requirement checklists, database backups, and network sync configurations.</p>
+          <h2 class="section-title">Module 8: School Settings & Document Checklist</h2>
+          <p class="section-subtitle">Customize school information, manage document requirements, and save backup copies.</p>
         </div>
 
         <div class="module-summary">
           <div class="module-summary-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            Key Capabilities
+            Key Highlights
           </div>
           <ul class="module-summary-list">
-            <li><strong>Checklist Configurator:</strong> Configure mandatory versus optional documents per grade level (JHS vs. SHS requirements).</li>
-            <li><strong>Institutional Headers:</strong> Set School Name, DepEd School ID, District, Division, and Region for all printed transcripts.</li>
-            <li><strong>Local Database Backup:</strong> Generate timestamped SQLite snapshot files for off-site backup or disaster recovery.</li>
+            <li><strong>Dynamic Document Checklist:</strong> Add new document types, change names, and easily enable or disable requirements for each grade level anytime.</li>
+            <li><strong>School Profile Headers:</strong> Set the School Name, School ID, District, Division, and Region for all printed forms.</li>
+            <li><strong>Save Backup Copies:</strong> Create backup copies of your records anytime and save them to a USB flash drive for safekeeping.</li>
           </ul>
         </div>
 
         <p class="paragraph">
-          The Settings panel allows Administrators to configure school profile headers, customize required document checklists per grade level, export offline SQL backups, and check local network health.
+          The Settings screen gives Administrators full control over school preferences. You can update school details that appear on printed documents, customize which documents are required, and save backup copies of all records.
         </p>
 
         <!-- Settings Mockup -->
@@ -900,7 +932,7 @@
           </div>
 
           <div class="mockup-pane active" id="win-set">
-            <figure class="doc-figure" data-lightbox="assets/images/windows/settings.webp" data-caption="Settings Panel with Database Backup, Checklist Configurator, and Links">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/settings.webp" data-caption="Settings Panel with Document Checklist and School Headers">
               <div class="doc-figure-img-wrap">
                 <img src="assets/images/windows/settings.webp" alt="Windows Settings" loading="lazy">
               </div>
@@ -912,7 +944,7 @@
           </div>
 
           <div class="mockup-pane" id="and-set" style="display:none;">
-            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/settings.webp" data-caption="Android Settings View with Mobile Link Handlers">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/settings.webp" data-caption="Android Settings View">
               <div class="doc-figure-img-wrap">
                 <img src="assets/images/android/settings.webp" alt="Android Settings" loading="lazy">
               </div>
@@ -924,9 +956,9 @@
           </div>
         </div>
 
-        <h3 class="subheading">Managing Mandatory Document Rules</h3>
+        <h3 class="subheading">Managing Dynamic Document Requirements</h3>
         <p class="paragraph">
-          Administrators can toggle whether a document is <em>Mandatory</em> or <em>Optional</em>. If a student is missing any required document, their record is automatically flagged with a red badge on the dashboard and student list.
+          Document requirements are never rigid. If the school introduces a new requirement, administrators can click <strong>Add Document</strong> and name it. You can edit existing document titles, or toggle <strong>Enabled / Disabled</strong> with one click. When a document is enabled and marked as required, the system will remind teachers if a student has not submitted it yet. If disabled, it is cleanly hidden from student checklists.
         </p>
       </section>
 
@@ -934,43 +966,43 @@
       <section id="shortcuts" class="doc-section">
         <div class="section-header">
           <h2 class="section-title">Keyboard Shortcuts (Windows Desktop)</h2>
-          <p class="section-subtitle">Productivity keybindings available throughout the desktop client.</p>
+          <p class="section-subtitle">Quick keyboard shortcuts to help you get things done faster on desktop computers.</p>
         </div>
 
         <div class="table-wrap">
           <table class="doc-table">
             <thead>
               <tr>
-                <th>Key Combination</th>
-                <th>Operation</th>
-                <th>Scope / Context</th>
+                <th>Keyboard Shortcut</th>
+                <th>What It Does</th>
+                <th>Where It Works</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td><kbd>Ctrl</kbd> + <kbd>F</kbd> or <kbd>/</kbd></td>
-                <td>Focus Search Input Field</td>
-                <td>Global</td>
+                <td>Quickly search for students or files</td>
+                <td>Anywhere in the app</td>
               </tr>
               <tr>
                 <td><kbd>Ctrl</kbd> + <kbd>N</kbd></td>
-                <td>Open "New Student" Registration Dialog</td>
+                <td>Open the "Add Student" window</td>
                 <td>Students Screen</td>
               </tr>
               <tr>
                 <td><kbd>Ctrl</kbd> + <kbd>U</kbd></td>
-                <td>Open Document Upload / Scanner Dialog</td>
+                <td>Open the "Upload Document" window</td>
                 <td>Documents Screen</td>
               </tr>
               <tr>
                 <td><kbd>Ctrl</kbd> + <kbd>P</kbd></td>
-                <td>Open Batch Print Compilation Dialog</td>
+                <td>Open the "Batch Print" window</td>
                 <td>Documents / Archives Screen</td>
               </tr>
               <tr>
                 <td><kbd>Esc</kbd></td>
-                <td>Dismiss Active Dialog or Lightbox Modal</td>
-                <td>Global</td>
+                <td>Close an open window or enlarged picture</td>
+                <td>Anywhere in the app</td>
               </tr>
             </tbody>
           </table>
@@ -981,99 +1013,109 @@
       <section id="faq" class="doc-section">
         <div class="section-header">
           <h2 class="section-title">Frequently Asked Questions (FAQ)</h2>
-          <p class="section-subtitle">Detailed answers to common technical, operational, and DepEd compliance questions based on current system capabilities.</p>
+          <p class="section-subtitle">Helpful answers to common questions about using the system day-to-day.</p>
         </div>
 
-        <!-- Category: System Access & Security -->
+        <!-- Category: Getting Started & Staff Logins -->
         <div class="faq-category">
           <h3 class="faq-category-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            System Access & Security
+            Getting Started &amp; Staff Logins
           </h3>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>What credentials do I use to log into TIS-RMS?</span>
+              <span>How do I sign into the system?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>Teachers and staff are issued an individual username and temporary password by the System Administrator. When an Administrator creates a user account or resets a password, TIS-RMS automatically generates a 10-character cryptographically randomized temporary password displayed directly in the creation dialog.</p>
+              <p>Teachers and staff are given their username and a temporary password by the school administrator. Simply type your username and password into the sign-in screen and click <strong>Log In</strong>.</p>
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>How are new user passwords created and reset?</span>
+              <span>How are new staff passwords created and reset?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>Administrators navigate to <strong>User Accounts</strong>, click <strong>Create User</strong> or select an existing account and click <strong>Reset Password</strong>. The system generates a randomized 10-character alphanumeric password (e.g., <code>k9Xm2Wq7Lp</code>). The user logs in using this temporary credential and can change it to a personal password under their profile settings.</p>
+              <p>Administrators open <strong>User Accounts</strong>, click <strong>Create User</strong> or select an existing staff account and click <strong>Reset Password</strong>. The system automatically creates a secure temporary password shown directly on the screen for the staff member to use.</p>
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>Can multiple teachers access the system simultaneously?</span>
+              <span>Can multiple teachers use the system at the same time?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>Yes. TIS-RMS supports concurrent connections across the local area network (LAN). Teachers can scan records, update profiles, and check document checklists on their Android devices or desktop PCs simultaneously without data lock conflicts.</p>
+              <p>Yes. Multiple teachers can use the system on different computers and Android tablets at the same time. You can register students, check requirements, and view records simultaneously.</p>
             </div>
           </div>
         </div>
 
-        <!-- Category: Real-Time Sync & Networking -->
+        <!-- Category: School Network & Everyday Use -->
         <div class="faq-category">
           <h3 class="faq-category-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
-            Real-Time Sync & Networking
+            School Network &amp; Everyday Use
           </h3>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>How does real-time synchronization work across the school network?</span>
+              <span>Does the system need an active internet connection to work?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>TIS-RMS utilizes Socket.IO WebSocket connections across the local school network. Whenever any teacher or administrator creates, edits, or deletes a student record, or uploads documents, the server broadcasts the event instantaneously. Connected Windows and Android clients update their screens in real time without requiring manual page refreshes or pull-to-refresh actions.</p>
+              <p>No. TIS-RMS runs completely inside the school's local network. You do not need internet access to add students, search records, view scanned documents, or print permanent forms.</p>
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>Does TIS-RMS require an active internet connection to work?</span>
+              <span>How do changes update across computers and tablets?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>No. TIS-RMS operates completely offline on the school's local area network (LAN). It uses an embedded SQLite database and a local Node.js server running on port <strong>18484</strong>, guaranteeing full system uptime even during internet service provider outages.</p>
+              <p>Updates appear automatically in real time. Whenever a student is added, a document is uploaded, or information is updated on one computer, all other connected computers and tablets refresh their screens automatically without needing to reload.</p>
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>How do I connect an Android device to the school server?</span>
+              <span>How do I connect an Android tablet to the system?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>Connect both the server computer and Android device to the same Wi-Fi access point or local network router. Find the server's local IPv4 address using <code>ipconfig</code> in Command Prompt (e.g., <code>192.168.1.100</code>). On the Android app login screen, configure the server URL with the default port: <code>http://192.168.1.100:18484</code> and tap <strong>Connect</strong>.</p>
+              <p>Simply connect your Android tablet to the school's Wi-Fi network, open the TIS-RMS app, enter your login details, and tap <strong>Log In</strong>.</p>
             </div>
           </div>
         </div>
 
-        <!-- Category: Student Records & OCR -->
+        <!-- Category: Student Records & Document Scanning -->
         <div class="faq-category">
           <h3 class="faq-category-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-            Student Records & OCR Intake
+            Student Records &amp; Document Scanning
           </h3>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>When adding a student using OCR, does the scanned file automatically save into their folder?</span>
+              <span>How does document scanning (OCR) work when adding a new student?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>No. The OCR engine reads the scanned document (e.g., PSA Birth Certificate or SF9) to extract learner details (LRN, full name, birthdate, sex, etc.) directly into the registration form. However, to keep student folders cleanly organized and ensure each file is verified, the raw OCR scan is not automatically saved into their document checklist. The official final document can be uploaded directly to the student's virtual folder when verified.</p>
+              <p>When adding a student, you can use the OCR scanner on an SF9 (Form 138) or SF10 (Form 137). The scanner automatically reads the document and populates the text fields on the "Add Student" form (such as Name, LRN, Birthday, and Sex) so you don't have to type them out by hand. <em>Please note: OCR only populates these form text fields; it does not automatically upload or save the scanned file into the student's document folder.</em></p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Does the system record or compute student grades, subjects, or remarks?</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>No. The system is designed for student identity records and document tracking. It does not scope, track, or calculate academic grades, subject lists, or teacher remarks. It only manages essential student identification details: Full Name, LRN, Sex, Birthday, and 4Ps Status (Yes or No).</p>
             </div>
           </div>
 
@@ -1083,7 +1125,7 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>TIS-RMS strictly enforces a unique constraint on the 12-digit Learner Reference Number (LRN). If a user attempts to register an LRN that already exists in either the active directory or the archives, the system prevents duplicate creation and prompts the user to view the existing student record.</p>
+              <p>The system checks the 12-digit Learner Reference Number to ensure it is unique. If someone tries to add an LRN that is already registered, the system displays a clear message to prevent accidental duplicate entries.</p>
             </div>
           </div>
 
@@ -1093,93 +1135,83 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>The red badge indicates that one or more documents marked as <em>Mandatory</em> in the Settings Checklist (e.g., PSA Birth Certificate or Grade 7 SF10) have not yet been uploaded for that student. Once the missing file is uploaded, the badge automatically updates to green.</p>
+              <p>The badge serves as a helpful reminder that the student has not yet submitted one or more documents marked as required in the checklist. As soon as the required document is uploaded, the badge turns green automatically.</p>
             </div>
           </div>
         </div>
 
-        <!-- Category: Document Management & File Formats -->
+        <!-- Category: Documents & Dynamic Requirements -->
         <div class="faq-category">
           <h3 class="faq-category-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-            Document Management & Viewing
+            Documents &amp; Dynamic Requirements
           </h3>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>How do I view uploaded documents without opening an external PDF application?</span>
+              <span>Can we add our own document types or turn off requirements?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>TIS-RMS converts scanned PDF pages into lossless WebP images on the server. Clicking any document card opens the built-in high-resolution preview modal with instant page navigation, zoom, and rotation, eliminating the need to launch third-party PDF viewers like Adobe Acrobat.</p>
+              <p>Yes! Document requirements are fully dynamic and flexible. School administrators can add new document types, edit existing document titles, and enable or disable specific requirements whenever school policies change.</p>
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>What file types and sizes are supported for document uploads?</span>
+              <span>How do I view uploaded student documents?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>The system accepts PDF documents, PNG images, and JPEG files up to 10MB per file. During upload, the backend automatically optimizes the file and generates WebP thumbnails for instantaneous in-app rendering.</p>
+              <p>Simply click or tap on any document card. The app opens a built-in viewer where you can zoom in, rotate pages, and read the document directly without needing any other software.</p>
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>What should I do if a scanned document preview appears blank?</span>
+              <span>What types of files can be uploaded?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>Right-click the document card (or tap the context menu on Android) and select <strong>Regenerate Thumbnail</strong>. The system will re-parse the raw source file and re-render lossless WebP preview pages.</p>
+              <p>The system accepts PDF documents as well as clear photos and scanned image files (such as JPG and PNG).</p>
             </div>
           </div>
         </div>
 
-        <!-- Category: SF10, Reports & Batch Printing -->
+        <!-- Category: Printing & Backups -->
         <div class="faq-category">
           <h3 class="faq-category-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-            SF10 & DepEd Reports
+            Printing &amp; Saving Backups
           </h3>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>How does the automated SF10 (Form 137) generator work?</span>
+              <span>How do I print records for an entire section?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>The system loads the official DepEd Excel SF10 template workbook, pulls student demographics, quarterly ratings, general averages, and remedial notes directly from the database, and compiles them into a standardized vector PDF with official school headers and signatures.</p>
+              <p>On the Students or Archives screen, choose your section from the dropdown, click <strong>Select All in Section</strong>, and click <strong>Batch Print</strong> (<kbd>Ctrl+P</kbd>). The system prepares all the records into a single neat print package ready for your printer.</p>
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>How do I print permanent records for an entire graduating class?</span>
+              <span>How and when should we save backup copies?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>From the Students or Archives screen, select the desired section using the filter dropdown, click the <strong>Select All in Section</strong> checkbox, and tap the <strong>Batch Print</strong> button (<kbd>Ctrl+P</kbd>). The system queues the records in background chunks and outputs a single consolidated PDF package ready for duplex printing.</p>
-            </div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question">
-              <span>How and when should database backups be performed?</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-            <div class="faq-answer">
-              <p>Administrators should create a database backup at least once a week or before major grading periods. Navigate to <strong>Settings &gt; Database Backup</strong> and click <strong>Create Snapshot</strong>. Save the exported <code>.sqlite</code> file to a secondary external USB drive or secured storage.</p>
+              <p>Administrators should save a backup regularly (for example, weekly or at the end of each grading period). Go to <strong>Settings</strong>, select <strong>Create Backup Copy</strong>, and save the backup file to a safe external USB drive.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Troubleshooting & Connection Diagnostics -->
+      <!-- Help & Troubleshooting -->
       <section id="troubleshooting" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">Troubleshooting & Diagnostics</h2>
-          <p class="section-subtitle">Recommended resolutions for connectivity, printing, and document rendering questions.</p>
+          <h2 class="section-title">Help & Troubleshooting</h2>
+          <p class="section-subtitle">Helpful tips and quick solutions for common questions.</p>
         </div>
 
         <div class="feature-grid">
@@ -1187,22 +1219,22 @@
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
             </div>
-            <h4 class="card-title">Android Device Cannot Reach Server</h4>
-            <p class="card-desc">Verify both the computer hosting <code>tis_rms_server</code> and the Android device are connected to the same local network router. Ensure the Server IP in the app login matches the host machine's LAN address with port 18484 (e.g., <code>http://192.168.1.100:18484</code>).</p>
+            <h4 class="card-title">Connecting Your Tablet or Computer</h4>
+            <p class="card-desc">Make sure your Android tablet or desktop computer is connected to the school's local Wi-Fi or office network. Once connected, open the app and sign in with your credentials.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             </div>
-            <h4 class="card-title">Scanned Document Preview Fails</h4>
-            <p class="card-desc">If an uploaded PDF has damaged headers, select <strong>Regenerate Thumbnail</strong> from the document context menu. The server will re-render pages as lossless WebP images.</p>
+            <h4 class="card-title">Refreshing Document Previews</h4>
+            <p class="card-desc">If a scanned document image takes a moment to appear or was recently re-uploaded, click <strong>Refresh Preview</strong> on the document card to reload the clear image.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
             </div>
-            <h4 class="card-title">Batch Print Memory Allocation</h4>
-            <p class="card-desc">When compiling large cohorts (>50 students), ensure the host machine has at least 500MB free temporary disk space. TIS-RMS streams pages in chunks of 10 to prevent memory exhaustion.</p>
+            <h4 class="card-title">Preparing for Batch Printing</h4>
+            <p class="card-desc">Before printing records for an entire section, check that your school printer is turned on with enough paper and ink loaded so your print job finishes smoothly.</p>
           </div>
         </div>
       </section>
@@ -1213,11 +1245,11 @@
           <img src="assets/logo.png" alt="Logo">
           <div>
             <strong>Talisay Integrated School - Records Management System</strong>
-            <div>Designed for Talisay Integrated School Tiaong, Quezon. All rights reserved.</div>
+            <div>Designed for Talisay Integrated School, Tiaong, Quezon. All rights reserved.</div>
           </div>
         </div>
         <div>
-          <span>Document Version 1.0 • Updated October 2026</span>
+          <span>User Guide Version 1.0 • Updated October 2026</span>
         </div>
       </footer>
 
