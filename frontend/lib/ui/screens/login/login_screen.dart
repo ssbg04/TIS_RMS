@@ -281,7 +281,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                             GestureDetector(
                                               onTap: _handleLogoTap,
                                               child: Image.asset(
-                                                'assets/images/logo.png',
+                                                'assets/images/logo.webp',
                                                 width: 220,
                                                 height: 220,
                                               ),
@@ -409,7 +409,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                               GestureDetector(
                                                 onTap: _handleLogoTap,
                                                 child: Image.asset(
-                                                  'assets/images/logo.png',
+                                                  'assets/images/logo.webp',
                                                   width: 100,
                                                   height: 100,
                                                 ),

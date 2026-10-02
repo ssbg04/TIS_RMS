@@ -1028,7 +1028,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.asset(
-                                'assets/images/logo.png',
+                                'assets/images/logo.webp',
                                 width: 36,
                                 height: 36,
                                 fit: BoxFit.contain,

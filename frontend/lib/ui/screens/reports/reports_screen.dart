@@ -1982,7 +1982,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
-      height: isDesktop ? 460 : null,
+      height: isDesktop ? 480 : null,
       padding: const EdgeInsets.all(AppSizes.p24),
       decoration: _cardDecoration(),
       child: Column(
@@ -3573,9 +3573,112 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         counts.transferee +
         counts.graduated;
 
+    final Widget donutWidget = SizedBox(
+      height: 190,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          PieChart(
+            PieChartData(
+              sections: [
+                if (counts.active > 0)
+                  PieChartSectionData(
+                    color: isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen,
+                    value: counts.active.toDouble(),
+                    title:
+                        '${(counts.active / total * 100).toStringAsFixed(0)}%',
+                    radius: 48,
+                    titleStyle: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                if (counts.inactive > 0)
+                  PieChartSectionData(
+                    color: isDark ? const Color(0xFF78909C) : Colors.blueGrey.shade400,
+                    value: counts.inactive.toDouble(),
+                    title:
+                        '${(counts.inactive / total * 100).toStringAsFixed(0)}%',
+                    radius: 48,
+                    titleStyle: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                if (counts.dropped > 0)
+                  PieChartSectionData(
+                    color: isDark ? const Color(0xFFD67878) : Colors.red.shade400,
+                    value: counts.dropped.toDouble(),
+                    title:
+                        '${(counts.dropped / total * 100).toStringAsFixed(0)}%',
+                    radius: 52,
+                    titleStyle: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                if (counts.graduated > 0)
+                  PieChartSectionData(
+                    color: isDark ? const Color(0xFF7EAAD8) : const Color(0xFF1E88E5),
+                    value: counts.graduated.toDouble(),
+                    title:
+                        '${(counts.graduated / total * 100).toStringAsFixed(0)}%',
+                    radius: 52,
+                    titleStyle: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                if (counts.transferee > 0)
+                  PieChartSectionData(
+                    color: isDark ? const Color(0xFFE5A663) : Colors.amber.shade700,
+                    value: counts.transferee.toDouble(),
+                    title:
+                        '${(counts.transferee / total * 100).toStringAsFixed(0)}%',
+                    radius: 52,
+                    titleStyle: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+              ],
+              centerSpaceRadius: 55,
+              sectionsSpace: 3,
+              pieTouchData: PieTouchData(enabled: true),
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$total',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                'Students',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
     return Container(
       width: double.infinity,
-      height: isDesktop ? 485 : null,
+      height: isDesktop ? 480 : null,
       padding: const EdgeInsets.all(AppSizes.p24),
       decoration: _cardDecoration(),
       child: Column(
@@ -3597,114 +3700,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               fontSize: 13,
             ),
           ),
-          const SizedBox(height: AppSizes.p24),
+          const SizedBox(height: AppSizes.p16),
           if (total == 0)
             isDesktop
-                ? Expanded(child: _emptyWidget('No student data for current filters.'))
-                : _emptyWidget('No student data for current filters.')
-          else ...[
-            SizedBox(
-              height: 190,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  PieChart(
-                    PieChartData(
-                      sections: [
-                        if (counts.active > 0)
-                          PieChartSectionData(
-                            color: isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen,
-                            value: counts.active.toDouble(),
-                            title:
-                                '${(counts.active / total * 100).toStringAsFixed(0)}%',
-                            radius: 48,
-                            titleStyle: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        if (counts.inactive > 0)
-                          PieChartSectionData(
-                            color: isDark ? const Color(0xFF78909C) : Colors.blueGrey.shade400,
-                            value: counts.inactive.toDouble(),
-                            title:
-                                '${(counts.inactive / total * 100).toStringAsFixed(0)}%',
-                            radius: 48,
-                            titleStyle: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        if (counts.dropped > 0)
-                          PieChartSectionData(
-                            color: isDark ? const Color(0xFFD67878) : Colors.red.shade400,
-                            value: counts.dropped.toDouble(),
-                            title:
-                                '${(counts.dropped / total * 100).toStringAsFixed(0)}%',
-                            radius: 52,
-                            titleStyle: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        if (counts.graduated > 0)
-                          PieChartSectionData(
-                            color: isDark ? const Color(0xFF7EAAD8) : const Color(0xFF1E88E5),
-                            value: counts.graduated.toDouble(),
-                            title:
-                                '${(counts.graduated / total * 100).toStringAsFixed(0)}%',
-                            radius: 52,
-                            titleStyle: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        if (counts.transferee > 0)
-                          PieChartSectionData(
-                            color: isDark ? const Color(0xFFE5A663) : Colors.amber.shade700,
-                            value: counts.transferee.toDouble(),
-                            title:
-                                '${(counts.transferee / total * 100).toStringAsFixed(0)}%',
-                            radius: 52,
-                            titleStyle: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                      ],
-                      centerSpaceRadius: 55,
-                      sectionsSpace: 3,
-                      pieTouchData: PieTouchData(enabled: true),
+                ? Expanded(
+                    child: Center(
+                      child: _emptyWidget('No student data for current filters.'),
                     ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '$total',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        'Students',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+                  )
+                : SizedBox(
+                    height: 220,
+                    child: Center(
+                      child: _emptyWidget('No student data for current filters.'),
+                    ),
+                  )
+          else ...[
+            if (isDesktop)
+              Expanded(
+                child: Center(
+                  child: donutWidget,
+                ),
+              )
+            else
+              donutWidget,
             const SizedBox(height: 16),
             Wrap(
               spacing: 16,
@@ -3892,7 +3910,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
         return Container(
           width: double.infinity,
-          height: isDesktop ? 460 : null,
+          height: isDesktop ? 480 : null,
           padding: const EdgeInsets.all(AppSizes.p24),
           decoration: _cardDecoration(),
           child: Column(
@@ -4061,7 +4079,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
-      height: isDesktop ? 485 : null,
+      height: isDesktop ? 480 : null,
       padding: const EdgeInsets.all(AppSizes.p24),
       decoration: _cardDecoration(),
       child: Column(
@@ -4174,16 +4192,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           // ── Chart ──────────────────────────────────────────────────────────
           yearlyAsync.when(
             skipLoadingOnReload: true,
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(),
-              ),
-            ),
-            error: (e, st) => _errorWidget('Error loading yearly data: $e'),
+            loading: () => isDesktop
+                ? const Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  )
+                : const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+            error: (e, st) => isDesktop
+                ? Expanded(child: Center(child: _errorWidget('Error loading yearly data: $e')))
+                : _errorWidget('Error loading yearly data: $e'),
             data: (rawData) {
               if (rawData.isEmpty) {
-                return _emptyWidget('No academic years data found.');
+                return isDesktop
+                    ? Expanded(child: Center(child: _emptyWidget('No academic years data found.')))
+                    : _emptyWidget('No academic years data found.');
               }
 
               // Filter by selected years (ascending sort)
@@ -4199,7 +4230,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 }
               }
               if (data.isEmpty) {
-                return _emptyWidget('No data for selected years.');
+                return isDesktop
+                    ? Expanded(child: Center(child: _emptyWidget('No data for selected years.')))
+                    : _emptyWidget('No data for selected years.');
               }
 
               // Build bar rods only for selected statuses
@@ -4218,15 +4251,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               maxY = (maxY * 1.55).ceilToDouble();
               if (maxY == 0) maxY = 10;
 
-              return LayoutBuilder(
+              final chartContent = LayoutBuilder(
                 builder: (context, constraints) {
-                  final double chartWidth =
-                      constraints.maxWidth > (data.length * 150.0)
-                      ? constraints.maxWidth
-                      : (data.length * 150.0);
+                  final bool hasScroll = constraints.maxWidth < (data.length * 150.0);
+                  final double chartWidth = hasScroll
+                      ? (data.length * 150.0)
+                      : constraints.maxWidth;
+                  final double chartHeight = isDesktop
+                      ? (hasScroll
+                          ? (constraints.maxHeight - 48).clamp(140.0, 220.0)
+                          : constraints.maxHeight.clamp(160.0, 220.0))
+                      : 250;
                   final Widget chartWidget = SizedBox(
                     width: chartWidth,
-                    height: isDesktop ? 260 : 300,
+                    height: chartHeight,
                     child: BarChart(
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
@@ -4362,19 +4400,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                   );
 
-                  if (chartWidth <= constraints.maxWidth) {
-                    return chartWidget;
+                  if (!hasScroll) {
+                    return Center(child: chartWidget);
                   }
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       SingleChildScrollView(
                         controller: _chartHorizontalScrollController,
                         scrollDirection: Axis.horizontal,
                         child: chartWidget,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       _CustomHorizontalScrollBar(
                         controller: _chartHorizontalScrollController,
                         isDark: isDark,
@@ -4387,6 +4426,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   );
                 },
               );
+
+              return isDesktop ? Expanded(child: chartContent) : chartContent;
             },
           ),
           const SizedBox(height: 14),

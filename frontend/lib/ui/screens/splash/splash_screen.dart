@@ -262,7 +262,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                             ],
                           ),
                           child: Image.asset(
-                            'assets/images/logo.png',
+                            'assets/images/logo.webp',
                             width: 140,
                             height: 140,
                           ),

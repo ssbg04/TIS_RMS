@@ -38,6 +38,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Strip unused language strings from transitive third-party libraries (saves ~2-4 MB)
+        resourceConfigurations += listOf("en")
     }
 
     signingConfigs {
