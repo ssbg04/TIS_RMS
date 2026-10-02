@@ -161,5 +161,35 @@ class ReportRepository {
       );
     }
   }
+
+  Future<Uint8List> downloadComplianceReportExcel({
+    int? academicYearId,
+    int? gradeLevel,
+    int? sectionId,
+    String? status,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (academicYearId != null) queryParams['academicYearId'] = academicYearId;
+      if (gradeLevel != null) queryParams['gradeLevel'] = gradeLevel;
+      if (sectionId != null) queryParams['sectionId'] = sectionId;
+      if (status != null) queryParams['status'] = status;
+
+      final options = await _authOptions();
+      options.responseType = ResponseType.bytes;
+
+      final res = await _dio.get<List<int>>(
+        '/reports/compliance/excel',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        options: options,
+      );
+      return Uint8List.fromList(res.data!);
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ??
+            'Failed to generate compliance report Excel.',
+      );
+    }
+  }
 }
 

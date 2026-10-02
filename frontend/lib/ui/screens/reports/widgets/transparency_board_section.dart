@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
@@ -180,37 +181,86 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
 
     final isThisButtonExporting = _isExportingPdf && _exportingCategory == 'header_$activeCat';
 
-    return MouseRegion(
-      cursor: _isExportingPdf ? SystemMouseCursors.basic : SystemMouseCursors.click,
-      child: ElevatedButton.icon(
-        onPressed: _isExportingPdf ? null : () => _handleExportPdf(data, category: activeCat, isHeader: true),
-        icon: isThisButtonExporting
-            ? const SizedBox(
-                width: 13,
-                height: 13,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
+    final label = _activeTab == _TransparencyTab.enrollment
+        ? 'Enrollment PDF'
+        : _activeTab == _TransparencyTab.dropoutsTransferees
+            ? 'Dropouts PDF'
+            : _activeTab == _TransparencyTab.equity4Ps
+                ? '4Ps Equity PDF'
+                : 'Export PDF';
+
+    return Tooltip(
+      message: 'Download official DepEd report for current section (.pdf)',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _isExportingPdf
+              ? null
+              : () {
+                  HapticFeedback.lightImpact();
+                  _handleExportPdf(data, category: activeCat, isHeader: true);
+                },
+          borderRadius: BorderRadius.circular(8),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
-              )
-            : const Icon(Icons.picture_as_pdf_rounded, size: 14),
-        label: Text(
-          isThisButtonExporting ? 'Exporting...' : 'Export PDF',
-          style: const TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isThisButtonExporting)
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFFDC2626),
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.picture_as_pdf_rounded,
+                    size: 16,
+                    color: Color(0xFFDC2626),
+                  ),
+                const SizedBox(width: 7),
+                Text(
+                  isThisButtonExporting ? 'Exporting...' : label,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDC2626).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    '.pdf',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFDC2626),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red.shade700,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: isThisButtonExporting ? Colors.red.shade300 : Colors.red.shade700.withValues(alpha: 0.6),
-          disabledForegroundColor: Colors.white70,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          minimumSize: const Size(100, 34),
-          elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
       ),
     );
@@ -221,38 +271,61 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     required String category,
     String label = 'Export PDF',
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isThisButtonExporting = _isExportingPdf && _exportingCategory == 'card_$category';
-    return MouseRegion(
-      cursor: _isExportingPdf ? SystemMouseCursors.basic : SystemMouseCursors.click,
-      child: ElevatedButton.icon(
-        onPressed: _isExportingPdf ? null : () => _handleExportPdf(data, category: category, isHeader: false),
-        icon: isThisButtonExporting
-            ? const SizedBox(
-                width: 13,
-                height: 13,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
+
+    return Tooltip(
+      message: 'Download section report as PDF',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _isExportingPdf
+              ? null
+              : () {
+                  HapticFeedback.lightImpact();
+                  _handleExportPdf(data, category: category, isHeader: false);
+                },
+          borderRadius: BorderRadius.circular(7),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6.5),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface2 : const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(
+                color: const Color(0xFFDC2626).withValues(alpha: isDark ? 0.35 : 0.25),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isThisButtonExporting)
+                  const SizedBox(
+                    width: 13,
+                    height: 13,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFFDC2626),
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.picture_as_pdf_rounded,
+                    size: 14,
+                    color: Color(0xFFDC2626),
+                  ),
+                const SizedBox(width: 6),
+                Text(
+                  isThisButtonExporting ? 'Exporting...' : label,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.red.shade300 : const Color(0xFFDC2626),
+                  ),
                 ),
-              )
-            : const Icon(Icons.picture_as_pdf_rounded, size: 14),
-        label: Text(
-          isThisButtonExporting ? 'Exporting...' : label,
-          style: const TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+              ],
+            ),
           ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red.shade700,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: isThisButtonExporting ? Colors.red.shade300 : Colors.red.shade700.withValues(alpha: 0.6),
-          disabledForegroundColor: Colors.white70,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          minimumSize: const Size(100, 34),
-          elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
       ),
     );
@@ -738,7 +811,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.filter_alt_outlined, color: Colors.white, size: 15),
+          const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 15),
           const SizedBox(width: 6),
           const Text(
             'Academic Year:',
@@ -776,18 +849,42 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 final isActive = ay.status.toLowerCase() == 'active';
                 return DropdownMenuItem<int>(
                   value: ay.id,
-                  child: Text(
-                    'SY ${ay.yearRange}${isActive ? ' (Active)' : ''}',
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                      fontSize: 12,
-                      fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'SY ${ay.yearRange}',
+                        style: TextStyle(
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          fontSize: 12,
+                          fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                        ),
+                      ),
+                      if (isActive) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Active',
+                            style: TextStyle(
+                              color: AppColors.primaryGreen,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 );
               }).toList(),
               onChanged: (val) {
                 if (val != null) {
+                  HapticFeedback.selectionClick();
                   ref.read(transparencyBoardYearProvider.notifier).state = val;
                 }
               },

@@ -13,4 +13,7 @@ router.get('/storage', authenticateToken, reportsController.getStorageUsed);
 router.get('/transparency-board', authenticateToken, reportsController.getTransparencyBoardData);
 router.get('/transparency-board/pdf', authenticateToken, reportsController.generateTransparencyBoardPdf);
 
+router.get('/compliance/excel', authenticateToken, reportsController.generateComplianceReportExcel);
+router.post('/compliance/excel', authenticateToken, reportsController.generateComplianceReportExcel);
+
 module.exports = router;

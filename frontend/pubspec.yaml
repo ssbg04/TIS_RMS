@@ -60,7 +60,6 @@ dependencies:
   audioplayers: ^6.8.1
   package_info_plus: ^8.1.0
   device_info_plus: ^12.4.0
-  excel: ^4.0.6
 
 dev_dependencies:
   flutter_test:
@@ -73,14 +72,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  change_app_package_name: ^1.5.0
   msix: ^3.16.13
-  flutter_native_splash: ^2.4.4
   cider: ^0.2.10
-
-dependency_overrides:
-  google_fonts: ^8.1.0
-  intl: ^0.20.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -139,14 +132,6 @@ flutter_launcher_icons:
   image_path_android: "assets/images/logo_foreground.png"
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/images/logo_foreground.png"
-
-flutter_native_splash:
-  color: "#FFFFFF"
-  image: "assets/images/logo.png"
-  android: false
-  web: false
-
-
 
 msix_config:
   display_name: TIS RMS

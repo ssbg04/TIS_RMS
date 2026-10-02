@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const pdfService = require('../services/pdfService');
+const excelService = require('../services/excelService');
 
 // GET /api/reports/academic-years
 exports.getAcademicYears = (req, res) => {
@@ -648,6 +649,194 @@ exports.generateTransparencyBoardPdf = async (req, res) => {
     } catch (error) {
         console.error('generateTransparencyBoardPdf error:', error);
         res.status(500).json({ message: 'Failed to generate transparency board PDF', error: error.message });
+    }
+};
+
+// Helper to fetch compliance stats data for Excel export
+function fetchComplianceStatsPayload(query = {}, user = null) {
+    const { academicYearId, gradeLevel, sectionId, status } = query;
+    let params = [];
+    let enrollParams = [];
+    let whereClauses = [];
+    let enrollWhereClauses = [];
+
+    if (user?.role === 'teacher') {
+        whereClauses.push('e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)');
+        enrollWhereClauses.push('e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)');
+        params.push(user.id);
+        enrollParams.push(user.id);
+    }
+
+    if (academicYearId) {
+        whereClauses.push('e.academic_year_id = ?');
+        enrollWhereClauses.push('e.academic_year_id = ?');
+        params.push(academicYearId);
+        enrollParams.push(academicYearId);
+    }
+    if (gradeLevel) {
+        whereClauses.push('e.grade_level = ?');
+        enrollWhereClauses.push('e.grade_level = ?');
+        params.push(gradeLevel);
+        enrollParams.push(gradeLevel);
+    }
+    if (sectionId) {
+        whereClauses.push('e.section_id = ?');
+        enrollWhereClauses.push('e.section_id = ?');
+        params.push(sectionId);
+        enrollParams.push(sectionId);
+    }
+
+    const whereSql = whereClauses.length > 0 ? 'AND ' + whereClauses.join(' AND ') : '';
+    const enrollWhereSql = enrollWhereClauses.length > 0 ? 'AND ' + enrollWhereClauses.join(' AND ') : '';
+
+    const countsQuery = `
+        SELECT 
+            COUNT(DISTINCT CASE WHEN s.status = 'Enrolled' THEN s.id END) as active,
+            COUNT(DISTINCT CASE WHEN s.status = 'Inactive' THEN s.id END) as inactive,
+            COUNT(DISTINCT CASE WHEN s.status = 'Dropped' THEN s.id END) as dropped,
+            COUNT(DISTINCT CASE WHEN s.status = 'Transferred' THEN s.id END) as transferee,
+            COUNT(DISTINCT CASE WHEN s.status = 'Graduated' THEN s.id END) as graduated,
+            COUNT(DISTINCT CASE WHEN s.is_4ps = 1 THEN s.id END) as fourPs
+        FROM students s
+        JOIN enrollments e ON s.id = e.student_id
+            AND e.id = (
+                SELECT e2.id FROM enrollments e2
+                JOIN academic_years ay ON e2.academic_year_id = ay.id
+                WHERE e2.student_id = s.id
+                  ${academicYearId ? 'AND e2.academic_year_id = ' + Number(academicYearId) : ''}
+                ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
+            )
+        WHERE 1=1 ${enrollWhereSql}
+    `;
+    const studentCounts = db.prepare(countsQuery).get(enrollParams) || {};
+
+    const missingQuery = `
+        SELECT r.id as requirementId, r.category || ' - ' || r.name as name, COUNT(DISTINCT s.id) as count
+        FROM document_requirements r
+        CROSS JOIN students s
+        JOIN enrollments e ON s.id = e.student_id
+            AND e.id = (
+                SELECT e2.id FROM enrollments e2
+                JOIN academic_years ay ON e2.academic_year_id = ay.id
+                WHERE e2.student_id = s.id
+                  ${academicYearId ? 'AND e2.academic_year_id = ' + Number(academicYearId) : ''}
+                ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
+            )
+        WHERE r.is_enabled = 1
+          AND r.is_mandatory = 1
+          AND r.category IN (
+              SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+              FROM enrollments WHERE student_id = s.id
+          )
+          ${whereSql}
+          AND NOT EXISTS (
+              SELECT 1 FROM documents d 
+              WHERE d.student_id = s.id 
+                AND d.requirement_id = r.id 
+                AND (d.status = 'Completed' OR (d.status = 'Archived' AND s.status != 'Enrolled'))
+                AND d.deleted_at IS NULL
+          )
+        GROUP BY r.id, r.category, r.name
+        ORDER BY count DESC
+    `;
+    const missingDocsBreakdown = db.prepare(missingQuery).all(params);
+
+    let studentFilterSql = whereSql;
+    let studentParams = [...params];
+    if (status) {
+        studentFilterSql += " AND s.status = ?";
+        studentParams.push(status);
+    }
+
+    const studentsQuery = `
+        SELECT s.id, s.lrn, s.first_name, s.last_name, s.sex, s.status,
+               e_latest.grade_level, sec.name as section_name,
+               (
+                   SELECT COUNT(*) 
+                   FROM document_requirements r
+                   WHERE r.is_enabled = 1
+                     AND r.is_mandatory = 1
+                     AND r.category IN (
+                         SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                         FROM enrollments WHERE student_id = s.id
+                     )
+                     AND NOT EXISTS (
+                         SELECT 1 FROM documents d 
+                         WHERE d.student_id = s.id 
+                           AND d.requirement_id = r.id 
+                           AND (d.status = 'Completed' OR (d.status = 'Archived' AND s.status != 'Enrolled'))
+                           AND d.deleted_at IS NULL
+                     )
+               ) as missing_count,
+               (
+                   SELECT group_concat('[' || r.category || '] ' || r.name, ', ')
+                   FROM document_requirements r
+                   WHERE r.is_enabled = 1
+                     AND r.is_mandatory = 1
+                     AND r.category IN (
+                         SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                         FROM enrollments WHERE student_id = s.id
+                     )
+                     AND NOT EXISTS (
+                         SELECT 1 FROM documents d 
+                         WHERE d.student_id = s.id 
+                           AND d.requirement_id = r.id 
+                           AND (d.status = 'Completed' OR (d.status = 'Archived' AND s.status != 'Enrolled'))
+                           AND d.deleted_at IS NULL
+                     )
+               ) as missing_requirements
+        FROM students s
+        JOIN enrollments e_latest ON s.id = e_latest.student_id
+            AND e_latest.id = (
+                SELECT e2.id FROM enrollments e2
+                JOIN academic_years ay ON e2.academic_year_id = ay.id
+                WHERE e2.student_id = s.id
+                  ${academicYearId ? 'AND e2.academic_year_id = ' + Number(academicYearId) : ''}
+                ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
+            )
+        LEFT JOIN sections sec ON e_latest.section_id = sec.id
+        WHERE 1=1 ${studentFilterSql.replace(/\be\./g, 'e_latest.')}
+        ORDER BY s.last_name ASC, s.first_name ASC
+        LIMIT 1000
+    `;
+    const studentsList = db.prepare(studentsQuery).all(studentParams);
+
+    let yearLabel = 'All Years';
+    if (academicYearId) {
+        const ay = db.prepare('SELECT year_range FROM academic_years WHERE id = ?').get(academicYearId);
+        if (ay && ay.year_range) {
+            yearLabel = ay.year_range;
+        }
+    }
+
+    return {
+        studentCounts,
+        missingDocsBreakdown,
+        students: studentsList,
+        yearLabel
+    };
+}
+
+// GET or POST /api/reports/compliance/excel
+exports.generateComplianceReportExcel = async (req, res) => {
+    try {
+        let payload;
+        if (req.body && req.body.students && req.body.studentCounts) {
+            payload = req.body;
+        } else {
+            payload = fetchComplianceStatsPayload(req.query, req.user);
+        }
+
+        const excelBuffer = await excelService.generateComplianceExcel(payload);
+        const yearSlug = (payload.yearLabel || 'All_Years').replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `TIS_RMS_Report_${yearSlug}_${Date.now()}.xlsx`;
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(excelBuffer);
+    } catch (error) {
+        console.error('generateComplianceReportExcel error:', error);
+        res.status(500).json({ message: 'Failed to generate compliance report Excel', error: error.message });
     }
 };
 

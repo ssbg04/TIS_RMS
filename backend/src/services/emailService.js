@@ -5,12 +5,16 @@ const fs = require('fs');
 require('dotenv').config();
 
 // ── Embedded images ────────────────────────────────────────────────────────────
-// Find the absolute path to the school logo
+// Find the absolute path to the school logo (WebP preferred for smaller email payload)
 function getLogoPath() {
     const candidates = [
-        // Local copy inside backend (primary — works standalone/deployed)
+        // WebP optimized copy inside backend (primary — works standalone/deployed)
+        path.join(__dirname, '..', '..', 'assets', 'logo.webp'),
+        // Local PNG copy inside backend (fallback)
         path.join(__dirname, '..', '..', 'assets', 'logo.png'),
-        // Frontend assets folder (fallback — dev environment)
+        // Frontend WebP assets folder (fallback — dev environment)
+        path.join(__dirname, '..', '..', '..', 'frontend', 'assets', 'images', 'logo.webp'),
+        // Frontend PNG assets folder (fallback — dev environment)
         path.join(__dirname, '..', '..', '..', 'frontend', 'assets', 'images', 'logo.png'),
     ];
     for (const p of candidates) {
@@ -20,6 +24,18 @@ function getLogoPath() {
 }
 
 const LOGO_PATH = getLogoPath();
+const LOGO_FILENAME = LOGO_PATH ? path.basename(LOGO_PATH) : 'logo.webp';
+const LOGO_CONTENT_TYPE = LOGO_PATH && LOGO_PATH.toLowerCase().endsWith('.png') ? 'image/png' : 'image/webp';
+
+function getLogoAttachment() {
+    if (!LOGO_PATH) return [];
+    return [{
+        filename: LOGO_FILENAME,
+        path: LOGO_PATH,
+        cid: 'school-logo',
+        contentType: LOGO_CONTENT_TYPE,
+    }];
+}
 
 // ── Transporter with Pooling & Fallback ───────────────────────────────────────
 let primaryTransporter = null;
@@ -110,43 +126,187 @@ function emailShell(bodyContent) {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>TIS Record Management System</title>
 </head>
-<body style="margin:0;padding:0;background:#f0f4f8;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:32px 0;">
-  <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 
-      <!-- HEADER -->
-      <tr>
-        <td style="background:linear-gradient(160deg,#14532d 0%,#166534 60%,#15803d 100%);padding:36px 32px 28px;text-align:center;">
-          ${headerLogo}
-          <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.3px;line-height:1.2;">Talisay Integrated School</div>
-          <div style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:4px;letter-spacing:0.5px;text-transform:uppercase;">Record Management System</div>
+<body style="
+    margin:0;
+    padding:0;
+    background-color:#ffffff;
+    font-family:Arial,Helvetica,sans-serif;
+    color:#1f2937;
+">
+
+<!-- PREHEADER -->
+<div style="
+    display:none;
+    max-height:0;
+    overflow:hidden;
+    opacity:0;
+    color:transparent;
+    mso-hide:all;
+">
+    TIS Record Management System notification
+</div>
+
+<!-- FULL PAGE -->
+<table role="presentation"
+       width="100%"
+       cellpadding="0"
+       cellspacing="0"
+       border="0"
+       style="width:100%;background-color:#ffffff;">
+
+    <tr>
+        <td align="center">
+
+            <!-- MAIN CONTAINER -->
+            <table role="presentation"
+                   width="100%"
+                   cellpadding="0"
+                   cellspacing="0"
+                   border="0"
+                   style="
+                       width:100%;
+                       max-width:720px;
+                       background-color:#ffffff;
+                   ">
+
+                <!-- HEADER -->
+                <tr>
+                    <td style="
+                        padding:28px 32px 24px;
+                        border-bottom:1px solid #e5e7eb;
+                    ">
+
+                        <table role="presentation"
+                               width="100%"
+                               cellpadding="0"
+                               cellspacing="0"
+                               border="0">
+
+                            <tr>
+
+                                <!-- LOGO -->
+                                <td width="56"
+                                    valign="middle"
+                                    style="
+                                        width:56px;
+                                        padding-right:16px;
+                                    ">
+                                    ${headerLogo}
+                                </td>
+
+                                <!-- BRAND -->
+                                <td valign="middle">
+
+                                    <div style="
+                                        font-size:17px;
+                                        line-height:23px;
+                                        font-weight:bold;
+                                        color:#14532d;
+                                    ">
+                                        Talisay Integrated School
+                                    </div>
+
+                                    <div style="
+                                        padding-top:2px;
+                                        font-size:10px;
+                                        line-height:15px;
+                                        letter-spacing:.8px;
+                                        text-transform:uppercase;
+                                        color:#64748b;
+                                    ">
+                                        Record Management System
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        </table>
+
+                    </td>
+                </tr>
+
+                <!-- CONTENT -->
+                <tr>
+                    <td style="
+                        padding:42px 32px 48px;
+                    ">
+
+                        ${bodyContent}
+
+                    </td>
+                </tr>
+
+                <!-- FOOTER -->
+                <tr>
+                    <td style="
+                        padding:20px 32px 24px;
+                        border-top:1px solid #e5e7eb;
+                        background-color:#fafafa;
+                    ">
+
+                        <table role="presentation"
+                               width="100%"
+                               cellpadding="0"
+                               cellspacing="0"
+                               border="0">
+
+                            <tr>
+
+                                <td align="left"
+                                    valign="middle"
+                                    style="
+                                        font-size:10px;
+                                        line-height:16px;
+                                        color:#64748b;
+                                    ">
+
+                                    <strong style="color:#475569;">
+                                        Talisay Integrated School
+                                    </strong><br>
+
+                                    Tiaong, Quezon
+
+                                </td>
+
+                                <td align="right"
+                                    valign="middle"
+                                    style="
+                                        font-size:10px;
+                                        line-height:16px;
+                                        color:#94a3b8;
+                                    ">
+
+                                    &copy; ${YEAR}<br>
+                                    Automated message
+
+                                </td>
+
+                            </tr>
+
+                        </table>
+
+                    </td>
+                </tr>
+
+            </table>
+
         </td>
-      </tr>
+    </tr>
 
-      <!-- BODY -->
-      <tr><td style="padding:36px 36px 28px;">${bodyContent}</td></tr>
-
-      <!-- FOOTER -->
-      <tr>
-        <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 32px;text-align:center;">
-          <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.7;">
-            &copy; ${YEAR} Talisay Integrated School &mdash; Tiaong, Quezon<br>
-            This is an automated message from the TIS Record Management System.<br>
-            Please do not reply to this email.
-          </p>
-        </td>
-      </tr>
-
-    </table>
-  </td></tr>
 </table>
+
 </body>
 </html>`;
 }
+
+
+
 
 // ── OTP Email ──────────────────────────────────────────────────────────────────
 
@@ -158,57 +318,178 @@ const sendPasswordResetOtp = async ({ to, username, otp }) => {
         || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
 
     // Render OTP digits as individual styled boxes
-    const digitBoxes = otp.toString().split('').map(d =>
-        `<span style="display:inline-block;width:40px;height:52px;line-height:52px;margin:0 4px;background:#f0fdf4;border:2px solid #16a34a;border-radius:10px;font-size:28px;font-weight:800;color:#14532d;text-align:center;font-family:'Courier New',Courier,monospace;">${d}</span>`
-    ).join('');
+ 
+const digitBoxes = otp.toString().split('').map(d =>
+    `<td align="center" valign="middle"
+        style="
+            width:48px;
+            height:58px;
+            padding:0;
+            background-color:#f0fdf4;
+            border:1px solid #86efac;
+            color:#14532d;
+            font-family:'Courier New',Courier,monospace;
+            font-size:28px;
+            line-height:58px;
+            font-weight:bold;
+        ">
+        ${d}
+    </td>`
+).join('');
 
-    const body = `
-      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Hello, <span style="color:#15803d;">@${username}</span></p>
-      <p style="margin:0 0 28px;font-size:14px;color:#475569;line-height:1.7;">
-        We received a request to reset the password on your TIS RMS account.
-        Use the verification code below to continue. <strong>Do not share this code with anyone.</strong>
-      </p>
+const body = `
+    <!-- GREETING -->
+    <p style="
+        margin:0 0 8px;
+        font-size:20px;
+        line-height:28px;
+        font-weight:bold;
+        color:#0f172a;
+    ">
+        Hello, <span style="color:#15803d;">@${username}</span>
+    </p>
 
-      <!-- OTP Digits -->
-      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0 24px;">
-        ${digitBoxes}
-      </td></tr></table>
+    <p style="
+        margin:0 0 30px;
+        font-size:14px;
+        line-height:22px;
+        color:#475569;
+    ">
+        We received a request to reset the password for your
+        TIS RMS account. Use the verification code below to
+        continue.
+    </p>
 
-      <!-- Expiry pill -->
-      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:28px;">
-        <span style="display:inline-block;background:#fef9c3;border:1px solid #fde047;color:#713f12;font-size:12px;font-weight:600;padding:6px 16px;border-radius:999px;">
-          &#9201; Expires in <strong>10 minutes</strong>
-        </span>
-      </td></tr></table>
+    <!-- VERIFICATION CODE LABEL -->
+    <p style="
+        margin:0 0 12px;
+        font-size:11px;
+        line-height:16px;
+        font-weight:bold;
+        letter-spacing:1px;
+        text-transform:uppercase;
+        color:#64748b;
+        text-align:center;
+    ">
+        Verification Code
+    </p>
 
-      <!-- Divider -->
-      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 20px;">
+    <!-- OTP -->
+    <table role="presentation"
+           align="center"
+           cellpadding="0"
+           cellspacing="5"
+           border="0"
+           style="margin:0 auto 18px;">
+        <tr>
+            ${digitBoxes}
+        </tr>
+    </table>
 
-      <!-- Security notice -->
-      <table width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td width="4" style="background:#f59e0b;border-radius:4px;">&nbsp;</td>
-        <td style="padding:10px 14px;font-size:12px;color:#78350f;background:#fffbeb;border-radius:0 8px 8px 0;">
-          <strong>Security Notice:</strong> If you did not request this, please ignore this email or contact your system administrator immediately. Your password will remain unchanged.
-        </td>
-      </tr></table>
-    `;
+    <!-- EXPIRATION -->
+    <p style="
+        margin:0 0 30px;
+        text-align:center;
+        font-size:12px;
+        line-height:18px;
+        color:#64748b;
+    ">
+        This code expires in
+        <strong style="color:#475569;">10 minutes</strong>.
+    </p>
 
-    const htmlContent = emailShell(body);
+    <!-- DIVIDER -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 24px;">
+        <tr>
+            <td height="1"
+                style="
+                    height:1px;
+                    background-color:#e5e7eb;
+                    font-size:0;
+                    line-height:0;
+                ">
+                &nbsp;
+            </td>
+        </tr>
+    </table>
 
-    const mailOptions = {
-        from: fromAddress,
-        to,
-        subject: `[TIS RMS] Your password reset code: ${otp}`,
-        html: htmlContent,
-        text: `Hello @${username},\n\nYour TIS RMS password reset code is: ${otp}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, contact your administrator.`,
-    };
+    <!-- SECURITY NOTICE -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0;">
+        <tr>
+
+            <td width="3"
+                style="
+                    width:3px;
+                    background-color:#f59e0b;
+                    font-size:0;
+                    line-height:0;
+                ">
+                &nbsp;
+            </td>
+
+            <td style="
+                padding:2px 0 2px 14px;
+                font-size:12px;
+                line-height:19px;
+                color:#64748b;
+            ">
+                <strong style="color:#475569;">
+                    Security notice:
+                </strong>
+                If you did not request a password reset, you can
+                safely ignore this email. Your password will remain
+                unchanged. If necessary, contact your system
+                administrator.
+            </td>
+
+        </tr>
+    </table>
+
+    <!-- DO NOT SHARE -->
+    <p style="
+        margin:22px 0 0;
+        font-size:11px;
+        line-height:17px;
+        color:#94a3b8;
+        text-align:center;
+    ">
+        Never share your verification code with anyone.
+    </p>
+`;
+
+const htmlContent = emailShell(body);
+
+const mailOptions = {
+    from: fromAddress,
+    to,
+    subject: `[TIS RMS] Your password reset code: ${otp}`,
+    html: htmlContent,
+    text: `Hello @${username},
+
+We received a request to reset the password for your TIS RMS account.
+
+Your verification code is: ${otp}
+
+This code expires in 10 minutes.
+
+Never share your verification code with anyone.
+
+If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged. If necessary, contact your system administrator.`,
+};
+
 
     if (LOGO_PATH) {
-        mailOptions.attachments = [{
-            filename: 'logo.png',
-            path: LOGO_PATH,
-            cid: 'school-logo'
-        }];
+        mailOptions.attachments = getLogoAttachment();
     }
 
     try {
@@ -228,63 +509,243 @@ const sendPasswordResetLink = async ({ to, username, resetLink, expiresMinutes =
     const fromAddress = process.env.SMTP_FROM
         || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
 
-    const body = `
-      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Hello, <span style="color:#15803d;">@${username}</span></p>
-      <p style="margin:0 0 28px;font-size:14px;color:#475569;line-height:1.7;">
-        An administrator has initiated a password reset for your TIS RMS account.
-        Click the button below to set a new password. This link is single-use and will expire after
-        <strong>${expiresMinutes} minutes</strong>.
-      </p>
+const body = `
+    <!-- GREETING -->
+    <p style="
+        margin:0 0 8px;
+        font-size:20px;
+        line-height:28px;
+        font-weight:bold;
+        color:#0f172a;
+    ">
+        Hello, <span style="color:#15803d;">@${username}</span>
+    </p>
 
-      <!-- CTA Button -->
-      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:4px 0 28px;">
-        <a href="${resetLink}" target="_blank"
-           style="display:inline-block;background:#15803d;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 40px;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 14px rgba(21,128,61,0.4);">
-          &#128273;&nbsp; Reset My Password
+    <p style="
+        margin:0 0 30px;
+        font-size:14px;
+        line-height:22px;
+        color:#475569;
+    ">
+        An administrator has initiated a password reset for your
+        TIS RMS account. Use the button below to create a new
+        password.
+    </p>
+
+    <!-- RESET PASSWORD LABEL -->
+    <p style="
+        margin:0 0 12px;
+        font-size:11px;
+        line-height:16px;
+        font-weight:bold;
+        letter-spacing:1px;
+        text-transform:uppercase;
+        color:#64748b;
+        text-align:center;
+    ">
+        Password Reset
+    </p>
+
+    <!-- CTA -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 18px;">
+
+        <tr>
+            <td align="center">
+
+                <!--[if mso]>
+                <v:roundrect
+                    xmlns:v="urn:schemas-microsoft-com:vml"
+                    href="${resetLink}"
+                    style="height:48px;v-text-anchor:middle;width:220px;"
+                    arcsize="8%"
+                    strokecolor="#15803d"
+                    fillcolor="#15803d">
+
+                    <w:anchorlock/>
+
+                    <center style="
+                        color:#ffffff;
+                        font-family:Arial,Helvetica,sans-serif;
+                        font-size:14px;
+                        font-weight:bold;
+                    ">
+                        Reset My Password
+                    </center>
+                </v:roundrect>
+                <![endif]-->
+
+                <!--[if !mso]><!-- -->
+                <a href="${resetLink}"
+                   target="_blank"
+                   style="
+                       display:inline-block;
+                       min-width:180px;
+                       padding:14px 24px;
+                       background-color:#15803d;
+                       border:1px solid #15803d;
+                       color:#ffffff;
+                       font-family:Arial,Helvetica,sans-serif;
+                       font-size:14px;
+                       line-height:20px;
+                       font-weight:bold;
+                       text-align:center;
+                       text-decoration:none;
+                   ">
+                    Reset My Password
+                </a>
+                <!--<![endif]-->
+
+            </td>
+        </tr>
+
+    </table>
+
+    <!-- EXPIRATION -->
+    <p style="
+        margin:0 0 30px;
+        text-align:center;
+        font-size:12px;
+        line-height:18px;
+        color:#64748b;
+    ">
+        This password reset link expires in
+        <strong style="color:#475569;">
+            ${expiresMinutes} minutes
+        </strong>
+        and can only be used once.
+    </p>
+
+    <!-- DIVIDER -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 24px;">
+
+        <tr>
+            <td height="1"
+                style="
+                    height:1px;
+                    background-color:#e5e7eb;
+                    font-size:0;
+                    line-height:0;
+                ">
+                &nbsp;
+            </td>
+        </tr>
+
+    </table>
+
+    <!-- FALLBACK LINK -->
+    <p style="
+        margin:0 0 7px;
+        font-size:11px;
+        line-height:17px;
+        font-weight:bold;
+        color:#64748b;
+    ">
+        Button not working?
+    </p>
+
+    <p style="
+        margin:0 0 26px;
+        font-size:11px;
+        line-height:18px;
+        word-break:break-all;
+        overflow-wrap:anywhere;
+    ">
+        <a href="${resetLink}"
+           target="_blank"
+           style="
+               color:#15803d;
+               text-decoration:underline;
+           ">
+            ${resetLink}
         </a>
-      </td></tr></table>
+    </p>
 
-      <!-- Expiry pill -->
-      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:24px;">
-        <span style="display:inline-block;background:#fef9c3;border:1px solid #fde047;color:#713f12;font-size:12px;font-weight:600;padding:6px 16px;border-radius:999px;">
-          &#9201; Link expires in <strong>${expiresMinutes} minutes</strong>
-        </span>
-      </td></tr></table>
+    <!-- SECURITY NOTICE -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0;">
 
-      <!-- Fallback link -->
-      <p style="margin:0 0 6px;font-size:12px;color:#64748b;">If the button doesn't work, copy and paste this link into your browser:</p>
-      <p style="margin:0 0 24px;font-size:12px;word-break:break-all;">
-        <a href="${resetLink}" style="color:#15803d;text-decoration:underline;">${resetLink}</a>
-      </p>
+        <tr>
 
-      <!-- Divider -->
-      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 20px;">
+            <td width="3"
+                style="
+                    width:3px;
+                    background-color:#94a3b8;
+                    font-size:0;
+                    line-height:0;
+                ">
+                &nbsp;
+            </td>
 
-      <!-- Security notice -->
-      <table width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td width="4" style="background:#94a3b8;border-radius:4px;">&nbsp;</td>
-        <td style="padding:10px 14px;font-size:12px;color:#475569;background:#f8fafc;border-radius:0 8px 8px 0;">
-          <strong>Security Notice:</strong> If you did not expect this email, please disregard it or contact your system administrator. Your password will not change unless you click the link above.
-        </td>
-      </tr></table>
-    `;
+            <td style="
+                padding:2px 0 2px 14px;
+                font-size:12px;
+                line-height:19px;
+                color:#64748b;
+            ">
+                <strong style="color:#475569;">
+                    Security notice:
+                </strong>
+                If you did not expect this email, you can safely
+                disregard it or contact your system administrator.
+                Your password will remain unchanged unless the
+                reset link is used.
+            </td>
 
-    const htmlContent = emailShell(body);
+        </tr>
 
-    const mailOptions = {
-        from: fromAddress,
-        to,
-        subject: `[TIS RMS] Password reset link for @${username}`,
-        html: htmlContent,
-        text: `Hello @${username},\n\nAn administrator requested a password reset for your TIS RMS account.\n\nReset link:\n${resetLink}\n\nThis link expires in ${expiresMinutes} minutes.\n\nIf you did not request this, contact your administrator.`,
-    };
+    </table>
+
+    <!-- FINAL SECURITY LINE -->
+    <p style="
+        margin:22px 0 0;
+        font-size:11px;
+        line-height:17px;
+        color:#94a3b8;
+        text-align:center;
+    ">
+        Never share your password reset link with anyone.
+    </p>
+`;
+
+const htmlContent = emailShell(body);
+
+const mailOptions = {
+    from: fromAddress,
+    to,
+    subject: `[TIS RMS] Password reset link for @${username}`,
+    html: htmlContent,
+    text: `Hello @${username},
+
+An administrator has initiated a password reset for your TIS RMS account.
+
+Reset your password:
+${resetLink}
+
+This password reset link expires in ${expiresMinutes} minutes and can only be used once.
+
+If you did not expect this email, you can safely disregard it or contact your system administrator. Your password will remain unchanged unless the reset link is used.
+
+Never share your password reset link with anyone.`,
+};
+
+
 
     if (LOGO_PATH) {
-        mailOptions.attachments = [{
-            filename: 'logo.png',
-            path: LOGO_PATH,
-            cid: 'school-logo'
-        }];
+        mailOptions.attachments = getLogoAttachment();
     }
 
     try {
@@ -305,78 +766,302 @@ const sendTeacherAttentionReminder = async ({ to, teacherName, sectionsWithStude
         || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
 
     let totalStudents = 0;
-    let sectionsHtml = '';
+let sectionsHtml = '';
 
-    for (const sec of sectionsWithStudents) {
-        totalStudents += sec.students.length;
-        const rows = sec.students.map(s => `
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 10px 12px; font-weight: 600; color: #1e293b; font-size: 13px;">
-              ${s.name}
+for (const sec of sectionsWithStudents) {
+    totalStudents += sec.students.length;
+
+    const rows = sec.students.map(s => `
+        <tr>
+            <td style="
+                padding:11px 10px 11px 0;
+                border-bottom:1px solid #e5e7eb;
+                font-size:13px;
+                line-height:19px;
+                font-weight:600;
+                color:#1e293b;
+            ">
+                ${s.name}
             </td>
-            <td style="padding: 10px 12px; color: #475569; font-size: 12px; font-family: 'Courier New', Courier, monospace;">
-              ${s.lrn || 'N/A'}
+
+            <td style="
+                padding:11px 10px;
+                border-bottom:1px solid #e5e7eb;
+                font-size:12px;
+                line-height:19px;
+                color:#475569;
+                font-family:'Courier New',Courier,monospace;
+                white-space:nowrap;
+            ">
+                ${s.lrn || 'N/A'}
             </td>
-            <td style="padding: 10px 12px; color: #b91c1c; font-size: 12px; font-weight: 500;">
-              ${s.missingDocs.join(', ')}
+
+            <td style="
+                padding:11px 0 11px 10px;
+                border-bottom:1px solid #e5e7eb;
+                font-size:12px;
+                line-height:19px;
+                color:#b91c1c;
+                font-weight:500;
+            ">
+                ${s.missingDocs.join(', ')}
             </td>
-          </tr>
-        `).join('');
+        </tr>
+    `).join('');
 
-        sectionsHtml += `
-          <div style="margin-bottom: 24px;">
-            <div style="background: #f1f5f9; padding: 8px 12px; border-radius: 6px; font-weight: 700; color: #0f172a; font-size: 13px; margin-bottom: 8px;">
-              &#128194; Grade ${sec.gradeLevel} - ${sec.sectionName}
-              <span style="font-size: 11px; font-weight: normal; color: #64748b; margin-left: 8px;">(${sec.students.length} student${sec.students.length > 1 ? 's' : ''})</span>
-            </div>
-            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; font-size: 12px; width: 100%;">
-              <thead>
-                <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1; text-align: left; color: #475569;">
-                  <th style="padding: 8px 12px; font-size: 11px; text-transform: uppercase;">Student Name</th>
-                  <th style="padding: 8px 12px; font-size: 11px; text-transform: uppercase;">LRN</th>
-                  <th style="padding: 8px 12px; font-size: 11px; text-transform: uppercase;">Missing Mandatory Requirement(s)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rows}
-              </tbody>
-            </table>
-          </div>
-        `;
-    }
+    sectionsHtml += `
+        <!-- SECTION -->
+        <table role="presentation"
+               width="100%"
+               cellpadding="0"
+               cellspacing="0"
+               border="0"
+               style="margin:0 0 30px;">
 
-    const body = `
-      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Hello Teacher <span style="color:#15803d;">${teacherName}</span>,</p>
-      <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.6;">
-        This is an automated advisory reminder from the <strong>TIS Record Management System</strong>.
-        The following <strong>${totalStudents} student${totalStudents > 1 ? 's' : ''}</strong> in your advised section${sectionsWithStudents.length > 1 ? 's' : ''} currently have missing mandatory document requirements (&ldquo;Needs Attention&rdquo;):
-      </p>
+            <!-- SECTION HEADER -->
+            <tr>
+                <td style="
+                    padding:0 0 10px;
+                    border-bottom:1px solid #e5e7eb;
+                ">
 
-      ${sectionsHtml}
+                    <p style="
+                        margin:0;
+                        font-size:13px;
+                        line-height:19px;
+                        font-weight:700;
+                        color:#0f172a;
+                    ">
+                        Grade ${sec.gradeLevel} - ${sec.sectionName}
+                    </p>
 
-      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin: 20px 0;">
-        <p style="margin: 0; font-size: 12px; color: #991b1b; line-height: 1.5;">
-          <strong>Action Required:</strong> Please coordinate with the concerned students or parents to submit their required documents. You may view and track their document status directly in the TIS RMS advisory portal.
-        </p>
-      </div>
+                    <p style="
+                        margin:2px 0 0;
+                        font-size:11px;
+                        line-height:17px;
+                        color:#64748b;
+                    ">
+                        ${sec.students.length}
+                        student${sec.students.length > 1 ? 's' : ''}
+                        requiring attention
+                    </p>
+
+                </td>
+            </tr>
+
+            <!-- TABLE -->
+            <tr>
+                <td style="padding-top:10px;">
+
+                    <table role="presentation"
+                           width="100%"
+                           cellpadding="0"
+                           cellspacing="0"
+                           border="0"
+                           style="
+                               width:100%;
+                               border-collapse:collapse;
+                           ">
+
+                        <thead>
+                            <tr>
+                                <th align="left" style="
+                                    padding:0 10px 8px 0;
+                                    font-size:10px;
+                                    line-height:15px;
+                                    font-weight:700;
+                                    letter-spacing:.6px;
+                                    text-transform:uppercase;
+                                    color:#64748b;
+                                ">
+                                    Student
+                                </th>
+
+                                <th align="left" style="
+                                    padding:0 10px 8px;
+                                    font-size:10px;
+                                    line-height:15px;
+                                    font-weight:700;
+                                    letter-spacing:.6px;
+                                    text-transform:uppercase;
+                                    color:#64748b;
+                                ">
+                                    LRN
+                                </th>
+
+                                <th align="left" style="
+                                    padding:0 0 8px 10px;
+                                    font-size:10px;
+                                    line-height:15px;
+                                    font-weight:700;
+                                    letter-spacing:.6px;
+                                    text-transform:uppercase;
+                                    color:#64748b;
+                                ">
+                                    Missing Requirement(s)
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            ${rows}
+                        </tbody>
+
+                    </table>
+
+                </td>
+            </tr>
+
+        </table>
     `;
+}
 
-    const htmlContent = emailShell(body);
+const body = `
+    <!-- GREETING -->
+    <p style="
+        margin:0 0 8px;
+        font-size:20px;
+        line-height:28px;
+        font-weight:700;
+        color:#0f172a;
+    ">
+        Hello, <span style="color:#15803d;">${teacherName}</span>
+    </p>
 
-    const mailOptions = {
-        from: fromAddress,
-        to,
-        subject: `[TIS RMS] Advisory Reminder: ${totalStudents} Student${totalStudents > 1 ? 's' : ''} Need Document Attention`,
-        html: htmlContent,
-        text: `Hello ${teacherName},\n\nYou have ${totalStudents} students with missing mandatory documents in your advised sections. Please log into TIS RMS to review your advisory classes.\n\nThank you.`,
-    };
+    <!-- INTRODUCTION -->
+    <p style="
+        margin:0 0 30px;
+        font-size:14px;
+        line-height:24px;
+        color:#475569;
+    ">
+        This is an automated advisory reminder from the
+        <strong style="color:#334155;">
+            TIS Record Management System
+        </strong>.
+        The following
+        <strong style="color:#0f172a;">
+            ${totalStudents} student${totalStudents > 1 ? 's' : ''}
+        </strong>
+        in your advised section${sectionsWithStudents.length > 1 ? 's' : ''}
+        currently have missing mandatory document requirements.
+    </p>
+
+    <!-- SUMMARY -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 30px;">
+
+        <tr>
+            <td style="
+                padding:14px 16px;
+                border-left:4px solid #d97706;
+                background-color:#fffbeb;
+            ">
+
+                <p style="
+                    margin:0 0 4px;
+                    font-size:11px;
+                    line-height:16px;
+                    font-weight:700;
+                    letter-spacing:.7px;
+                    text-transform:uppercase;
+                    color:#92400e;
+                ">
+                    Needs Attention
+                </p>
+
+                <p style="
+                    margin:0;
+                    font-size:15px;
+                    line-height:22px;
+                    font-weight:700;
+                    color:#78350f;
+                ">
+                    ${totalStudents}
+                    student${totalStudents > 1 ? 's' : ''}
+                    with missing mandatory requirements
+                </p>
+
+            </td>
+        </tr>
+
+    </table>
+
+    <!-- SECTION LIST -->
+    ${sectionsHtml}
+
+    <!-- ACTION REQUIRED -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0;">
+
+        <tr>
+            <td style="
+                padding:15px 16px;
+                border-left:3px solid #15803d;
+                background-color:#f0fdf4;
+            ">
+
+                <p style="
+                    margin:0 0 5px;
+                    font-size:12px;
+                    line-height:18px;
+                    font-weight:700;
+                    color:#166534;
+                ">
+                    Action Required
+                </p>
+
+                <p style="
+                    margin:0;
+                    font-size:12px;
+                    line-height:19px;
+                    color:#166534;
+                ">
+                    Please coordinate with the concerned students or parents
+                    to submit their required documents. You may view and track
+                    their document status directly in the TIS RMS advisory portal.
+                </p>
+
+            </td>
+        </tr>
+
+    </table>
+`;
+
+const htmlContent = emailShell(body);
+
+const mailOptions = {
+    from: fromAddress,
+    to,
+    subject: `[TIS RMS] Advisory Reminder: ${totalStudents} Student${totalStudents > 1 ? 's' : ''} Need Document Attention`,
+    html: htmlContent,
+    text: `Hello ${teacherName},
+
+This is an automated advisory reminder from the TIS Record Management System.
+
+${totalStudents} student${totalStudents > 1 ? 's' : ''} in your advised section${sectionsWithStudents.length > 1 ? 's' : ''} currently have missing mandatory document requirements.
+
+${sectionsWithStudents.map(sec => `
+Grade ${sec.gradeLevel} - ${sec.sectionName}
+${sec.students.map(s => `- ${s.name} | LRN: ${s.lrn || 'N/A'} | Missing: ${s.missingDocs.join(', ')}`).join('\n')}
+`).join('\n')}
+
+Action Required:
+Please coordinate with the concerned students or parents to submit their required documents. You may view and track their document status directly in the TIS RMS advisory portal.
+
+Thank you.`,
+};
 
     if (LOGO_PATH) {
-        mailOptions.attachments = [{
-            filename: 'logo.png',
-            path: LOGO_PATH,
-            cid: 'school-logo'
-        }];
+        mailOptions.attachments = getLogoAttachment();
     }
 
     try {
@@ -397,70 +1082,235 @@ const sendAccountCreatedEmail = async ({ to, username, fullName, role, temporary
     const displayName = fullName || `@${username}`;
     const roleUpper = (role || 'user').toUpperCase();
 
-    const body = `
-      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Welcome, <span style="color:#15803d;">${displayName}</span>!</p>
-      <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.7;">
-        An account has been created for you on the <strong>Talisay Integrated School Record Management System</strong>.
-        You can now sign in using the credentials below:
-      </p>
+  
+const body = `
+    <!-- GREETING -->
+    <p style="
+        margin:0 0 8px;
+        font-size:20px;
+        line-height:28px;
+        font-weight:bold;
+        color:#0f172a;
+    ">
+        Welcome, <span style="color:#15803d;">${displayName}</span>!
+    </p>
 
-      <!-- Credentials Card -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin:0 0 24px;overflow:hidden;">
+    <p style="
+        margin:0 0 30px;
+        font-size:14px;
+        line-height:22px;
+        color:#475569;
+    ">
+        An account has been created for you on the
+        <strong style="color:#334155;">
+            Talisay Integrated School Record Management System
+        </strong>.
+        You can now sign in using the credentials below.
+    </p>
+
+    <!-- CREDENTIALS LABEL -->
+    <p style="
+        margin:0 0 12px;
+        font-size:11px;
+        line-height:16px;
+        font-weight:bold;
+        letter-spacing:1px;
+        text-transform:uppercase;
+        color:#64748b;
+    ">
+        Account Credentials
+    </p>
+
+    <!-- CREDENTIALS -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="
+               width:100%;
+               border-top:1px solid #e5e7eb;
+               border-bottom:1px solid #e5e7eb;
+               margin:0 0 28px;
+           ">
+
+        <!-- USERNAME -->
         <tr>
-          <td style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f1f5f9;">
-            <strong style="color:#334155;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">Your Account Credentials</strong>
-          </td>
+            <td width="42%"
+                style="
+                    padding:15px 12px 15px 0;
+                    font-size:13px;
+                    line-height:20px;
+                    font-weight:bold;
+                    color:#64748b;
+                    border-bottom:1px solid #f1f5f9;
+                ">
+                Username
+            </td>
+
+            <td style="
+                padding:15px 0;
+                font-size:13px;
+                line-height:20px;
+                font-weight:bold;
+                color:#0f172a;
+                font-family:'Courier New',Courier,monospace;
+                border-bottom:1px solid #f1f5f9;
+            ">
+                ${username}
+            </td>
         </tr>
+
+        <!-- ROLE -->
         <tr>
-          <td style="padding:16px 20px;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;line-height:1.8;">
-              <tr>
-                <td width="140" style="color:#64748b;font-weight:600;">Username:</td>
-                <td style="color:#0f172a;font-weight:700;font-family:'Courier New',Courier,monospace;">${username}</td>
-              </tr>
-              <tr>
-                <td width="140" style="color:#64748b;font-weight:600;">Assigned Role:</td>
-                <td style="color:#15803d;font-weight:700;">${roleUpper}</td>
-              </tr>
-              <tr>
-                <td width="140" style="color:#64748b;font-weight:600;">Temporary Password:</td>
-                <td style="color:#0f172a;font-weight:700;font-family:'Courier New',Courier,monospace;">${temporaryPassword}</td>
-              </tr>
-            </table>
-          </td>
+            <td width="42%"
+                style="
+                    padding:15px 12px 15px 0;
+                    font-size:13px;
+                    line-height:20px;
+                    font-weight:bold;
+                    color:#64748b;
+                    border-bottom:1px solid #f1f5f9;
+                ">
+                Assigned Role
+            </td>
+
+            <td style="
+                padding:15px 0;
+                font-size:13px;
+                line-height:20px;
+                font-weight:bold;
+                color:#15803d;
+                border-bottom:1px solid #f1f5f9;
+            ">
+                ${roleUpper}
+            </td>
         </tr>
-      </table>
 
-      <!-- First time warning pill -->
-      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:24px;">
-        <span style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-size:12px;font-weight:600;padding:6px 16px;border-radius:999px;">
-          &#128274; For security, please change your password immediately upon your first sign-in.
-        </span>
-      </td></tr></table>
+        <!-- TEMPORARY PASSWORD -->
+        <tr>
+            <td width="42%"
+                style="
+                    padding:15px 12px 15px 0;
+                    font-size:13px;
+                    line-height:20px;
+                    font-weight:bold;
+                    color:#64748b;
+                ">
+                Temporary Password
+            </td>
 
-      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 16px;">
+            <td style="
+                padding:15px 0;
+                font-size:13px;
+                line-height:20px;
+                font-weight:bold;
+                color:#0f172a;
+                font-family:'Courier New',Courier,monospace;
+                word-break:break-all;
+            ">
+                ${temporaryPassword}
+            </td>
+        </tr>
 
-      <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6;">
-        If you did not expect this account, please contact the school administration immediately.
-      </p>
-    `;
+    </table>
 
-    const htmlContent = emailShell(body);
+    <!-- SECURITY MESSAGE -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 28px;">
 
-    const mailOptions = {
-        from: fromAddress,
-        to,
-        subject: `Welcome to TIS Record Management System - Your Account Details`,
-        html: htmlContent,
-        text: `Welcome to TIS Record Management System, ${displayName}!\n\nAn account has been created for you:\nUsername: ${username}\nRole: ${roleUpper}\nTemporary Password: ${temporaryPassword}\n\nPlease sign in and change your password upon first login.`,
-    };
+        <tr>
+
+            <td width="3"
+                style="
+                    width:3px;
+                    background-color:#1c8248;
+                    font-size:0;
+                    line-height:0;
+                ">
+                &nbsp;
+            </td>
+
+            <td style="
+                padding:2px 0 2px 14px;
+                font-size:12px;
+                line-height:19px;
+                color:#64748b;
+            ">
+                <strong style="color:#475569;">
+                    First sign-in:
+                </strong>
+                Please change your temporary password immediately
+                after signing in. Do not share your credentials with
+                anyone.
+            </td>
+
+        </tr>
+
+    </table>
+
+    <!-- DIVIDER -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 18px;">
+
+        <tr>
+            <td height="1"
+                style="
+                    height:1px;
+                    background-color:#e5e7eb;
+                    font-size:0;
+                    line-height:0;
+                ">
+                &nbsp;
+            </td>
+        </tr>
+
+    </table>
+
+    <!-- UNEXPECTED ACCOUNT -->
+    <p style="
+        margin:0;
+        font-size:11px;
+        line-height:18px;
+        color:#94a3b8;
+    ">
+        If you did not expect this account, please contact the
+        school administration immediately.
+    </p>
+`;
+
+const htmlContent = emailShell(body);
+
+const mailOptions = {
+    from: fromAddress,
+    to,
+    subject: `[TIS RMS] Your TIS RMS account has been created`,
+    html: htmlContent,
+    text: `Welcome to TIS Record Management System, ${displayName}!
+
+An account has been created for you.
+
+Username: ${username}
+Role: ${roleUpper}
+Temporary Password: ${temporaryPassword}
+
+Please sign in and change your temporary password immediately after your first login.
+
+Do not share your credentials with anyone.
+
+If you did not expect this account, please contact the school administration immediately.`,
+};
 
     if (LOGO_PATH) {
-        mailOptions.attachments = [{
-            filename: 'logo.png',
-            path: LOGO_PATH,
-            cid: 'school-logo'
-        }];
+        mailOptions.attachments = getLogoAttachment();
     }
 
     try {
@@ -478,58 +1328,218 @@ const sendAccountStatusEmail = async ({ to, username, fullName, role, isActive }
     const fromAddress = process.env.SMTP_FROM
         || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
 
-    const displayName = fullName || `@${username}`;
-    const statusLabel = isActive ? 'Activated' : 'Deactivated';
-    const statusColor = isActive ? '#15803d' : '#b91c1c';
-    const statusBg = isActive ? '#f0fdf4' : '#fef2f2';
-    const statusBorder = isActive ? '#bbf7d0' : '#fecaca';
+const displayName = fullName || `@${username}`;
 
-    const body = `
-      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Hello, <span style="color:#0f172a;">${displayName}</span></p>
-      
-      <!-- Status Badge -->
-      <div style="margin:16px 0 20px;padding:14px 18px;background:${statusBg};border:1px solid ${statusBorder};border-radius:10px;">
-        <div style="font-size:15px;font-weight:700;color:${statusColor};margin-bottom:4px;">
-          Account Status: ${statusLabel}
-        </div>
-        <p style="margin:0;font-size:13px;color:#334155;line-height:1.6;">
-          ${isActive 
-            ? 'Your account has been <strong>activated</strong> by an administrator. You can now log into the TIS Record Management System and access school records according to your role.'
-            : 'Your account has been <strong>deactivated</strong> by an administrator. Your active sessions have been revoked and system access has been suspended.'
-          }
-        </p>
-      </div>
+const statusLabel = isActive ? 'Activated' : 'Deactivated';
+const statusColor = isActive ? '#15803d' : '#b91c1c';
+const statusBg = isActive ? '#f0fdf4' : '#fef2f2';
+const statusBorder = isActive ? '#bbf7d0' : '#fecaca';
 
-      <p style="margin:0 0 16px;font-size:13px;color:#64748b;line-height:1.6;">
-        ${isActive
-            ? 'If you have forgotten your password, you can use the "Forgot Password" option on the sign-in screen.'
-            : 'If you believe this status change was made in error, please contact your school administrator or ICT coordinator.'
+const body = `
+    <!-- GREETING -->
+    <p style="
+        margin:0 0 8px;
+        font-size:20px;
+        line-height:28px;
+        font-weight:bold;
+        color:#0f172a;
+    ">
+        Hello, <span style="color:#15803d;">${displayName}</span>
+    </p>
+
+    <p style="
+        margin:0 0 30px;
+        font-size:14px;
+        line-height:22px;
+        color:#475569;
+    ">
+        An administrator has updated the status of your
+        TIS Record Management System account.
+    </p>
+
+    <!-- STATUS LABEL -->
+    <p style="
+        margin:0 0 12px;
+        font-size:11px;
+        line-height:16px;
+        font-weight:bold;
+        letter-spacing:1px;
+        text-transform:uppercase;
+        color:#64748b;
+    ">
+        Account Status
+    </p>
+
+    <!-- STATUS -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="
+               margin:0 0 28px;
+               background-color:${statusBg};
+               border:1px solid ${statusBorder};
+           ">
+
+        <tr>
+            <td width="5"
+                style="
+                    width:5px;
+                    background-color:${statusColor};
+                    font-size:0;
+                    line-height:0;
+                ">
+                &nbsp;
+            </td>
+
+            <td style="
+                padding:16px 18px;
+            ">
+
+                <div style="
+                    margin:0 0 4px;
+                    font-size:16px;
+                    line-height:22px;
+                    font-weight:bold;
+                    color:${statusColor};
+                ">
+                    ${statusLabel}
+                </div>
+
+                <div style="
+                    font-size:13px;
+                    line-height:20px;
+                    color:#475569;
+                ">
+                    ${
+                        isActive
+                            ? 'Your account has been activated by an administrator. You can now sign in to the TIS Record Management System and access school records according to your assigned role.'
+                            : 'Your account has been deactivated by an administrator. Your active sessions have been revoked and access to the system has been suspended.'
+                    }
+                </div>
+
+            </td>
+        </tr>
+
+    </table>
+
+    <!-- ADDITIONAL INFORMATION -->
+    <p style="
+        margin:0 0 28px;
+        font-size:13px;
+        line-height:20px;
+        color:#64748b;
+    ">
+        ${
+            isActive
+                ? 'If you have forgotten your password, use the "Forgot Password" option on the sign-in screen.'
+                : 'If you believe this status change was made in error, please contact your school administrator or ICT coordinator.'
         }
-      </p>
+    </p>
 
-      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 16px;">
+    <!-- DIVIDER -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 18px;">
 
-      <p style="margin:0;font-size:11.5px;color:#94a3b8;line-height:1.6;">
-        Account Username: <strong>${username}</strong> | Role: <strong>${(role || 'user').toUpperCase()}</strong>
-      </p>
-    `;
+        <tr>
+            <td height="1"
+                style="
+                    height:1px;
+                    background-color:#e5e7eb;
+                    font-size:0;
+                    line-height:0;
+                ">
+                &nbsp;
+            </td>
+        </tr>
 
-    const htmlContent = emailShell(body);
+    </table>
 
-    const mailOptions = {
-        from: fromAddress,
-        to,
-        subject: `[TIS RMS] Account ${statusLabel}: Your Account Has Been ${statusLabel}`,
-        html: htmlContent,
-        text: `Hello ${displayName},\n\nYour TIS Record Management System account has been ${statusLabel.toLowerCase()} by an administrator.\n\n${isActive ? 'You may now log in to the system.' : 'Your access has been suspended. Please contact the administrator if this was in error.'}`,
-    };
+    <!-- ACCOUNT DETAILS -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0">
+
+        <tr>
+            <td style="
+                width:50%;
+                padding-right:12px;
+                font-size:11px;
+                line-height:18px;
+                color:#94a3b8;
+            ">
+                Username
+            </td>
+
+            <td style="
+                width:50%;
+                padding-left:12px;
+                font-size:11px;
+                line-height:18px;
+                color:#475569;
+                font-weight:bold;
+            ">
+                ${username}
+            </td>
+        </tr>
+
+        <tr>
+            <td style="
+                padding-top:5px;
+                padding-right:12px;
+                font-size:11px;
+                line-height:18px;
+                color:#94a3b8;
+            ">
+                Assigned Role
+            </td>
+
+            <td style="
+                padding-top:5px;
+                padding-left:12px;
+                font-size:11px;
+                line-height:18px;
+                color:#475569;
+                font-weight:bold;
+            ">
+                ${(role || 'user').toUpperCase()}
+            </td>
+        </tr>
+
+    </table>
+`;
+
+const htmlContent = emailShell(body);
+
+const mailOptions = {
+    from: fromAddress,
+    to,
+    subject: `[TIS RMS] Account ${statusLabel}: Your Account Has Been ${statusLabel}`,
+    html: htmlContent,
+    text: `Hello ${displayName},
+
+Your TIS Record Management System account has been ${statusLabel.toLowerCase()} by an administrator.
+
+${
+    isActive
+        ? 'You may now log in to the system.'
+        : 'Your access has been suspended. Please contact the administrator if this was in error.'
+}
+
+Username: ${username}
+Role: ${(role || 'user').toUpperCase()}`,
+};
+
 
     if (LOGO_PATH) {
-        mailOptions.attachments = [{
-            filename: 'logo.png',
-            path: LOGO_PATH,
-            cid: 'school-logo'
-        }];
+        mailOptions.attachments = getLogoAttachment();
     }
 
     try {
@@ -548,68 +1558,219 @@ const sendAccountDeletionEmail = async ({ to, username, deleteLink, expiresMinut
         || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
 
     const body = `
-      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Account Deletion Request</p>
-      <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.7;">
-        Hello, <strong style="color:#0f172a;">@${username}</strong>. We received a request to permanently delete your account on the
-        <strong>Talisay Integrated School Record Management System</strong>.
-      </p>
+    <!-- TITLE -->
+    <p style="
+        margin:0 0 8px;
+        font-size:20px;
+        line-height:28px;
+        font-weight:700;
+        color:#0f172a;
+    ">
+        Account Deletion Request
+    </p>
 
-      <!-- Danger Warning Badge -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+    <!-- INTRODUCTION -->
+    <p style="
+        margin:0 0 28px;
+        font-size:14px;
+        line-height:24px;
+        color:#475569;
+    ">
+        Hello, <strong style="color:#0f172a;">@${username}</strong>.
+        We received a request to permanently delete your account from the
+        <strong style="color:#334155;">
+            Talisay Integrated School Record Management System
+        </strong>.
+    </p>
+
+    <!-- WARNING -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 28px;">
+
         <tr>
-          <td style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;">
-            <div style="font-size:14px;font-weight:700;color:#b91c1c;margin-bottom:4px;">
-              &#9888; Warning: This action is permanent and irreversible
-            </div>
-            <p style="margin:0;font-size:13px;color:#7f1d1d;line-height:1.6;">
-              Once confirmed, your account credentials will be permanently removed. You will immediately lose access to the system.
-            </p>
-          </td>
+            <td style="
+                padding:16px 18px;
+                border-left:4px solid #dc2626;
+                background-color:#fef2f2;
+            ">
+
+                <p style="
+                    margin:0 0 5px;
+                    font-size:13px;
+                    line-height:19px;
+                    font-weight:700;
+                    color:#991b1b;
+                ">
+                    Warning: This action is permanent
+                </p>
+
+                <p style="
+                    margin:0;
+                    font-size:12px;
+                    line-height:19px;
+                    color:#7f1d1d;
+                ">
+                    Once confirmed, your account credentials will be permanently
+                    removed and you will immediately lose access to the system.
+                </p>
+
+            </td>
         </tr>
-      </table>
 
-      <!-- CTA Button -->
-      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:4px 0 24px;">
-        <a href="${deleteLink}" target="_blank"
-           style="display:inline-block;background:#dc2626;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 14px rgba(220,38,38,0.35);">
-          &#128465;&nbsp; Confirm &amp; Delete My Account
+    </table>
+
+    <!-- ACTION LABEL -->
+    <p style="
+        margin:0 0 12px;
+        font-size:11px;
+        line-height:16px;
+        font-weight:700;
+        letter-spacing:.8px;
+        text-transform:uppercase;
+        color:#64748b;
+    ">
+        Confirm Account Deletion
+    </p>
+
+    <!-- CTA -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 20px;">
+
+        <tr>
+            <td align="left">
+
+                <!--[if mso]>
+                <v:roundrect
+                    xmlns:v="urn:schemas-microsoft-com:vml"
+                    href="${deleteLink}"
+                    style="height:46px;v-text-anchor:middle;width:220px;"
+                    arcsize="0%"
+                    fillcolor="#dc2626"
+                    strokecolor="#dc2626">
+
+                    <w:anchorlock/>
+
+                    <center style="
+                        color:#ffffff;
+                        font-family:Arial,Helvetica,sans-serif;
+                        font-size:14px;
+                        font-weight:bold;
+                    ">
+                        Confirm &amp; Delete My Account
+                    </center>
+
+                </v:roundrect>
+                <![endif]-->
+
+                <!--[if !mso]><!-- -->
+                <a href="${deleteLink}"
+                   target="_blank"
+                   style="
+                       display:inline-block;
+                       background-color:#dc2626;
+                       color:#ffffff;
+                       font-family:Arial,Helvetica,sans-serif;
+                       font-size:14px;
+                       line-height:20px;
+                       font-weight:700;
+                       text-decoration:none;
+                       padding:13px 24px;
+                   ">
+                    Confirm &amp; Delete My Account
+                </a>
+                <!--<![endif]-->
+
+            </td>
+        </tr>
+
+    </table>
+
+    <!-- EXPIRATION -->
+    <p style="
+        margin:0 0 28px;
+        font-size:12px;
+        line-height:19px;
+        color:#64748b;
+    ">
+        This confirmation link expires in
+        <strong style="color:#334155;">
+            ${expiresMinutes} minutes
+        </strong>.
+    </p>
+
+    <!-- DIVIDER -->
+    <div style="
+        height:1px;
+        background-color:#e5e7eb;
+        margin:0 0 20px;
+        font-size:0;
+        line-height:0;
+    ">
+        &nbsp;
+    </div>
+
+    <!-- SECURITY NOTICE -->
+    <p style="
+        margin:0 0 10px;
+        padding-left:12px;
+        border-left:3px solid #94a3b8;
+        font-size:12px;
+        line-height:19px;
+        color:#64748b;
+    ">
+        If you did not request to delete your account, ignore this email.
+        For additional security, consider changing your password immediately.
+    </p>
+
+    <!-- FALLBACK LINK -->
+    <p style="
+        margin:20px 0 0;
+        font-size:11px;
+        line-height:18px;
+        color:#94a3b8;
+        word-break:break-all;
+    ">
+        If the button does not work, copy and paste this link into your browser:<br>
+        <a href="${deleteLink}"
+           target="_blank"
+           style="
+               color:#b91c1c;
+               text-decoration:underline;
+           ">
+            ${deleteLink}
         </a>
-      </td></tr></table>
+    </p>
+`;
 
-      <!-- Expiry pill -->
-      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:24px;">
-        <span style="display:inline-block;background:#fef9c3;border:1px solid #fde047;color:#713f12;font-size:12px;font-weight:600;padding:6px 16px;border-radius:999px;">
-          &#9201; Link expires in <strong>${expiresMinutes} minutes</strong>
-        </span>
-      </td></tr></table>
+const htmlContent = emailShell(body);
 
-      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 16px;">
+const mailOptions = {
+    from: fromAddress,
+    to,
+    subject: `[TIS RMS] Confirm Account Deletion - Action Required`,
+    html: htmlContent,
+    text: `Hello @${username},
 
-      <p style="margin:0 0 8px;font-size:12px;color:#64748b;line-height:1.6;">
-        If you did not request to delete your account, please ignore this email or change your password immediately. Your account will remain secure.
-      </p>
-      <p style="margin:0;font-size:11px;color:#94a3b8;word-break:break-all;">
-        Or copy and paste this link in your browser:<br>
-        <a href="${deleteLink}" style="color:#dc2626;text-decoration:underline;">${deleteLink}</a>
-      </p>
-    `;
+We received a request to permanently delete your TIS RMS account.
 
-    const htmlContent = emailShell(body);
+Warning: This action is permanent and irreversible. Once confirmed, your account credentials will be permanently removed and you will lose access to the system.
 
-    const mailOptions = {
-        from: fromAddress,
-        to,
-        subject: `[TIS RMS] Confirm Account Deletion - Action Required`,
-        html: htmlContent,
-        text: `Hello @${username},\n\nWe received a request to permanently delete your TIS RMS account.\n\nTo confirm, click the link below within ${expiresMinutes} minutes:\n${deleteLink}\n\nIf you did not request this, please ignore this email.`,
-    };
+To confirm the deletion, click the link below within ${expiresMinutes} minutes:
+${deleteLink}
+
+If you did not request this account deletion, please ignore this email. For additional security, consider changing your password immediately.`,
+};
 
     if (LOGO_PATH) {
-        mailOptions.attachments = [{
-            filename: 'logo.png',
-            path: LOGO_PATH,
-            cid: 'school-logo'
-        }];
+        mailOptions.attachments = getLogoAttachment();
     }
 
     try {
@@ -625,62 +1786,264 @@ const sendDocumentPickupEmail = async ({ to, studentName, documentNames, pickupD
         || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
 
     const docList = Array.isArray(documentNames) ? documentNames : [documentNames];
-    const docItems = docList
-        .map(d => `<li style="margin-bottom:6px;color:#1e293b;font-weight:600;">${d}</li>`)
-        .join('');
 
-    const formattedDate = pickupDate || 'Next School Day';
+const docItems = docList
+    .map(d => `
+        <tr>
+            <td valign="top" style="
+                padding:0 0 8px 0;
+                font-size:13px;
+                line-height:20px;
+                color:#1e293b;
+                font-weight:600;
+            ">
+                <span style="color:#15803d;">&#8226;</span>
+                &nbsp;${d}
+            </td>
+        </tr>
+    `)
+    .join('');
 
-    const customMsgBlock = message && message.trim() ? `
-      <div style="margin:20px 0;padding:14px 18px;background:#f8fafc;border-left:4px solid #16a34a;border-radius:6px;font-size:13px;color:#334155;line-height:1.6;">
-        <strong>Note from Office:</strong><br>
-        ${message.trim().replace(/\n/g, '<br>')}
-      </div>
-    ` : '';
+const formattedDate = pickupDate || 'Next School Day';
 
-    const body = `
-      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Hello, <span style="color:#15803d;">${studentName || 'Student'}</span></p>
-      <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.7;">
-        Good news! Your requested school document(s) have been prepared and are ready for pickup at the <strong>Talisay Integrated School Registrar's Office</strong>.
-      </p>
+const customMsgBlock = message && message.trim() ? `
+    <!-- OFFICE NOTE -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 28px;">
 
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
-        <p style="margin:0 0 10px;font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.5px;">Ready for Pickup</p>
-        <div style="font-size:18px;font-weight:800;color:#14532d;margin-bottom:12px;">&#128197; ${formattedDate}</div>
-        <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#15803d;">Documents:</p>
-        <ul style="margin:0;padding-left:20px;font-size:13px;">
-          ${docItems}
-        </ul>
-      </div>
+        <tr>
+            <td style="
+                padding:15px 16px;
+                border-left:3px solid #15803d;
+                background-color:#f8fafc;
+            ">
 
-      ${customMsgBlock}
+                <p style="
+                    margin:0 0 5px;
+                    font-size:11px;
+                    line-height:16px;
+                    font-weight:700;
+                    letter-spacing:.7px;
+                    text-transform:uppercase;
+                    color:#64748b;
+                ">
+                    Note from Office
+                </p>
 
-      <div style="margin:24px 0 16px;padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:12px;color:#92400e;line-height:1.6;">
-        &#9888; <strong>Reminder:</strong> Please bring a valid Student ID or government-issued ID upon claiming your documents. If an authorized representative is claiming on your behalf, an authorization letter and representative ID are required.
-      </div>
+                <p style="
+                    margin:0;
+                    font-size:13px;
+                    line-height:20px;
+                    color:#334155;
+                ">
+                    ${message.trim().replace(/\n/g, '<br>')}
+                </p>
 
-      <p style="margin:20px 0 0;font-size:12px;color:#64748b;line-height:1.6;">
-        Office Hours: Monday to Friday, 8:00 AM – 5:00 PM.<br>
+            </td>
+        </tr>
+
+    </table>
+` : '';
+
+const body = `
+    <!-- GREETING -->
+    <p style="
+        margin:0 0 8px;
+        font-size:20px;
+        line-height:28px;
+        font-weight:700;
+        color:#0f172a;
+    ">
+        Hello, <span style="color:#15803d;">${studentName || 'Student'}</span>
+    </p>
+
+    <!-- INTRODUCTION -->
+    <p style="
+        margin:0 0 30px;
+        font-size:14px;
+        line-height:24px;
+        color:#475569;
+    ">
+        Good news! Your requested school document(s) have been prepared
+        and are ready for pickup at the
+        <strong style="color:#334155;">
+            Talisay Integrated School Registrar's Office
+        </strong>.
+    </p>
+
+    <!-- PICKUP INFORMATION -->
+    <p style="
+        margin:0 0 12px;
+        font-size:11px;
+        line-height:16px;
+        font-weight:700;
+        letter-spacing:.8px;
+        text-transform:uppercase;
+        color:#64748b;
+    ">
+        Ready for Pickup
+    </p>
+
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 28px;">
+
+        <!-- DATE -->
+        <tr>
+            <td style="
+                padding:14px 0 16px;
+                border-left:4px solid #15803d;
+                background-color:#f0fdf4;
+            ">
+
+                <div style="
+                    padding-left:16px;
+                    font-size:18px;
+                    line-height:25px;
+                    font-weight:700;
+                    color:#14532d;
+                ">
+                    ${formattedDate}
+                </div>
+
+                <div style="
+                    padding:3px 16px 0;
+                    font-size:11px;
+                    line-height:17px;
+                    color:#166534;
+                ">
+                    Pickup date
+                </div>
+
+            </td>
+        </tr>
+
+        <!-- DOCUMENTS -->
+        <tr>
+            <td style="padding-top:18px;">
+
+                <p style="
+                    margin:0 0 10px;
+                    font-size:11px;
+                    line-height:16px;
+                    font-weight:700;
+                    letter-spacing:.8px;
+                    text-transform:uppercase;
+                    color:#64748b;
+                ">
+                    Documents
+                </p>
+
+                <table role="presentation"
+                       width="100%"
+                       cellpadding="0"
+                       cellspacing="0"
+                       border="0">
+                    ${docItems}
+                </table>
+
+            </td>
+        </tr>
+
+    </table>
+
+    ${customMsgBlock}
+
+    <!-- CLAIMING REMINDER -->
+    <table role="presentation"
+           width="100%"
+           cellpadding="0"
+           cellspacing="0"
+           border="0"
+           style="margin:0 0 28px;">
+
+        <tr>
+            <td style="
+                padding:15px 16px;
+                border-left:3px solid #d97706;
+                background-color:#fffbeb;
+            ">
+
+                <p style="
+                    margin:0 0 5px;
+                    font-size:12px;
+                    line-height:18px;
+                    font-weight:700;
+                    color:#92400e;
+                ">
+                    Reminder
+                </p>
+
+                <p style="
+                    margin:0;
+                    font-size:12px;
+                    line-height:19px;
+                    color:#92400e;
+                ">
+                    Please bring a valid Student ID or government-issued ID
+                    when claiming your documents. If an authorized
+                    representative is claiming on your behalf, an
+                    authorization letter and representative ID are required.
+                </p>
+
+            </td>
+        </tr>
+
+    </table>
+
+    <!-- OFFICE HOURS -->
+    <p style="
+        margin:0;
+        font-size:12px;
+        line-height:20px;
+        color:#64748b;
+    ">
+        <strong style="color:#475569;">Office Hours:</strong>
+        Monday to Friday, 8:00 AM – 5:00 PM.
+    </p>
+
+    <p style="
+        margin:8px 0 0;
+        font-size:12px;
+        line-height:20px;
+        color:#64748b;
+    ">
         Thank you!
-      </p>
-    `;
+    </p>
+`;
 
-    const htmlContent = emailShell(body);
+const htmlContent = emailShell(body);
 
-    const mailOptions = {
-        from: fromAddress,
-        to,
-        subject: `[TIS RMS] Documents Ready for Pickup - ${studentName || 'Student'}`,
-        html: htmlContent,
-        text: `Hello ${studentName || 'Student'},\n\nYour requested document(s) are ready for pickup on ${formattedDate}.\n\nDocuments:\n${docList.map(d => `- ${d}`).join('\n')}\n\nLocation: Talisay Integrated School Registrar's Office.\nPlease bring a valid ID.\n\nThank you!`,
-    };
+const mailOptions = {
+    from: fromAddress,
+    to,
+    subject: `[TIS RMS] Documents Ready for Pickup - ${studentName || 'Student'}`,
+    html: htmlContent,
+    text: `Hello ${studentName || 'Student'},
+
+Your requested document(s) are ready for pickup on ${formattedDate}.
+
+Documents:
+${docList.map(d => `- ${d}`).join('\n')}
+
+Location: Talisay Integrated School Registrar's Office.
+
+Please bring a valid Student ID or government-issued ID when claiming your documents. If an authorized representative is claiming on your behalf, an authorization letter and representative ID are required.
+
+Office Hours: Monday to Friday, 8:00 AM – 5:00 PM.
+
+Thank you!`,
+};
 
     if (LOGO_PATH) {
-        mailOptions.attachments = [{
-            filename: 'logo.png',
-            path: LOGO_PATH,
-            cid: 'school-logo'
-        }];
+        mailOptions.attachments = getLogoAttachment();
     }
 
     try {

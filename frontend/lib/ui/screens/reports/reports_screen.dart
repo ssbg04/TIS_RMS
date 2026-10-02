@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart' as xl;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -125,8 +125,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 .yearRange
           : 'All Years';
 
-      // Build Excel (.xlsx) bytes using the filtered data
-      final bytes = _buildExcel(data, yearLabel);
+      final gradeLevel = ref.read(selectedGradeLevelProvider);
+      final sectionId = ref.read(selectedSectionIdProvider);
+      final status = ref.read(selectedStatusFilterProvider);
+
+      // Fetch backend-generated Excel (.xlsx) bytes
+      final bytes = await ref
+          .read(reportRepositoryProvider)
+          .downloadComplianceReportExcel(
+            academicYearId: yearId,
+            gradeLevel: gradeLevel,
+            sectionId: sectionId,
+            status: status,
+          );
       final defaultFileName =
           'TIS_RMS_Report_${yearLabel.replaceAll('-', '_')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
 
@@ -237,71 +248,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         fileName: fileName,
       );
     }
-  }
-
-  List<int> _buildExcel(ReportStats data, String yearLabel) {
-    final excel = xl.Excel.createExcel();
-
-    // Sheet 1: Summary
-    final summarySheet = excel['Summary'];
-    excel.setDefaultSheet('Summary');
-
-    summarySheet.appendRow([xl.TextCellValue('TIAONG INTEGRATED SCHOOL - TIS RMS')]);
-    summarySheet.appendRow([xl.TextCellValue('Annual Report Summary: $yearLabel')]);
-    summarySheet.appendRow([xl.TextCellValue('Generated: ${DateTime.now().toString().substring(0, 19)}')]);
-    summarySheet.appendRow([xl.TextCellValue('')]);
-
-    summarySheet.appendRow([xl.TextCellValue('STUDENT STATISTICS'), xl.TextCellValue('')]);
-    summarySheet.appendRow([xl.TextCellValue('Student Status'), xl.TextCellValue('Total Count')]);
-    summarySheet.appendRow([xl.TextCellValue('Active (Enrolled)'), xl.IntCellValue(data.studentCounts.active)]);
-    summarySheet.appendRow([xl.TextCellValue('Dropouts (Dropped)'), xl.IntCellValue(data.studentCounts.dropped)]);
-    summarySheet.appendRow([xl.TextCellValue('Transferees (Transferred)'), xl.IntCellValue(data.studentCounts.transferee)]);
-    summarySheet.appendRow([xl.TextCellValue('Graduated'), xl.IntCellValue(data.studentCounts.graduated)]);
-    summarySheet.appendRow([xl.TextCellValue('')]);
-
-    summarySheet.appendRow([xl.TextCellValue('MISSING DOCUMENTS PER REQUIREMENT TYPE'), xl.TextCellValue('')]);
-    summarySheet.appendRow([xl.TextCellValue('Document Type'), xl.TextCellValue('Missing Count')]);
-    for (final row in data.missingDocsBreakdown) {
-      summarySheet.appendRow([xl.TextCellValue(row.name), xl.IntCellValue(row.count)]);
-    }
-
-    // Sheet 2: Student Compliance List
-    final listSheet = excel['Student Compliance List'];
-    listSheet.appendRow([
-      xl.TextCellValue('#'),
-      xl.TextCellValue('LRN'),
-      xl.TextCellValue('Student Name'),
-      xl.TextCellValue('Sex'),
-      xl.TextCellValue('Grade Level'),
-      xl.TextCellValue('Section'),
-      xl.TextCellValue('Status'),
-      xl.TextCellValue('Missing Count'),
-      xl.TextCellValue('Missing Documents'),
-    ]);
-
-    for (int r = 0; r < data.students.length; r++) {
-      final s = data.students[r];
-      final missingDocsStr = s.missingRequirements ?? (s.missingCount == 0 ? 'None (Complete)' : 'N/A');
-      listSheet.appendRow([
-        xl.IntCellValue(r + 1),
-        xl.TextCellValue(s.lrn),
-        xl.TextCellValue(s.fullName),
-        xl.TextCellValue(s.sex),
-        xl.TextCellValue(s.gradeLevel != null ? 'Grade ${s.gradeLevel}' : 'N/A'),
-        xl.TextCellValue(s.sectionName ?? 'N/A'),
-        xl.TextCellValue(s.status),
-        xl.IntCellValue(s.missingCount),
-        xl.TextCellValue(missingDocsStr),
-      ]);
-    }
-
-    // Delete default Sheet1 if present
-    if (excel.sheets.containsKey('Sheet1')) {
-      excel.delete('Sheet1');
-    }
-
-    final bytes = excel.save();
-    return bytes ?? [];
   }
 
   // â”€â”€ Print Compliance Report Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -465,36 +411,38 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget _buildViewModeToggle() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // View mode metadata:
-    // 0: DepEd Transparency Board
-    // 1: Compliance & Analytics
-    // 2: Combined View (DepEd + Compliance)
-    final (String currentLabel, String nextLabel, IconData currentIcon, Color badgeColor) =
-        switch (_selectedViewMode) {
-      0 => (
-          'DepEd Transparency Board',
-          'Compliance & Analytics',
-          Icons.account_balance_rounded,
-          AppColors.primaryGreen,
-        ),
-      1 => (
-          'Compliance & Analytics',
-          'Combined View',
-          Icons.fact_check_rounded,
-          const Color(0xFF0284C7), // Sky/blue
-        ),
-      _ => (
-          'Combined View (All Reports)',
-          'DepEd Transparency Board',
-          Icons.view_agenda_rounded,
-          const Color(0xFF7C3AED), // Purple/indigo
-        ),
-    };
+    final tabs = [
+      (
+        index: 0,
+        title: 'DepEd Transparency Board',
+        shortTitle: 'DepEd Board',
+        subtitle: 'Enrollment, Dropouts & 4Ps Equity',
+        icon: Icons.account_balance_rounded,
+        accentColor: AppColors.primaryGreen,
+      ),
+      (
+        index: 1,
+        title: 'Document Compliance',
+        shortTitle: 'Compliance',
+        subtitle: 'Student Records & Requirements',
+        icon: Icons.fact_check_rounded,
+        accentColor: const Color(0xFF0284C7),
+      ),
+      (
+        index: 2,
+        title: 'Combined View',
+        shortTitle: 'Combined',
+        subtitle: 'Full DepEd & Compliance',
+        icon: Icons.view_agenda_rounded,
+        accentColor: const Color(0xFF7C3AED),
+      ),
+    ];
 
-    void cycleViewMode() {
+    void onSelectTab(int index) {
+      if (_selectedViewMode == index) return;
+      HapticFeedback.selectionClick();
       setState(() {
-        // Cycle: 0 (DepEd) -> 1 (Compliance) -> 2 (Combined) -> 0
-        _selectedViewMode = (_selectedViewMode + 1) % 3;
+        _selectedViewMode = index;
         _rowsPerPage = 10;
         _currentPage = 0;
       });
@@ -502,10 +450,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 600;
+        final isCompact = constraints.maxWidth < 780;
+        final isMobile = constraints.maxWidth < 560;
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurfaceCard : Colors.white,
             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
@@ -521,150 +470,173 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ],
           ),
           child: Row(
-            children: [
-              // Current Active View Icon with Colored Background
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: isDark ? 0.22 : 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  currentIcon,
-                  size: 20,
-                  color: badgeColor,
-                ),
-              ),
-              const SizedBox(width: 12),
+            children: tabs.map((tab) {
+              final isSelected = _selectedViewMode == tab.index;
 
-              // Title and Mode indicator
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            currentLabel,
-                            style: TextStyle(
-                              fontSize: isCompact ? 13.5 : 15,
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? AppColors.darkTextPrimary
-                                  : AppColors.textPrimary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 1.5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: badgeColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            _selectedViewMode == 0
-                                ? '1/3'
-                                : _selectedViewMode == 1
-                                    ? '2/3'
-                                    : '3/3 COMBINED',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: badgeColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isCompact
-                          ? 'Tap toggle to switch'
-                          : 'Click toggle icon button to swap views (3rd click shows combined)',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 8),
-
-              // Toggle Button that Swaps Views
-              Tooltip(
-                message: 'Switch to $nextLabel',
+              return Expanded(
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: cycleViewMode,
+                    onTap: () => onSelectTab(tab.index),
                     borderRadius: BorderRadius.circular(10),
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
                       padding: EdgeInsets.symmetric(
-                        horizontal: isCompact ? 10 : 14,
-                        vertical: 8,
+                        horizontal: isCompact ? 6 : 14,
+                        vertical: isCompact ? 10 : 10,
                       ),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            badgeColor,
-                            badgeColor.withValues(alpha: 0.82),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: isSelected ? tab.accentColor : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: badgeColor.withValues(alpha: 0.35),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: tab.accentColor.withValues(alpha: 0.32),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
                       ),
                       child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
-                            Icons.swap_horiz_rounded,
-                            color: Colors.white,
-                            size: 19,
+                          Icon(
+                            tab.icon,
+                            size: isCompact ? 18 : 20,
+                            color: isSelected
+                                ? Colors.white
+                                : (isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textSecondary),
                           ),
-                          if (!isCompact) ...[
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Swap View',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: isCompact
+                                  ? CrossAxisAlignment.center
+                                  : CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  isMobile
+                                      ? tab.shortTitle
+                                      : (isCompact ? tab.shortTitle : tab.title),
+                                  style: TextStyle(
+                                    fontSize: isMobile ? 12 : (isCompact ? 13 : 13.5),
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : (isDark
+                                            ? AppColors.darkTextPrimary
+                                            : AppColors.textPrimary),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (!isCompact) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    tab.subtitle,
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.normal,
+                                      color: isSelected
+                                          ? Colors.white.withValues(alpha: 0.88)
+                                          : (isDark
+                                              ? AppColors.darkTextSecondary
+                                              : AppColors.textSecondary),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
                             ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              );
+            }).toList(),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildExportExcelButton(ReportStats data, {bool isCompact = false}) {
+    return Tooltip(
+      message: 'Download full compliance summary & student masterlist (.xlsx)',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _isExporting ? null : () => _handleExportExcel(data),
+          borderRadius: BorderRadius.circular(8),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 12 : 16,
+              vertical: 9,
+            ),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF166534), // Forest green
+                  Color(0xFF15803D), // Emerald green
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF166534).withValues(alpha: 0.28),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_isExporting)
+                  const SizedBox(
+                    width: 15,
+                    height: 15,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.table_view_rounded,
+                    color: Colors.white,
+                    size: 17,
+                  ),
+                const SizedBox(width: 8),
+                Text(
+                  _isExporting
+                      ? 'Exporting...'
+                      : (isCompact ? 'Export Excel' : 'Export Excel (.xlsx)'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -673,49 +645,101 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final isAndroid = Theme.of(context).platform == TargetPlatform.android || (!kIsWeb && Platform.isAndroid);
     final isDesktop = !isAndroid && MediaQuery.of(context).size.width > 900;
 
+    final selectedYearId = ref.watch(selectedAcademicYearIdProvider);
+    final yearsAsync = ref.watch(academicYearsProvider);
+    String? currentYearLabel;
+    if (selectedYearId != null) {
+      final years = yearsAsync.asData?.value ?? [];
+      final yr = years.firstWhere(
+        (y) => y.id == selectedYearId,
+        orElse: () => AcademicYear(id: 0, yearRange: '', status: ''),
+      );
+      if (yr.yearRange.isNotEmpty) currentYearLabel = yr.yearRange;
+    }
+
     if (isDesktop) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  'Student Document Compliance & Analytics',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0284C7).withValues(alpha: isDark ? 0.2 : 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.fact_check_rounded,
+                    color: Color(0xFF0284C7),
+                    size: 22,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Track document requirements, submission compliance, and export reports',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Student Document Compliance & Analytics',
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (currentYearLabel != null) ...[
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Text(
+                                currentYearLabel,
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryGreen,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Track document requirements, submission compliance, and export official reports',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          SizedBox(
-            width: 130,
-            child: PrimaryButton(
-              label: 'EXPORT',
-              icon: Icons.file_download_outlined,
-              fontSize: 13,
-              height: 40,
-              isLoading: _isExporting,
-              onPressed: () => _handleExportExcel(data),
-            ),
-          ),
+          const SizedBox(width: 16),
+          _buildExportExcelButton(data),
         ],
       );
     }
 
-    final selectedYearId = ref.watch(selectedAcademicYearIdProvider);
     final selectedGrade = ref.watch(selectedGradeLevelProvider);
     final selectedSection = ref.watch(selectedSectionIdProvider);
     final selectedStatus = ref.watch(selectedStatusFilterProvider);
@@ -731,21 +755,44 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Student Document Compliance & Analytics',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Track document requirements, submission compliance, and export reports',
-          style: TextStyle(
-            fontSize: 12,
-            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-          ),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0284C7).withValues(alpha: isDark ? 0.2 : 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.fact_check_rounded,
+                color: Color(0xFF0284C7),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Document Compliance',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    'Student requirements & submissions',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: AppSizes.p12),
         Row(
@@ -782,16 +829,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
-              child: PrimaryButton(
-                label: 'EXPORT',
-                icon: Icons.file_download_outlined,
-                fontSize: 13,
-                height: 40,
-                isLoading: _isExporting,
-                onPressed: () => _handleExportExcel(data),
-              ),
+              child: _buildExportExcelButton(data, isCompact: true),
             ),
           ],
         ),
@@ -812,44 +852,103 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final showOnlyMissingDocs = ref.watch(showOnlyMissingDocsProvider);
     final isExpanded = ref.watch(filterPanelExpandedProvider);
 
-    // Build active filter summary chips for collapsed state
-    final List<String> activeFilters = [];
+    void resetAllFilters() {
+      HapticFeedback.lightImpact();
+      ref.read(selectedAcademicYearIdProvider.notifier).select(null);
+      ref.read(selectedGradeLevelProvider.notifier).state = null;
+      ref.read(selectedSectionIdProvider.notifier).state = null;
+      ref.read(selectedStatusFilterProvider.notifier).state = null;
+      ref.read(showOnlyMissingDocsProvider.notifier).state = false;
+      setState(() => _currentPage = 0);
+    }
+
+    // Build active filter summary chips with 1-click onClear callbacks
+    final List<({String label, VoidCallback onClear})> activeFilterItems = [];
     if (selectedYearId != null) {
       final years = yearsAsync.asData?.value ?? [];
       final yr = years.firstWhere(
         (y) => y.id == selectedYearId,
         orElse: () => AcademicYear(id: 0, yearRange: 'S.Y.', status: ''),
       );
-      activeFilters.add(yr.yearRange);
+      activeFilterItems.add((
+        label: yr.yearRange,
+        onClear: () {
+          ref.read(selectedAcademicYearIdProvider.notifier).select(null);
+          ref.read(selectedSectionIdProvider.notifier).state = null;
+          setState(() => _currentPage = 0);
+        },
+      ));
     }
-    if (selectedGrade != null) activeFilters.add('Grade $selectedGrade');
+    if (selectedGrade != null) {
+      activeFilterItems.add((
+        label: 'Grade $selectedGrade',
+        onClear: () {
+          ref.read(selectedGradeLevelProvider.notifier).state = null;
+          ref.read(selectedSectionIdProvider.notifier).state = null;
+          setState(() => _currentPage = 0);
+        },
+      ));
+    }
     if (selectedSection != null) {
       if (sections.isNotEmpty) {
         final sec = sections.firstWhere(
           (s) => (s['id'] as num).toInt() == selectedSection,
           orElse: () => {},
         );
-        if (sec.isNotEmpty) activeFilters.add(sec['name'] as String);
+        if (sec.isNotEmpty) {
+          activeFilterItems.add((
+            label: sec['name'] as String,
+            onClear: () {
+              ref.read(selectedSectionIdProvider.notifier).state = null;
+              setState(() => _currentPage = 0);
+            },
+          ));
+        }
       }
     }
-    if (selectedStatus != null) activeFilters.add(selectedStatus);
-    if (showOnlyMissingDocs) activeFilters.add('Missing Only');
+    if (selectedStatus != null) {
+      activeFilterItems.add((
+        label: selectedStatus,
+        onClear: () {
+          ref.read(selectedStatusFilterProvider.notifier).state = null;
+          setState(() => _currentPage = 0);
+        },
+      ));
+    }
+    if (showOnlyMissingDocs) {
+      activeFilterItems.add((
+        label: 'Missing Only',
+        onClear: () {
+          ref.read(showOnlyMissingDocsProvider.notifier).state = false;
+          setState(() => _currentPage = 0);
+        },
+      ));
+    }
+
+    final hasActiveFilters = activeFilterItems.isNotEmpty;
 
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+          color: hasActiveFilters
+              ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.4 : 0.3)
+              : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
+          width: hasActiveFilters ? 1.5 : 1,
         ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // â”€â”€ Collapsible Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Collapsible Header ──
           InkWell(
             borderRadius: isExpanded
                 ? const BorderRadius.vertical(
@@ -866,62 +965,84 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSizes.p16,
-                vertical: 14,
+                vertical: 12,
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.filter_list,
-                    color: AppColors.primaryGreen,
-                    size: 18,
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: (hasActiveFilters ? AppColors.primaryGreen : Colors.grey)
+                          .withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.filter_list_rounded,
+                      color: hasActiveFilters
+                          ? AppColors.primaryGreen
+                          : (isDark ? Colors.white70 : Colors.grey.shade700),
+                      size: 18,
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Text(
-                    'Filter',
+                    'Filters',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
+                      fontSize: 14.5,
                       color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
+                  if (hasActiveFilters) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '\${activeFilterItems.length} active',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(width: 12),
-                  // Active filter chips (shown when collapsed)
-                  if (!isExpanded && activeFilters.isNotEmpty) ...[
+                  // Active filter chips (shown when collapsed) with 1-click removal
+                  if (!isExpanded && hasActiveFilters) ...[
                     Expanded(
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: activeFilters
-                              .map(
-                                (f) => Padding(
-                                  padding: const EdgeInsets.only(right: 6),
-                                  child: Chip(
-                                    label: Text(
-                                      f,
-                                      style: const TextStyle(fontSize: 11),
-                                    ),
-                                    backgroundColor: AppColors.primaryGreen
-                                        .withValues(alpha: 0.1),
-                                    labelStyle: const TextStyle(
-                                      color: AppColors.primaryGreen,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    visualDensity: VisualDensity.compact,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 4,
-                                      vertical: 0,
-                                    ),
-                                  ),
+                          children: activeFilterItems.map((item) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: Chip(
+                                label: Text(item.label, style: const TextStyle(fontSize: 11.5)),
+                                onDeleted: item.onClear,
+                                deleteIcon: const Icon(Icons.close_rounded, size: 14),
+                                deleteIconColor: AppColors.primaryGreen,
+                                backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                                labelStyle: const TextStyle(
+                                  color: AppColors.primaryGreen,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                              )
-                              .toList(),
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ),
                     ),
-                  ] else if (!isExpanded && activeFilters.isEmpty) ...[
+                  ] else if (!isExpanded && !hasActiveFilters) ...[
                     Text(
-                      'No filters set',
+                      'No filters applied (showing all students)',
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
@@ -930,10 +1051,23 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     const Spacer(),
                   ] else
                     const Spacer(),
+
+                  if (hasActiveFilters) ...[
+                    TextButton.icon(
+                      onPressed: resetAllFilters,
+                      icon: const Icon(Icons.restart_alt_rounded, size: 15),
+                      label: const Text('Reset', style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+
                   Icon(
-                    isExpanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
+                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                     color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                     size: 20,
                   ),
@@ -942,7 +1076,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ),
 
-          // â”€â”€ Expandable Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Expandable Body ──
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
             secondChild: Column(
@@ -981,6 +1115,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   initialValue: selectedYearId,
                                   decoration: _filterDecoration(
                                     'School Year',
+                                    prefixIcon: Icons.calendar_month_rounded,
                                   ),
                                   items: [
                                     const DropdownMenuItem<int?>(
@@ -1018,7 +1153,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             DropdownButtonFormField<int?>(
                               isExpanded: true,
                               initialValue: selectedGrade,
-                              decoration: _filterDecoration('Grade Level'),
+                              decoration: _filterDecoration(
+                                'Grade Level',
+                                prefixIcon: Icons.school_rounded,
+                              ),
                               items: const [
                                 DropdownMenuItem<int?>(
                                   value: null,
@@ -1070,7 +1208,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             DropdownButtonFormField<int?>(
                               isExpanded: true,
                               initialValue: selectedSection,
-                              decoration: _filterDecoration('Section'),
+                              decoration: _filterDecoration(
+                                'Section',
+                                prefixIcon: Icons.meeting_room_rounded,
+                              ),
                               disabledHint: const Text('Pick a year first'),
                               items: selectedYearId == null
                                   ? null
@@ -1103,7 +1244,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             DropdownButtonFormField<String?>(
                               isExpanded: true,
                               initialValue: selectedStatus,
-                              decoration: _filterDecoration('Status'),
+                              decoration: _filterDecoration(
+                                'Status',
+                                prefixIcon: Icons.badge_rounded,
+                              ),
                               items: const [
                                 DropdownMenuItem<String?>(
                                   value: null,
@@ -1184,14 +1328,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             value: showOnlyMissingDocs,
                             onChanged: (val) {
                               ref
-                                      .read(
-                                        showOnlyMissingDocsProvider.notifier,
-                                      )
-                                      .state =
+                                  .read(
+                                    showOnlyMissingDocsProvider.notifier,
+                                  )
+                                  .state =
                                   val;
                               setState(() => _currentPage = 0);
                             },
-                            activeThumbColor: AppColors.primaryGreen,
+                            activeTrackColor: AppColors.primaryGreen,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -1199,9 +1343,35 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               'Show only students who have missing documents',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
+                                fontSize: 13,
                                 color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                               ),
                             ),
+                          ),
+                          if (hasActiveFilters) ...[
+                            OutlinedButton.icon(
+                              onPressed: resetAllFilters,
+                              icon: const Icon(Icons.restart_alt_rounded, size: 15),
+                              label: const Text('Reset All', style: TextStyle(fontSize: 12.5)),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                                side: BorderSide(
+                                  color: (isDark ? Colors.red.shade300 : Colors.red.shade700)
+                                      .withValues(alpha: 0.4),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          TextButton(
+                            onPressed: () {
+                              ref.read(filterPanelExpandedProvider.notifier).state = false;
+                            },
+                            child: const Text('Hide', style: TextStyle(fontSize: 12.5)),
                           ),
                         ],
                       ),
@@ -1220,28 +1390,40 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  InputDecoration _filterDecoration(String label) {
+  InputDecoration _filterDecoration(String label, {IconData? prefixIcon}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(
-        color: isDark ? AppColors.darkTextSecondary : null,
+        fontSize: 12.5,
+        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
       ),
-      border: UnderlineInputBorder(
+      prefixIcon: prefixIcon != null
+          ? Icon(
+              prefixIcon,
+              size: 17,
+              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+            )
+          : null,
+      filled: true,
+      fillColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(
           color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
         ),
       ),
-      enabledBorder: UnderlineInputBorder(
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(
           color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
         ),
       ),
-      focusedBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(10)),
+        borderSide: BorderSide(color: AppColors.primaryGreen, width: 1.8),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      filled: false,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
     );
   }
 
@@ -2378,6 +2560,23 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             final sections = ref.watch(filteredSectionsProvider);
             final showOnlyMissingDocs = ref.watch(showOnlyMissingDocsProvider);
 
+            int activeCount = 0;
+            if (selectedYearId != null) activeCount++;
+            if (selectedGrade != null) activeCount++;
+            if (selectedSection != null) activeCount++;
+            if (selectedStatus != null) activeCount++;
+            if (showOnlyMissingDocs) activeCount++;
+
+            void resetAllFilters() {
+              HapticFeedback.lightImpact();
+              ref.read(selectedAcademicYearIdProvider.notifier).select(null);
+              ref.read(selectedGradeLevelProvider.notifier).state = null;
+              ref.read(selectedSectionIdProvider.notifier).state = null;
+              ref.read(selectedStatusFilterProvider.notifier).state = null;
+              ref.read(showOnlyMissingDocsProvider.notifier).state = false;
+              setState(() => _currentPage = 0);
+            }
+
             return Container(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.85,
@@ -2408,13 +2607,35 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Filter Compliance & Analytics',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                ),
+                              Row(
+                                children: [
+                                  Text(
+                                    'Filter Compliance',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  if (activeCount > 0) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        '$activeCount active',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primaryGreen,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -2427,6 +2648,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             ],
                           ),
                         ),
+                        if (activeCount > 0)
+                          TextButton(
+                            onPressed: resetAllFilters,
+                            style: TextButton.styleFrom(
+                              foregroundColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            ),
+                            child: const Text('Reset All', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                          ),
                         IconButton(
                           icon: const Icon(Icons.close_rounded),
                           onPressed: () => Navigator.pop(ctx),
@@ -2451,7 +2682,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               return DropdownButtonFormField<int?>(
                                 isExpanded: true,
                                 initialValue: selectedYearId,
-                                decoration: _filterDecoration('School Year'),
+                                decoration: _filterDecoration(
+                                  'School Year',
+                                  prefixIcon: Icons.calendar_month_rounded,
+                                ),
                                 items: [
                                   const DropdownMenuItem<int?>(
                                     value: null,
@@ -2466,6 +2700,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 ],
                                 onChanged: (val) {
                                   ref.read(selectedAcademicYearIdProvider.notifier).select(val);
+                                  ref.read(selectedSectionIdProvider.notifier).state = null;
                                   setState(() => _currentPage = 0);
                                 },
                               );
@@ -2475,7 +2710,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           DropdownButtonFormField<int?>(
                             isExpanded: true,
                             initialValue: selectedGrade,
-                            decoration: _filterDecoration('Grade Level'),
+                            decoration: _filterDecoration(
+                              'Grade Level',
+                              prefixIcon: Icons.school_rounded,
+                            ),
                             items: [
                               const DropdownMenuItem<int?>(
                                 value: null,
@@ -2490,6 +2728,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             ],
                             onChanged: (val) {
                               ref.read(selectedGradeLevelProvider.notifier).state = val;
+                              ref.read(selectedSectionIdProvider.notifier).state = null;
                               setState(() => _currentPage = 0);
                             },
                           ),
@@ -2497,38 +2736,49 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           DropdownButtonFormField<int?>(
                             isExpanded: true,
                             initialValue: selectedSection,
-                            decoration: _filterDecoration('Section'),
-                            items: [
-                              const DropdownMenuItem<int?>(
-                                value: null,
-                                child: Text('All Sections'),
-                              ),
-                              ...sections.map(
-                                (sec) => DropdownMenuItem<int?>(
-                                  value: (sec['id'] as num).toInt(),
-                                  child: Text(sec['name'] as String),
-                                ),
-                              ),
-                            ],
-                            onChanged: (val) {
-                              ref.read(selectedSectionIdProvider.notifier).state = val;
-                              setState(() => _currentPage = 0);
-                            },
+                            decoration: _filterDecoration(
+                              'Section',
+                              prefixIcon: Icons.meeting_room_rounded,
+                            ),
+                            disabledHint: const Text('Pick a year first'),
+                            items: selectedYearId == null
+                                ? null
+                                : [
+                                    const DropdownMenuItem<int?>(
+                                      value: null,
+                                      child: Text('All Sections'),
+                                    ),
+                                    ...sections.map(
+                                      (sec) => DropdownMenuItem<int?>(
+                                        value: (sec['id'] as num).toInt(),
+                                        child: Text(sec['name'] as String),
+                                      ),
+                                    ),
+                                  ],
+                            onChanged: selectedYearId == null
+                                ? null
+                                : (val) {
+                                    ref.read(selectedSectionIdProvider.notifier).state = val;
+                                    setState(() => _currentPage = 0);
+                                  },
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String?>(
                             isExpanded: true,
                             initialValue: selectedStatus,
-                            decoration: _filterDecoration('Student Status'),
+                            decoration: _filterDecoration(
+                              'Student Status',
+                              prefixIcon: Icons.badge_rounded,
+                            ),
                             items: const [
                               DropdownMenuItem<String?>(
                                 value: null,
                                 child: Text('All Statuses'),
                               ),
-                              DropdownMenuItem(value: 'Enrolled', child: Text('Enrolled')),
+                              DropdownMenuItem(value: 'Enrolled', child: Text('Active (Enrolled)')),
+                              DropdownMenuItem(value: 'Dropped', child: Text('Dropout (Dropped)')),
+                              DropdownMenuItem(value: 'Transferred', child: Text('Transferee')),
                               DropdownMenuItem(value: 'Graduated', child: Text('Graduated')),
-                              DropdownMenuItem(value: 'Transferred', child: Text('Transferred')),
-                              DropdownMenuItem(value: 'Dropped', child: Text('Dropped')),
                               DropdownMenuItem(value: 'Inactive', child: Text('Inactive')),
                             ],
                             onChanged: (val) {
@@ -2571,27 +2821,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                       child: Row(
                         children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () {
-                                ref.read(selectedAcademicYearIdProvider.notifier).select(null);
-                                ref.read(selectedGradeLevelProvider.notifier).state = null;
-                                ref.read(selectedSectionIdProvider.notifier).state = null;
-                                ref.read(selectedStatusFilterProvider.notifier).state = null;
-                                ref.read(showOnlyMissingDocsProvider.notifier).state = false;
-                                setState(() => _currentPage = 0);
-                              },
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          if (activeCount > 0) ...[
+                            Expanded(
+                              flex: 1,
+                              child: OutlinedButton.icon(
+                                onPressed: resetAllFilters,
+                                icon: const Icon(Icons.restart_alt_rounded, size: 16),
+                                label: const Text('Reset'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  foregroundColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                                  side: BorderSide(
+                                    color: (isDark ? Colors.red.shade300 : Colors.red.shade700).withValues(alpha: 0.4),
+                                  ),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
                               ),
-                              child: const Text('Reset All'),
                             ),
-                          ),
-                          const SizedBox(width: 12),
+                            const SizedBox(width: 12),
+                          ],
                           Expanded(
+                            flex: 2,
                             child: PrimaryButton(
-                              label: 'Apply Filters',
+                              label: activeCount > 0 ? 'Apply ($activeCount Active)' : 'Apply Filters',
                               onPressed: () => Navigator.pop(ctx),
                             ),
                           ),
