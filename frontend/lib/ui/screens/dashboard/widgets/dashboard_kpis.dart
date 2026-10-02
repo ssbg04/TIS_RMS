@@ -628,9 +628,8 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
     if (names.isNotEmpty) {
       _selectedDocType = names.first;
     }
-    // Disable continuous 60fps auto-rotation animation ticker on mobile/Android to prevent jank & save battery
-    final isMobile = defaultTargetPlatform == TargetPlatform.android;
-    _isAutoRotating = !isMobile;
+    // Auto-play document breakdown rotation across all platforms including Android
+    _isAutoRotating = true;
 
     _countdownController = AnimationController(
       vsync: this,

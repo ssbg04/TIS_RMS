@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:excel/excel.dart' as xl;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -125,10 +125,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 .yearRange
           : 'All Years';
 
-      // Build CSV bytes using the filtered data
-      final bytes = _buildCsv(data, yearLabel);
+      // Build Excel (.xlsx) bytes using the filtered data
+      final bytes = _buildExcel(data, yearLabel);
       final defaultFileName =
-          'TIS_RMS_Report_${yearLabel.replaceAll('-', '_')}_${DateTime.now().millisecondsSinceEpoch}.csv';
+          'TIS_RMS_Report_${yearLabel.replaceAll('-', '_')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
 
       if (!mounted) return;
       setState(() => _isExporting = false);
@@ -204,7 +204,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         showSuccessDialog(
           context,
           title: 'Export Successful',
-          message: 'Report has been exported successfully.',
+          message: 'Report has been exported to Excel (.xlsx) successfully.',
           filePath: savedPath,
         );
       }
@@ -222,10 +222,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Future<String?> _saveExcelFile(List<int> bytes, String fileName) async {
     if (Platform.isWindows) {
       final savePath = await FilePicker.saveFile(
-        dialogTitle: 'Save Report As...',
+        dialogTitle: 'Save Report As Excel...',
         fileName: fileName,
         type: FileType.custom,
-        allowedExtensions: ['csv'],
+        allowedExtensions: ['xlsx', 'xls'],
       );
       if (savePath == null) return null;
       final file = File(savePath);
@@ -239,72 +239,69 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
   }
 
-  List<int> _buildCsv(ReportStats data, String yearLabel) {
-    final buffer = StringBuffer();
-    // UTF-8 BOM so Microsoft Excel correctly parses UTF-8 characters
-    buffer.write('\uFEFF');
+  List<int> _buildExcel(ReportStats data, String yearLabel) {
+    final excel = xl.Excel.createExcel();
 
-    String escape(String value) {
-      if (value.contains(',') || value.contains('"') || value.contains('\n') || value.contains('\r')) {
-        return '"${value.replaceAll('"', '""')}"';
-      }
-      return value;
-    }
+    // Sheet 1: Summary
+    final summarySheet = excel['Summary'];
+    excel.setDefaultSheet('Summary');
 
-    // Title Section
-    buffer.writeln(escape('TIAONG INTEGRATED SCHOOL - TIS RMS'));
-    buffer.writeln(escape('Annual Report Summary: $yearLabel'));
-    buffer.writeln(escape('Generated: ${DateTime.now().toString().substring(0, 19)}'));
-    buffer.writeln();
+    summarySheet.appendRow([xl.TextCellValue('TIAONG INTEGRATED SCHOOL - TIS RMS')]);
+    summarySheet.appendRow([xl.TextCellValue('Annual Report Summary: $yearLabel')]);
+    summarySheet.appendRow([xl.TextCellValue('Generated: ${DateTime.now().toString().substring(0, 19)}')]);
+    summarySheet.appendRow([xl.TextCellValue('')]);
 
-    // Summary Section
-    buffer.writeln(escape('STUDENT STATISTICS'));
-    buffer.writeln('${escape('Student Status')},${escape('Total Count')}');
-    buffer.writeln('${escape('Active (Enrolled)')},${data.studentCounts.active}');
-    buffer.writeln('${escape('Dropouts (Dropped)')},${data.studentCounts.dropped}');
-    buffer.writeln('${escape('Transferees (Transferred)')},${data.studentCounts.transferee}');
-    buffer.writeln('${escape('Graduated')},${data.studentCounts.graduated}');
-    buffer.writeln();
+    summarySheet.appendRow([xl.TextCellValue('STUDENT STATISTICS'), xl.TextCellValue('')]);
+    summarySheet.appendRow([xl.TextCellValue('Student Status'), xl.TextCellValue('Total Count')]);
+    summarySheet.appendRow([xl.TextCellValue('Active (Enrolled)'), xl.IntCellValue(data.studentCounts.active)]);
+    summarySheet.appendRow([xl.TextCellValue('Dropouts (Dropped)'), xl.IntCellValue(data.studentCounts.dropped)]);
+    summarySheet.appendRow([xl.TextCellValue('Transferees (Transferred)'), xl.IntCellValue(data.studentCounts.transferee)]);
+    summarySheet.appendRow([xl.TextCellValue('Graduated'), xl.IntCellValue(data.studentCounts.graduated)]);
+    summarySheet.appendRow([xl.TextCellValue('')]);
 
-    buffer.writeln(escape('MISSING DOCUMENTS PER REQUIREMENT TYPE'));
-    buffer.writeln('${escape('Document Type')},${escape('Missing Count')}');
+    summarySheet.appendRow([xl.TextCellValue('MISSING DOCUMENTS PER REQUIREMENT TYPE'), xl.TextCellValue('')]);
+    summarySheet.appendRow([xl.TextCellValue('Document Type'), xl.TextCellValue('Missing Count')]);
     for (final row in data.missingDocsBreakdown) {
-      buffer.writeln('${escape(row.name)},${row.count}');
+      summarySheet.appendRow([xl.TextCellValue(row.name), xl.IntCellValue(row.count)]);
     }
-    buffer.writeln();
 
-    // Masterlist Section
-    buffer.writeln(escape('STUDENT COMPLIANCE REPORT - $yearLabel'));
-    final headers = [
-      '#',
-      'LRN',
-      'Student Name',
-      'Sex',
-      'Grade Level',
-      'Section',
-      'Status',
-      'Missing Count',
-      'Missing Documents',
-    ];
-    buffer.writeln(headers.map(escape).join(','));
+    // Sheet 2: Student Compliance List
+    final listSheet = excel['Student Compliance List'];
+    listSheet.appendRow([
+      xl.TextCellValue('#'),
+      xl.TextCellValue('LRN'),
+      xl.TextCellValue('Student Name'),
+      xl.TextCellValue('Sex'),
+      xl.TextCellValue('Grade Level'),
+      xl.TextCellValue('Section'),
+      xl.TextCellValue('Status'),
+      xl.TextCellValue('Missing Count'),
+      xl.TextCellValue('Missing Documents'),
+    ]);
 
     for (int r = 0; r < data.students.length; r++) {
       final s = data.students[r];
-      final row = [
-        (r + 1).toString(),
-        s.lrn,
-        s.fullName,
-        s.sex,
-        s.gradeLevel != null ? 'Grade ${s.gradeLevel}' : 'N/A',
-        s.sectionName ?? 'N/A',
-        s.status,
-        s.missingCount.toString(),
-        s.missingRequirements ?? 'None',
-      ];
-      buffer.writeln(row.map(escape).join(','));
+      final missingDocsStr = s.missingRequirements ?? (s.missingCount == 0 ? 'None (Complete)' : 'N/A');
+      listSheet.appendRow([
+        xl.IntCellValue(r + 1),
+        xl.TextCellValue(s.lrn),
+        xl.TextCellValue(s.fullName),
+        xl.TextCellValue(s.sex),
+        xl.TextCellValue(s.gradeLevel != null ? 'Grade ${s.gradeLevel}' : 'N/A'),
+        xl.TextCellValue(s.sectionName ?? 'N/A'),
+        xl.TextCellValue(s.status),
+        xl.IntCellValue(s.missingCount),
+        xl.TextCellValue(missingDocsStr),
+      ]);
     }
 
-    return utf8.encode(buffer.toString());
+    // Delete default Sheet1 if present
+    if (excel.sheets.containsKey('Sheet1')) {
+      excel.delete('Sheet1');
+    }
+
+    final bytes = excel.save();
+    return bytes ?? [];
   }
 
   // â”€â”€ Print Compliance Report Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -3501,10 +3498,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
         final Widget chartWidget = SizedBox(
           width: chartWidth,
-          height: isDesktop ? 240 : 220,
+          height: isDesktop ? 260 : 300,
           child: BarChart(
             BarChartData(
-              maxY: 100,
+              maxY: 140,
               barGroups: grades.asMap().entries.map((entry) {
                 final g = entry.value;
                 final pct = g.total > 0
@@ -3582,7 +3579,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                 ),
                 topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
+                  sideTitles: SideTitles(showTitles: false, reservedSize: 32),
                 ),
                 rightTitles: const AxisTitles(
                   sideTitles: SideTitles(showTitles: false),
@@ -3599,7 +3596,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ),
               borderData: FlBorderData(show: false),
               barTouchData: BarTouchData(
+                enabled: true,
+                handleBuiltInTouches: true,
                 touchTooltipData: BarTouchTooltipData(
+                  fitInsideHorizontally: true,
+                  fitInsideVertically: true,
+                  tooltipMargin: 12,
+                  tooltipPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   getTooltipColor: (group) => isDark
                       ? AppColors.darkSurface2
                       : Colors.blueGrey.shade800,
@@ -3957,7 +3963,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   if (val > maxY) maxY = val;
                 }
               }
-              maxY = maxY * 1.2;
+              maxY = (maxY * 1.55).ceilToDouble();
               if (maxY == 0) maxY = 10;
 
               return LayoutBuilder(
@@ -3968,13 +3974,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       : (data.length * 150.0);
                   final Widget chartWidget = SizedBox(
                     width: chartWidth,
-                    height: 200,
+                    height: isDesktop ? 260 : 300,
                     child: BarChart(
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
                         maxY: maxY,
                         barTouchData: BarTouchData(
+                          enabled: true,
+                          handleBuiltInTouches: true,
                           touchTooltipData: BarTouchTooltipData(
+                            fitInsideHorizontally: true,
+                            fitInsideVertically: true,
+                            tooltipMargin: 12,
+                            tooltipPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             getTooltipColor: (group) => isDark
                                 ? AppColors.darkSurface2
                                 : Colors.blueGrey.shade800,

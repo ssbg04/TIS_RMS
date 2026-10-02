@@ -153,9 +153,11 @@ exports.createUser = async (req, res) => {
         }
     }
 
-    // Generate secure randomized temporary password for admin users, or username123 for standard users
+    // Generate secure randomized temporary password for all users if not explicitly provided
     let temporaryPassword;
-    if (role === 'admin') {
+    if (providedPassword && providedPassword.trim()) {
+        temporaryPassword = providedPassword.trim();
+    } else {
         const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
         const lowercase = 'abcdefghjkmnpqrstuvwxyz';
         const digits = '23456789';
@@ -171,8 +173,6 @@ exports.createUser = async (req, res) => {
             pwdParts.push(allChars[crypto.randomInt(0, allChars.length)]);
         }
         temporaryPassword = pwdParts.sort(() => crypto.randomInt(-1, 2)).join('');
-    } else {
-        temporaryPassword = `${username}123`;
     }
 
     try {

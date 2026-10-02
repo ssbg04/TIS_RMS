@@ -33,7 +33,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  bool _setupBannerDismissed = false;
   bool _setupBannerMinimized = false;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -97,7 +96,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         if (!mounted) return;
         if (next == 'Dashboard' && previous != 'Dashboard') {
           setState(() {
-            _setupBannerDismissed = false;
             _setupBannerMinimized = true;
           });
           if (_searchFocusNode.hasFocus) _searchFocusNode.unfocus();
@@ -369,7 +367,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        if (isAdmin && !_setupBannerDismissed) ...[
+                        if (isAdmin) ...[
                           _buildSetupGuidanceBanner(context),
                           const SizedBox(height: 24),
                         ],
@@ -551,17 +549,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
-                        IconButton(
-                          onPressed: () =>
-                              setState(() => _setupBannerDismissed = true),
-                          icon: Icon(
-                            Icons.close,
-                            size: 18,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
-                          ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
                       ],
                     ),
                     if (!_setupBannerMinimized) ...[
@@ -643,38 +630,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ],
                       ),
                     ),
-                    // Minimize and Dismiss buttons
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          onPressed: () => setState(
-                            () =>
-                                _setupBannerMinimized = !_setupBannerMinimized,
-                          ),
-                          icon: Icon(
-                            _setupBannerMinimized
-                                ? Icons.keyboard_arrow_down
-                                : Icons.keyboard_arrow_up,
-                            size: 18,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
-                          ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: () =>
-                              setState(() => _setupBannerDismissed = true),
-                          icon: Icon(
-                            Icons.close,
-                            size: 18,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
-                          ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
+                    // Minimize toggle button (never dismiss)
+                    IconButton(
+                      onPressed: () => setState(
+                        () =>
+                            _setupBannerMinimized = !_setupBannerMinimized,
+                      ),
+                      icon: Icon(
+                        _setupBannerMinimized
+                            ? Icons.keyboard_arrow_down
+                            : Icons.keyboard_arrow_up,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),

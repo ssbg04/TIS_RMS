@@ -1850,25 +1850,37 @@ class _UserDetailAndEditModalContentState
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton(
-                            onPressed: _cancelEditing,
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size.fromHeight(50),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 14,
+                          child: SizedBox(
+                            height: 48,
+                            child: OutlinedButton(
+                              onPressed: _cancelEditing,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                side: BorderSide(
+                                  color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                                  width: 1.2,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3,
+                                ),
                               ),
                             ),
-                            child: const Text('Cancel'),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: PrimaryButton(
                             label: 'Save',
+                            height: 48,
+                            fontSize: 14,
                             isLoading: _isLoading,
                             onPressed: _handleSave,
                           ),
@@ -2006,7 +2018,7 @@ class _AddUserModalContentState extends ConsumerState<_AddUserModalContent> {
       }
 
       final username = _usernameCtrl.text.trim();
-      final tempPassword = await ref.read(usersProvider.notifier).createUser(
+      await ref.read(usersProvider.notifier).createUser(
             username: username,
             firstName: _firstNameCtrl.text.trim(),
             middleName: _middleNameCtrl.text.trim(),
@@ -2022,7 +2034,7 @@ class _AddUserModalContentState extends ConsumerState<_AddUserModalContent> {
       _showUserCreatedSuccessDialog(
         context,
         username: username,
-        temporaryPassword: tempPassword,
+        role: _selectedRole,
         email: _emailCtrl.text.trim(),
       );
     } catch (e) {
@@ -2280,24 +2292,37 @@ class _AddUserModalContentState extends ConsumerState<_AddUserModalContent> {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 14,
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        side: BorderSide(
+                          color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                          width: 1.2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
                       ),
                     ),
-                    child: const Text('Cancel'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: PrimaryButton(
                     label: 'CREATE USER',
+                    height: 48,
+                    fontSize: 14,
                     isLoading: _isLoading,
                     onPressed: _handleCreate,
                   ),
@@ -2402,7 +2427,7 @@ Widget _buildEmailDomainSuggestions(
 void _showUserCreatedSuccessDialog(
   BuildContext ctx, {
   required String username,
-  required String temporaryPassword,
+  String? role,
   String? email,
 }) {
   final isDark = Theme.of(ctx).brightness == Brightness.dark;
@@ -2428,14 +2453,7 @@ void _showUserCreatedSuccessDialog(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _credentialRow(dialogCtx, 'Username', username),
-          const SizedBox(height: 10),
-          _credentialRow(
-            dialogCtx,
-            'Temporary Password',
-            temporaryPassword,
-            highlight: true,
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(

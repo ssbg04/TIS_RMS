@@ -198,19 +198,21 @@ function generateTransparencyBoardPdf(data, options = {}) {
 
                 // Section 1: Data on Enrollment Table (Comparative)
                 drawSectionBar(doc, '1. DATA ON ENROLLMENT (KEY STAGE 3 & 4 BREAKDOWN)', leftMargin, contentWidth);
-                doc.moveDown(0.3);
+                doc.moveDown(0.2);
+                drawEnrollmentBarChart(doc, leftMargin, contentWidth, latestYear, previousYear, hasPrev, prevSyLabel, activeSyLabel, 80);
+                doc.moveDown(0.35);
                 drawEnrollmentTable(doc, leftMargin, contentWidth, latestYear, previousYear, hasPrev, prevSyLabel, activeSyLabel);
-                doc.moveDown(0.6);
+                doc.moveDown(0.35);
 
                 // Section 2: Gender Breakdown Table (Male/Female)
                 drawSectionBar(doc, `2. ENROLLMENT BY SEX (GENDER BREAKDOWN - ${activeSyLabel})`, leftMargin, contentWidth);
-                doc.moveDown(0.3);
+                doc.moveDown(0.2);
                 drawEnrollmentBySexTable(doc, leftMargin, contentWidth, latestYear);
-                doc.moveDown(0.8);
+                doc.moveDown(0.4);
 
                 // Section 3: Official Signatories
                 drawSectionBar(doc, '3. OFFICIAL SIGNATORIES & CERTIFICATION', leftMargin, contentWidth);
-                doc.moveDown(0.6);
+                doc.moveDown(0.35);
                 drawSignatoryBlock(doc, leftMargin, contentWidth);
 
             // ════════════════════════════════════════════════════════════════
@@ -226,25 +228,27 @@ function generateTransparencyBoardPdf(data, options = {}) {
 
                 // Section 1: Dropouts Table
                 drawSectionBar(doc, '1. DROPOUTS MULTI-YEAR COMPARATIVE BREAKDOWN', leftMargin, contentWidth);
-                doc.moveDown(0.3);
+                doc.moveDown(0.2);
+                drawDropoutsTransfereesBarChart(doc, leftMargin, contentWidth, years, 75);
+                doc.moveDown(0.35);
                 drawMultiYearStatTable(doc, leftMargin, contentWidth, years, 'dropouts', 'droppedCount', 'TOTAL DROPOUTS', '#e2e8f0', '#0f172a');
-                doc.moveDown(0.5);
+                doc.moveDown(0.35);
 
                 // Section 2: Transferees Table
                 drawSectionBar(doc, '2. TRANSFEREES MULTI-YEAR COMPARATIVE BREAKDOWN', leftMargin, contentWidth);
-                doc.moveDown(0.3);
+                doc.moveDown(0.2);
                 drawMultiYearStatTable(doc, leftMargin, contentWidth, years, 'transferees', 'transferredCount', 'TOTAL TRANSFEREES', '#e2e8f0', '#0f172a');
-                doc.moveDown(0.5);
+                doc.moveDown(0.35);
 
                 // Section 3: Retention & Learner Mobility Summary
                 drawSectionBar(doc, '3. RETENTION & LEARNER MOBILITY SUMMARY', leftMargin, contentWidth);
-                doc.moveDown(0.3);
+                doc.moveDown(0.2);
                 drawRetentionSummaryTable(doc, leftMargin, contentWidth, years);
-                doc.moveDown(0.8);
+                doc.moveDown(0.4);
 
                 // Section 4: Official Signatories
                 drawSectionBar(doc, '4. OFFICIAL SIGNATORIES & CERTIFICATION', leftMargin, contentWidth);
-                doc.moveDown(0.6);
+                doc.moveDown(0.35);
                 drawSignatoryBlock(doc, leftMargin, contentWidth);
 
             // ════════════════════════════════════════════════════════════════
@@ -260,96 +264,103 @@ function generateTransparencyBoardPdf(data, options = {}) {
 
                 // Section 1: 4Ps Table
                 drawSectionBar(doc, '1. 4Ps BENEFICIARIES EQUITY ANALYSIS TABLE', leftMargin, contentWidth);
-                doc.moveDown(0.3);
+                doc.moveDown(0.2);
+                drawFourPsBarChart(doc, leftMargin, contentWidth, latestYear, 80);
+                doc.moveDown(0.35);
                 drawFourPsTable(doc, leftMargin, contentWidth, latestYear, previousYear, hasPrev, prevSyLabel, activeSyLabel);
-                doc.moveDown(0.6);
+                doc.moveDown(0.35);
 
                 // Section 2: Indicators Summary
                 drawSectionBar(doc, '2. EQUITY & SOCIAL PROTECTION INDICATORS', leftMargin, contentWidth);
-                doc.moveDown(0.3);
+                doc.moveDown(0.2);
                 drawFourPsSummaryTable(doc, leftMargin, contentWidth, latestYear);
-                doc.moveDown(0.8);
+                doc.moveDown(0.5);
 
                 // Section 3: Official Signatories
                 drawSectionBar(doc, '3. OFFICIAL SIGNATORIES & CERTIFICATION', leftMargin, contentWidth);
-                doc.moveDown(0.6);
+                doc.moveDown(0.35);
                 drawSignatoryBlock(doc, leftMargin, contentWidth);
 
             // ════════════════════════════════════════════════════════════════
-            // CATEGORY 4: FULL TRANSPARENCY BOARD REPORT (All Categories, 2 Pages)
+            // CATEGORY 4: FULL TRANSPARENCY BOARD REPORT (All Categories, 3 Pages)
+            // Includes all visual graphs and comprehensive tables from all sections
             // ════════════════════════════════════════════════════════════════
             } else {
-                // PAGE 1: Header + Section 1 (Enrollment) + Section 2 (Dropouts & Transferees)
+                // ── PAGE 1: ENROLLMENT OVERVIEW (Visuals + Comparative + By Sex) ──
                 drawDepEdHeader(doc, {
                     sealPath, pageWidth, leftMargin, rightMargin, contentWidth,
                     regionName, divisionName, schoolName,
-                    title: 'DEPED TRANSPARENCY & SCHOOL PERFORMANCE BOARD REPORT',
+                    title: 'DEPED TRANSPARENCY REPORT - DATA ON ENROLLMENT',
                     referencePeriod, generatedDate
                 });
 
-                // ── SECTION 1: DATA ON ENROLLMENT ──
-                drawSectionBar(doc, '1. DATA ON ENROLLMENT', leftMargin, contentWidth);
-                doc.moveDown(0.3);
+                // Section 1: Data on Enrollment
+                drawSectionBar(doc, '1. DATA ON ENROLLMENT (MULTI-YEAR COMPARATIVE)', leftMargin, contentWidth);
+                doc.moveDown(0.2);
+                drawEnrollmentBarChart(doc, leftMargin, contentWidth, latestYear, previousYear, hasPrev, prevSyLabel, activeSyLabel, 84);
+                doc.moveDown(0.35);
                 drawEnrollmentTable(doc, leftMargin, contentWidth, latestYear, previousYear, hasPrev, prevSyLabel, activeSyLabel);
+                doc.moveDown(0.35);
+
+                // Section 2: Enrollment by Sex Table
+                drawSectionBar(doc, `2. ENROLLMENT BY SEX (GENDER BREAKDOWN - ${activeSyLabel})`, leftMargin, contentWidth);
+                doc.moveDown(0.2);
+                drawEnrollmentBySexTable(doc, leftMargin, contentWidth, latestYear);
+
+                // ── PAGE 2: DROPOUTS & TRANSFEREES (Visuals + Multi-Year + Mobility) ──
+                doc.addPage();
+                drawContinuationHeader(doc, {
+                    sealPath, pageWidth, leftMargin, rightMargin, contentWidth,
+                    regionName, divisionName, schoolName,
+                    sectionTitle: 'DROPOUTS & TRANSFEREES',
+                    referencePeriod, generatedDate
+                });
+
+                // Section 3: Dropouts
+                drawSectionBar(doc, '3. DROPOUTS MULTI-YEAR COMPARATIVE BREAKDOWN', leftMargin, contentWidth);
+                doc.moveDown(0.2);
+                drawDropoutsTransfereesBarChart(doc, leftMargin, contentWidth, years, 84);
+                doc.moveDown(0.35);
+                drawMultiYearStatTable(doc, leftMargin, contentWidth, years, 'dropouts', 'droppedCount', 'TOTAL DROPOUTS', '#e2e8f0', '#0f172a');
+                doc.moveDown(0.35);
+
+                // Section 4: Transferees
+                drawSectionBar(doc, '4. TRANSFEREES MULTI-YEAR COMPARATIVE BREAKDOWN', leftMargin, contentWidth);
+                doc.moveDown(0.2);
+                drawMultiYearStatTable(doc, leftMargin, contentWidth, years, 'transferees', 'transferredCount', 'TOTAL TRANSFEREES', '#e2e8f0', '#0f172a');
+                doc.moveDown(0.35);
+
+                // Section 5: Retention & Mobility Summary
+                drawSectionBar(doc, '5. RETENTION & LEARNER MOBILITY SUMMARY', leftMargin, contentWidth);
+                doc.moveDown(0.2);
+                drawRetentionSummaryTable(doc, leftMargin, contentWidth, years);
+
+                // ── PAGE 3: 4Ps BENEFICIARIES EQUITY & CERTIFICATION ──
+                doc.addPage();
+                drawContinuationHeader(doc, {
+                    sealPath, pageWidth, leftMargin, rightMargin, contentWidth,
+                    regionName, divisionName, schoolName,
+                    sectionTitle: '4Ps BENEFICIARIES EQUITY ANALYSIS',
+                    referencePeriod, generatedDate
+                });
+
+                // Section 6: 4Ps Table
+                drawSectionBar(doc, '6. 4Ps BENEFICIARIES EQUITY ANALYSIS TABLE', leftMargin, contentWidth);
+                doc.moveDown(0.2);
+                drawFourPsBarChart(doc, leftMargin, contentWidth, latestYear, 84);
+                doc.moveDown(0.35);
+                drawFourPsTable(doc, leftMargin, contentWidth, latestYear, previousYear, hasPrev, prevSyLabel, activeSyLabel);
+                doc.moveDown(0.35);
+
+                // Section 7: Indicators Summary
+                drawSectionBar(doc, '7. EQUITY & SOCIAL PROTECTION INDICATORS', leftMargin, contentWidth);
+                doc.moveDown(0.2);
+                drawFourPsSummaryTable(doc, leftMargin, contentWidth, latestYear);
                 doc.moveDown(0.5);
 
-                // ── SECTION 2: DROPOUTS & TRANSFEREES (Side by Side) ──
-                drawSectionBar(doc, '2. DROPOUTS & TRANSFEREES (MULTI-YEAR COMPARATIVE)', leftMargin, contentWidth);
-                doc.moveDown(0.3);
-
-                const gap = 12;
-                const halfTableWidth = (contentWidth - gap) / 2;
-                const sec2StartY = doc.y;
-
-                // Left Table: Dropouts Summary
-                doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#0f172a').text('A. Dropouts Summary', leftMargin, sec2StartY);
-                doc.y = sec2StartY + 12;
-                drawCompactStatTable(doc, leftMargin, halfTableWidth, years, 'dropouts', 'droppedCount', 'Total Dropouts', '#e2e8f0', '#0f172a');
-
-                // Right Table: Transferees Summary
-                const rightX = leftMargin + halfTableWidth + gap;
-                doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#0f172a').text('B. Transferees Summary', rightX, sec2StartY);
-                doc.y = sec2StartY + 12;
-                drawCompactStatTable(doc, rightX, halfTableWidth, years, 'transferees', 'transferredCount', 'Total Transferees', '#e2e8f0', '#0f172a');
-
-                // PAGE 2: Header Continuation + Section 3 (4Ps) + Signatories
-                doc.addPage();
-
-                // Page 2 Header (Continuation Banner)
-                if (fs.existsSync(sealPath)) {
-                    doc.image(sealPath, leftMargin, 18, { width: 32, height: 32 });
-                }
-
-                doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#000000').text(schoolName, leftMargin + 38, 19);
-                doc.fontSize(7.5).font('Helvetica').fillColor('#333333').text(`${divisionName} | ${regionName}`, leftMargin + 38, 30);
-                doc.fontSize(7).font('Helvetica').fillColor('#666666').text(
-                    `Reference: ${referencePeriod} | Date: ${generatedDate}`,
-                    leftMargin + 38, 40
-                );
-
-                doc.y = 56;
-                doc.strokeColor('#000000').lineWidth(1.2).moveTo(leftMargin, doc.y).lineTo(pageWidth - rightMargin, doc.y).stroke();
-                doc.strokeColor('#000000').lineWidth(0.4).moveTo(leftMargin, doc.y + 2).lineTo(pageWidth - rightMargin, doc.y + 2).stroke();
-                doc.y = doc.y + 7;
-
-                doc.fontSize(9.5).font('Helvetica-Bold').fillColor('#000000').text(
-                    'DEPED TRANSPARENCY & SCHOOL PERFORMANCE REPORT (CONTINUATION)',
-                    leftMargin, doc.y,
-                    { width: contentWidth, align: 'center' }
-                );
-                doc.moveDown(0.25);
-                doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(leftMargin, doc.y).lineTo(pageWidth - rightMargin, doc.y).stroke();
-                doc.moveDown(0.4);
-
-                // ── SECTION 3: 4Ps BENEFICIARIES ──
-                drawSectionBar(doc, '3. 4Ps BENEFICIARIES EQUITY ANALYSIS', leftMargin, contentWidth);
-                doc.moveDown(0.4);
-                drawFourPsTable(doc, leftMargin, contentWidth, latestYear, previousYear, hasPrev, prevSyLabel, activeSyLabel);
-                doc.moveDown(1.5);
-
-                // ── SECTION 4: OFFICIAL SIGNATORIES ──
-                drawSectionBar(doc, '4. OFFICIAL SIGNATORIES & CERTIFICATION', leftMargin, contentWidth);
-                doc.moveDown(0.8);
+                // Section 8: Official Signatories
+                drawSectionBar(doc, '8. OFFICIAL SIGNATORIES & CERTIFICATION', leftMargin, contentWidth);
+                doc.moveDown(0.35);
                 drawSignatoryBlock(doc, leftMargin, contentWidth);
             }
 
@@ -376,46 +387,78 @@ function drawDepEdHeader(doc, {
     referencePeriod, generatedDate
 }) {
     if (fs.existsSync(sealPath)) {
-        doc.image(sealPath, (pageWidth - 42) / 2, 18, { width: 42, height: 42 });
+        doc.image(sealPath, (pageWidth - 36) / 2, 14, { width: 36, height: 36 });
     }
 
-    doc.y = 63;
-    doc.fontSize(8.5).font('Helvetica').fillColor('#000000').text('Republic of the Philippines', { align: 'center' });
-    doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000').text('Department of Education', { align: 'center' });
-    doc.fontSize(8).font('Helvetica').fillColor('#000000').text(regionName, { align: 'center' });
-    doc.fontSize(8).font('Helvetica').fillColor('#000000').text(divisionName, { align: 'center' });
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text(schoolName, { align: 'center' });
-    doc.fontSize(7.5).font('Helvetica').fillColor('#37474f').text('Talisay, Tiaong, Quezon', { align: 'center' });
-    doc.moveDown(0.25);
+    doc.y = 52;
+    doc.fontSize(8).font('Helvetica').fillColor('#000000').text('Republic of the Philippines', { align: 'center' });
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#000000').text('Department of Education', { align: 'center' });
+    doc.fontSize(7.5).font('Helvetica').fillColor('#000000').text(regionName, { align: 'center' });
+    doc.fontSize(7.5).font('Helvetica').fillColor('#000000').text(divisionName, { align: 'center' });
+    doc.fontSize(9.5).font('Helvetica-Bold').fillColor('#000000').text(schoolName, { align: 'center' });
+    doc.fontSize(7).font('Helvetica').fillColor('#37474f').text('Talisay, Tiaong, Quezon', { align: 'center' });
+    doc.moveDown(0.18);
 
     // Official DepEd Divider Lines (Double rule: thick upper line + thin lower line)
     const lineY = doc.y;
     doc.strokeColor('#000000').lineWidth(1.2).moveTo(leftMargin, lineY).lineTo(pageWidth - rightMargin, lineY).stroke();
     doc.strokeColor('#000000').lineWidth(0.4).moveTo(leftMargin, lineY + 2).lineTo(pageWidth - rightMargin, lineY + 2).stroke();
-    doc.y = lineY + 6;
+    doc.y = lineY + 5;
 
     // Report Title (Official Administrative Header)
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text(
+    doc.fontSize(9.5).font('Helvetica-Bold').fillColor('#000000').text(
         title,
         leftMargin, doc.y,
         { width: contentWidth, align: 'center' }
     );
-    doc.moveDown(0.2);
+    doc.moveDown(0.15);
 
     // Subheader: Reference School Year & Date Generated
-    doc.fontSize(8).font('Helvetica-Bold').fillColor('#263238').text(
+    doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#263238').text(
         `School Year: ${referencePeriod}`,
         leftMargin, doc.y, { continued: true }
     );
-    doc.fontSize(7.5).font('Helvetica').fillColor('#455a64').text(
+    doc.fontSize(7).font('Helvetica').fillColor('#455a64').text(
         `Date Generated: ${generatedDate}`,
         { align: 'right' }
     );
-    doc.moveDown(0.25);
+    doc.moveDown(0.18);
 
     // Subtle hairline separator below metadata
     doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(leftMargin, doc.y).lineTo(pageWidth - rightMargin, doc.y).stroke();
-    doc.moveDown(0.4);
+    doc.moveDown(0.3);
+}
+
+// ── Multi-Page Continuation Header Builder ────────────────────────────────────
+function drawContinuationHeader(doc, {
+    sealPath, pageWidth, leftMargin, rightMargin, contentWidth,
+    regionName, divisionName, schoolName,
+    sectionTitle, referencePeriod, generatedDate
+}) {
+    if (fs.existsSync(sealPath)) {
+        doc.image(sealPath, leftMargin, 16, { width: 30, height: 30 });
+    }
+
+    doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#000000').text(schoolName, leftMargin + 36, 17);
+    doc.fontSize(7.5).font('Helvetica').fillColor('#333333').text(`${divisionName} | ${regionName}`, leftMargin + 36, 28);
+    doc.fontSize(7).font('Helvetica').fillColor('#666666').text(
+        `Reference: ${referencePeriod} | Date: ${generatedDate}`,
+        leftMargin + 36, 38
+    );
+
+    doc.y = 50;
+    doc.strokeColor('#000000').lineWidth(1.2).moveTo(leftMargin, doc.y).lineTo(pageWidth - rightMargin, doc.y).stroke();
+    doc.strokeColor('#000000').lineWidth(0.4).moveTo(leftMargin, doc.y + 2).lineTo(pageWidth - rightMargin, doc.y + 2).stroke();
+    doc.y = doc.y + 5;
+
+    doc.fontSize(9.2).font('Helvetica-Bold').fillColor('#000000').text(
+        `DEPED TRANSPARENCY REPORT - ${sectionTitle} (CONTINUATION)`,
+        leftMargin, doc.y,
+        { width: contentWidth, align: 'center' }
+    );
+    doc.moveDown(0.18);
+    doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(leftMargin, doc.y).lineTo(pageWidth - rightMargin, doc.y).stroke();
+    doc.moveDown(0.3);
 }
 
 // ── Running Footer Builder ────────────────────────────────────────────────────
@@ -479,11 +522,285 @@ function drawRunningFooter(doc, {
 
 function drawSectionBar(doc, title, x, width) {
     const y = doc.y;
-    doc.rect(x, y, width, 17).fill('#f1f5f9');
-    doc.rect(x, y, 3.5, 17).fill('#0f172a');
-    doc.strokeColor('#cbd5e1').lineWidth(0.6).rect(x, y, width, 17).stroke();
-    doc.fontSize(9.2).font('Helvetica-Bold').fillColor('#0f172a').text(title, x + 8, y + 4.2, { lineBreak: false });
-    doc.y = y + 20;
+    doc.rect(x, y, width, 15).fill('#f1f5f9');
+    doc.rect(x, y, 3.5, 15).fill('#0f172a');
+    doc.strokeColor('#cbd5e1').lineWidth(0.6).rect(x, y, width, 15).stroke();
+    doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#0f172a').text(title, x + 8, y + 3.8, { lineBreak: false });
+    doc.y = y + 18;
+}
+
+// ── Vector Chart Builders ─────────────────────────────────────────────────────
+
+function drawEnrollmentBarChart(doc, x, width, latestYear, previousYear, hasPrev, prevLabel, currLabel, chartHeight = 84) {
+    const y = doc.y;
+    const padding = 6;
+    const innerX = x + padding;
+    const innerWidth = width - (padding * 2);
+
+    // Background card
+    doc.roundedRect(x, y, width, chartHeight, 4).fill('#f8fafc');
+    doc.strokeColor('#cbd5e1').lineWidth(0.5).roundedRect(x, y, width, chartHeight, 4).stroke();
+
+    // Title & Legend at top
+    doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#1e293b')
+        .text('ENROLLMENT VISUAL COMPARISON BY GRADE LEVEL', innerX + 4, y + 5.5, { lineBreak: false });
+
+    // Legend
+    const legendY = y + 5.5;
+    if (hasPrev) {
+        const leg1X = x + width - 175;
+        doc.rect(leg1X, legendY + 1, 7, 7).fill('#94a3b8');
+        doc.fontSize(6.5).font('Helvetica').fillColor('#475569').text(prevLabel || 'Previous SY', leg1X + 10, legendY + 1, { lineBreak: false });
+
+        const leg2X = x + width - 88;
+        doc.rect(leg2X, legendY + 1, 7, 7).fill('#1d4ed8');
+        doc.fontSize(6.5).font('Helvetica-Bold').fillColor('#1d4ed8').text(currLabel || 'Current SY', leg2X + 10, legendY + 1, { lineBreak: false });
+    } else {
+        const legX = x + width - 95;
+        doc.rect(legX, legendY + 1, 7, 7).fill('#1d4ed8');
+        doc.fontSize(6.5).font('Helvetica-Bold').fillColor('#1d4ed8').text(currLabel || 'Current SY', legX + 10, legendY + 1, { lineBreak: false });
+    }
+
+    const categories = [
+        { label: 'G7', grade: 7 },
+        { label: 'G8', grade: 8 },
+        { label: 'G9', grade: 9 },
+        { label: 'G10', grade: 10 },
+        { label: 'G11', grade: 11 },
+        { label: 'G12', grade: 12 },
+        { label: 'TOTAL', isTotal: true },
+    ];
+
+    const data = categories.map(cat => {
+        let curr = 0;
+        let prev = 0;
+        if (cat.isTotal) {
+            curr = latestYear?.enrollment?.overallTotal?.total || 0;
+            prev = previousYear?.enrollment?.overallTotal?.total || 0;
+        } else {
+            curr = latestYear?.enrollment?.grades?.find(g => g.gradeLevel === cat.grade)?.total || 0;
+            prev = previousYear?.enrollment?.grades?.find(g => g.gradeLevel === cat.grade)?.total || 0;
+        }
+        return { label: cat.label, curr, prev };
+    });
+
+    const maxVal = Math.max(...data.map(d => Math.max(d.curr, hasPrev ? d.prev : 0)), 1);
+
+    const plotY = y + 18;
+    const plotHeight = chartHeight - 32;
+    const baselineY = plotY + plotHeight;
+
+    // Draw baseline
+    doc.strokeColor('#cbd5e1').lineWidth(0.6).moveTo(innerX, baselineY).lineTo(innerX + innerWidth, baselineY).stroke();
+
+    const colWidth = innerWidth / data.length;
+    data.forEach((d, idx) => {
+        const colStartX = innerX + (idx * colWidth);
+        const colCenterX = colStartX + (colWidth / 2);
+
+        if (hasPrev) {
+            const barW = Math.min(10, colWidth * 0.28);
+            const prevBarH = (d.prev / maxVal) * (plotHeight - 11);
+            const currBarH = (d.curr / maxVal) * (plotHeight - 11);
+
+            const prevX = colCenterX - barW - 1.5;
+            const currX = colCenterX + 1.5;
+
+            // Prev bar
+            if (prevBarH > 0) {
+                doc.rect(prevX, baselineY - prevBarH, barW, prevBarH).fill('#94a3b8');
+            }
+            doc.fontSize(5.5).font('Helvetica').fillColor('#64748b')
+                .text(String(d.prev), prevX - 3, baselineY - prevBarH - 6.5, { width: barW + 6, align: 'center', lineBreak: false });
+
+            // Curr bar
+            if (currBarH > 0) {
+                doc.rect(currX, baselineY - currBarH, barW, currBarH).fill('#1d4ed8');
+            }
+            doc.fontSize(5.5).font('Helvetica-Bold').fillColor('#1d4ed8')
+                .text(String(d.curr), currX - 3, baselineY - currBarH - 6.5, { width: barW + 6, align: 'center', lineBreak: false });
+        } else {
+            const barW = Math.min(16, colWidth * 0.45);
+            const currBarH = (d.curr / maxVal) * (plotHeight - 11);
+            const currX = colCenterX - (barW / 2);
+
+            if (currBarH > 0) {
+                doc.rect(currX, baselineY - currBarH, barW, currBarH).fill('#1d4ed8');
+            }
+            doc.fontSize(6).font('Helvetica-Bold').fillColor('#1d4ed8')
+                .text(String(d.curr), currX - 4, baselineY - currBarH - 7, { width: barW + 8, align: 'center', lineBreak: false });
+        }
+
+        // Category label
+        doc.fontSize(6.5).font('Helvetica-Bold').fillColor(d.label === 'TOTAL' ? '#0f172a' : '#475569')
+            .text(d.label, colStartX, baselineY + 2.5, { width: colWidth, align: 'center', lineBreak: false });
+    });
+
+    doc.y = y + chartHeight;
+}
+
+function drawDropoutsTransfereesBarChart(doc, x, width, years, chartHeight = 84) {
+    const y = doc.y;
+    const padding = 6;
+    const innerX = x + padding;
+    const innerWidth = width - (padding * 2);
+
+    // Background card
+    doc.roundedRect(x, y, width, chartHeight, 4).fill('#f8fafc');
+    doc.strokeColor('#cbd5e1').lineWidth(0.5).roundedRect(x, y, width, chartHeight, 4).stroke();
+
+    // Title & Legend at top
+    doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#1e293b')
+        .text('LEARNER MOBILITY COMPARISON: DROPOUTS VS. TRANSFEREES', innerX + 4, y + 5.5, { lineBreak: false });
+
+    // Legend
+    const legendY = y + 5.5;
+    const leg1X = x + width - 150;
+    doc.rect(leg1X, legendY + 1, 7, 7).fill('#e11d48');
+    doc.fontSize(6.5).font('Helvetica-Bold').fillColor('#e11d48').text('Dropouts', leg1X + 10, legendY + 1, { lineBreak: false });
+
+    const leg2X = x + width - 75;
+    doc.rect(leg2X, legendY + 1, 7, 7).fill('#0d9488');
+    doc.fontSize(6.5).font('Helvetica-Bold').fillColor('#0d9488').text('Transferees', leg2X + 10, legendY + 1, { lineBreak: false });
+
+    const data = years.map(yr => {
+        const dropouts = yr.dropouts?.totalDropped || 0;
+        const transferees = yr.transferees?.totalTransferred || 0;
+        return { label: `SY ${yr.yearRange}`, dropouts, transferees };
+    });
+
+    const maxVal = Math.max(...data.map(d => Math.max(d.dropouts, d.transferees)), 1);
+
+    const plotY = y + 18;
+    const plotHeight = chartHeight - 32;
+    const baselineY = plotY + plotHeight;
+
+    // Draw baseline
+    doc.strokeColor('#cbd5e1').lineWidth(0.6).moveTo(innerX, baselineY).lineTo(innerX + innerWidth, baselineY).stroke();
+
+    const colWidth = innerWidth / (data.length || 1);
+    data.forEach((d, idx) => {
+        const colStartX = innerX + (idx * colWidth);
+        const colCenterX = colStartX + (colWidth / 2);
+
+        const barW = Math.min(18, colWidth * 0.25);
+        const dropBarH = (d.dropouts / maxVal) * (plotHeight - 11);
+        const transBarH = (d.transferees / maxVal) * (plotHeight - 11);
+
+        const dropX = colCenterX - barW - 2;
+        const transX = colCenterX + 2;
+
+        // Dropouts bar
+        if (dropBarH > 0) {
+            doc.rect(dropX, baselineY - dropBarH, barW, dropBarH).fill('#e11d48');
+        }
+        doc.fontSize(6).font('Helvetica-Bold').fillColor('#be123c')
+            .text(String(d.dropouts), dropX - 4, baselineY - dropBarH - 7, { width: barW + 8, align: 'center', lineBreak: false });
+
+        // Transferees bar
+        if (transBarH > 0) {
+            doc.rect(transX, baselineY - transBarH, barW, transBarH).fill('#0d9488');
+        }
+        doc.fontSize(6).font('Helvetica-Bold').fillColor('#0f766e')
+            .text(String(d.transferees), transX - 4, baselineY - transBarH - 7, { width: barW + 8, align: 'center', lineBreak: false });
+
+        // Category label
+        doc.fontSize(6.5).font('Helvetica-Bold').fillColor('#334155')
+            .text(d.label, colStartX, baselineY + 2.5, { width: colWidth, align: 'center', lineBreak: false });
+    });
+
+    doc.y = y + chartHeight;
+}
+
+function drawFourPsBarChart(doc, x, width, latestYear, chartHeight = 84) {
+    const y = doc.y;
+    const padding = 6;
+    const innerX = x + padding;
+    const innerWidth = width - (padding * 2);
+
+    // Background card
+    doc.roundedRect(x, y, width, chartHeight, 4).fill('#f8fafc');
+    doc.strokeColor('#cbd5e1').lineWidth(0.5).roundedRect(x, y, width, chartHeight, 4).stroke();
+
+    // Title & Legend at top
+    doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#1e293b')
+        .text('4Ps BENEFICIARIES SHARE IN ENROLLMENT BY GRADE LEVEL', innerX + 4, y + 5.5, { lineBreak: false });
+
+    // Legend
+    const legendY = y + 5.5;
+    const leg1X = x + width - 175;
+    doc.rect(leg1X, legendY + 1, 7, 7).fill('#94a3b8');
+    doc.fontSize(6.5).font('Helvetica').fillColor('#475569').text('Total Students', leg1X + 10, legendY + 1, { lineBreak: false });
+
+    const leg2X = x + width - 92;
+    doc.rect(leg2X, legendY + 1, 7, 7).fill('#d97706');
+    doc.fontSize(6.5).font('Helvetica-Bold').fillColor('#d97706').text('4Ps Beneficiaries', leg2X + 10, legendY + 1, { lineBreak: false });
+
+    const categories = [
+        { label: 'G7', grade: 7 },
+        { label: 'G8', grade: 8 },
+        { label: 'G9', grade: 9 },
+        { label: 'G10', grade: 10 },
+        { label: 'G11', grade: 11 },
+        { label: 'G12', grade: 12 },
+        { label: 'TOTAL', isTotal: true },
+    ];
+
+    const data = categories.map(cat => {
+        let total = 0;
+        let fourPs = 0;
+        if (cat.isTotal) {
+            total = latestYear?.fourPs?.overallTotal?.totalStudents || 0;
+            fourPs = latestYear?.fourPs?.overallTotal?.fourPsCount || 0;
+        } else {
+            const item = latestYear?.fourPs?.grades?.find(g => g.gradeLevel === cat.grade);
+            total = item?.totalStudents || 0;
+            fourPs = item?.fourPsCount || 0;
+        }
+        return { label: cat.label, total, fourPs };
+    });
+
+    const maxVal = Math.max(...data.map(d => Math.max(d.total, d.fourPs)), 1);
+
+    const plotY = y + 18;
+    const plotHeight = chartHeight - 32;
+    const baselineY = plotY + plotHeight;
+
+    // Draw baseline
+    doc.strokeColor('#cbd5e1').lineWidth(0.6).moveTo(innerX, baselineY).lineTo(innerX + innerWidth, baselineY).stroke();
+
+    const colWidth = innerWidth / data.length;
+    data.forEach((d, idx) => {
+        const colStartX = innerX + (idx * colWidth);
+        const colCenterX = colStartX + (colWidth / 2);
+
+        const barW = Math.min(10, colWidth * 0.28);
+        const totalBarH = (d.total / maxVal) * (plotHeight - 11);
+        const fourPsBarH = (d.fourPs / maxVal) * (plotHeight - 11);
+
+        const totalX = colCenterX - barW - 1.5;
+        const fourPsX = colCenterX + 1.5;
+
+        // Total bar
+        if (totalBarH > 0) {
+            doc.rect(totalX, baselineY - totalBarH, barW, totalBarH).fill('#94a3b8');
+        }
+        doc.fontSize(5.5).font('Helvetica').fillColor('#64748b')
+            .text(String(d.total), totalX - 3, baselineY - totalBarH - 6.5, { width: barW + 6, align: 'center', lineBreak: false });
+
+        // 4Ps bar
+        if (fourPsBarH > 0) {
+            doc.rect(fourPsX, baselineY - fourPsBarH, barW, fourPsBarH).fill('#d97706');
+        }
+        doc.fontSize(5.5).font('Helvetica-Bold').fillColor('#b45309')
+            .text(String(d.fourPs), fourPsX - 3, baselineY - fourPsBarH - 6.5, { width: barW + 6, align: 'center', lineBreak: false });
+
+        // Category label
+        doc.fontSize(6.5).font('Helvetica-Bold').fillColor(d.label === 'TOTAL' ? '#0f172a' : '#475569')
+            .text(d.label, colStartX, baselineY + 2.5, { width: colWidth, align: 'center', lineBreak: false });
+    });
+
+    doc.y = y + chartHeight;
 }
 
 // ── Comparative Enrollment Table ──────────────────────────────────────────────
@@ -498,10 +815,10 @@ function drawEnrollmentTable(doc, x, width, latestYear, previousYear, hasPrev, p
 
     drawCustomRow(doc, x, cols, [
         'Key Stage / Grade Level', prevLabel, currLabel, 'Difference', 'Remarks'
-    ], { isHeader: true, bgColor: '#e2e8f0', textColor: '#0f172a', height: 20.5, fontSize: 9.5 });
+    ], { isHeader: true, bgColor: '#e2e8f0', textColor: '#0f172a', height: 18, fontSize: 8.8 });
 
     // JHS Section
-    drawCustomRow(doc, x, cols, ['KEY STAGE 3 (JUNIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 17, fontSize: 9.0 });
+    drawCustomRow(doc, x, cols, ['KEY STAGE 3 (JUNIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 15, fontSize: 8.2 });
 
     const grades = [7, 8, 9, 10];
     for (const g of grades) {
@@ -515,7 +832,7 @@ function drawEnrollmentTable(doc, x, width, latestYear, previousYear, hasPrev, p
             String(curr),
             formatDiff(diff, hasPrev),
             getRemark(diff, hasPrev)
-        ], { isAlternate: g % 2 === 1, height: 18, fontSize: 9.1, diffValue: diff, hasPrev });
+        ], { isAlternate: g % 2 === 1, height: 15.5, fontSize: 8.4, diffValue: diff, hasPrev });
     }
 
     // JHS Subtotal
@@ -528,10 +845,10 @@ function drawEnrollmentTable(doc, x, width, latestYear, previousYear, hasPrev, p
         String(jhsCurr),
         formatDiff(jhsDiff, hasPrev),
         getRemark(jhsDiff, hasPrev)
-    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 19, fontSize: 9.5, diffValue: jhsDiff, hasPrev });
+    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 16.5, fontSize: 8.6, diffValue: jhsDiff, hasPrev });
 
     // SHS Section
-    drawCustomRow(doc, x, cols, ['KEY STAGE 4 (SENIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 17, fontSize: 9.0 });
+    drawCustomRow(doc, x, cols, ['KEY STAGE 4 (SENIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 15, fontSize: 8.2 });
 
     const shsGrades = [11, 12];
     for (const g of shsGrades) {
@@ -545,7 +862,7 @@ function drawEnrollmentTable(doc, x, width, latestYear, previousYear, hasPrev, p
             String(curr),
             formatDiff(diff, hasPrev),
             getRemark(diff, hasPrev)
-        ], { isAlternate: g % 2 === 1, height: 18, fontSize: 9.1, diffValue: diff, hasPrev });
+        ], { isAlternate: g % 2 === 1, height: 15.5, fontSize: 8.4, diffValue: diff, hasPrev });
     }
 
     // SHS Subtotal
@@ -558,7 +875,7 @@ function drawEnrollmentTable(doc, x, width, latestYear, previousYear, hasPrev, p
         String(shsCurr),
         formatDiff(shsDiff, hasPrev),
         getRemark(shsDiff, hasPrev)
-    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 19, fontSize: 9.5, diffValue: shsDiff, hasPrev });
+    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 16.5, fontSize: 8.6, diffValue: shsDiff, hasPrev });
 
     // Overall Total
     const totCurr = latestYear?.enrollment?.overallTotal?.total || 0;
@@ -570,7 +887,7 @@ function drawEnrollmentTable(doc, x, width, latestYear, previousYear, hasPrev, p
         String(totCurr),
         formatDiff(totDiff, hasPrev),
         getRemark(totDiff, hasPrev)
-    ], { isBold: true, bgColor: '#e2e8f0', textColor: '#000000', height: 21, fontSize: 9.8, diffValue: totDiff, hasPrev });
+    ], { isBold: true, bgColor: '#e2e8f0', textColor: '#000000', height: 17.5, fontSize: 8.8, diffValue: totDiff, hasPrev });
 }
 
 // ── Enrollment Breakdown by Sex Table (Gender Analysis) ──────────────────────
@@ -585,10 +902,10 @@ function drawEnrollmentBySexTable(doc, x, width, latestYear) {
 
     drawCustomRow(doc, x, cols, [
         'Key Stage / Grade Level', 'Male', 'Female', 'Total Enrolled', 'Female Share'
-    ], { isHeader: true, bgColor: '#e2e8f0', textColor: '#0f172a', height: 20.5, fontSize: 9.5 });
+    ], { isHeader: true, bgColor: '#e2e8f0', textColor: '#0f172a', height: 18, fontSize: 8.8 });
 
     // JHS Section
-    drawCustomRow(doc, x, cols, ['KEY STAGE 3 (JUNIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 17, fontSize: 9.0 });
+    drawCustomRow(doc, x, cols, ['KEY STAGE 3 (JUNIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 15, fontSize: 8.2 });
 
     const grades = [7, 8, 9, 10];
     for (const g of grades) {
@@ -602,7 +919,7 @@ function drawEnrollmentBySexTable(doc, x, width, latestYear) {
             String(item.female || 0),
             String(total),
             femalePct
-        ], { isAlternate: g % 2 === 1, height: 18, fontSize: 9.1 });
+        ], { isAlternate: g % 2 === 1, height: 15.5, fontSize: 8.4 });
     }
 
     // JHS Subtotal
@@ -615,10 +932,10 @@ function drawEnrollmentBySexTable(doc, x, width, latestYear) {
         String(jhs.female || 0),
         String(jhsTotal),
         jhsFemalePct
-    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 19, fontSize: 9.5 });
+    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 16.5, fontSize: 8.6 });
 
     // SHS Section
-    drawCustomRow(doc, x, cols, ['KEY STAGE 4 (SENIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 17, fontSize: 9.0 });
+    drawCustomRow(doc, x, cols, ['KEY STAGE 4 (SENIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 15, fontSize: 8.2 });
 
     const shsGrades = [11, 12];
     for (const g of shsGrades) {
@@ -632,7 +949,7 @@ function drawEnrollmentBySexTable(doc, x, width, latestYear) {
             String(item.female || 0),
             String(total),
             femalePct
-        ], { isAlternate: g % 2 === 1, height: 18, fontSize: 9.1 });
+        ], { isAlternate: g % 2 === 1, height: 15.5, fontSize: 8.4 });
     }
 
     // SHS Subtotal
@@ -645,7 +962,7 @@ function drawEnrollmentBySexTable(doc, x, width, latestYear) {
         String(shs.female || 0),
         String(shsTotal),
         shsFemalePct
-    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 19, fontSize: 9.5 });
+    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 16.5, fontSize: 8.6 });
 
     // Overall Total
     const ov = latestYear?.enrollment?.overallTotal || { male: 0, female: 0, total: 0 };
@@ -657,7 +974,7 @@ function drawEnrollmentBySexTable(doc, x, width, latestYear) {
         String(ov.female || 0),
         String(ovTotal),
         ovFemalePct
-    ], { isBold: true, bgColor: '#e2e8f0', textColor: '#000000', height: 21, fontSize: 9.8 });
+    ], { isBold: true, bgColor: '#e2e8f0', textColor: '#000000', height: 17.5, fontSize: 8.8 });
 }
 
 // ── Compact Side-by-Side Stat Table ──────────────────────────────────────────
@@ -674,7 +991,7 @@ function drawCompactStatTable(doc, x, width, years, statKey, countKey, totalLabe
     ];
 
     drawCustomRow(doc, x, cols, ['Grade Level', ...years.map(y => y.yearRange)], {
-        isHeader: true, bgColor: headerBg, textColor: headerText, height: 19, padding: 2, fontSize: 8.4
+        isHeader: true, bgColor: headerBg, textColor: headerText, height: 18, padding: 2, fontSize: 8.4
     });
 
     for (const g of grades) {
@@ -685,7 +1002,7 @@ function drawCompactStatTable(doc, x, width, years, statKey, countKey, totalLabe
                 return String(item ? item[countKey] || 0 : 0);
             })
         ];
-        drawCustomRow(doc, x, cols, rowVals, { isAlternate: g % 2 === 1, height: 17, padding: 3, fontSize: 8.6 });
+        drawCustomRow(doc, x, cols, rowVals, { isAlternate: g % 2 === 1, height: 15.5, padding: 3, fontSize: 8.4 });
     }
 
     const totalVals = [
@@ -695,7 +1012,7 @@ function drawCompactStatTable(doc, x, width, years, statKey, countKey, totalLabe
             return String(tot || 0);
         })
     ];
-    drawCustomRow(doc, x, cols, totalVals, { isBold: true, bgColor: '#eeeeee', height: 18.5, padding: 3, fontSize: 9.0 });
+    drawCustomRow(doc, x, cols, totalVals, { isBold: true, bgColor: '#eeeeee', height: 16.5, padding: 3, fontSize: 8.6 });
 }
 
 // ── Full-Width Multi-Year Stat Table ──────────────────────────────────────────
@@ -711,7 +1028,7 @@ function drawMultiYearStatTable(doc, x, width, years, statKey, countKey, totalLa
     ];
 
     drawCustomRow(doc, x, cols, ['Grade Level / Key Stage', ...years.map(y => `SY ${y.yearRange}`)], {
-        isHeader: true, bgColor: headerBg, textColor: headerText, height: 18.5, fontSize: 9.5 });
+        isHeader: true, bgColor: headerBg, textColor: headerText, height: 17.5, fontSize: 8.8 });
 
     // JHS Grades
     const jhsGrades = [7, 8, 9, 10];
@@ -723,7 +1040,7 @@ function drawMultiYearStatTable(doc, x, width, years, statKey, countKey, totalLa
                 return String(item ? item[countKey] || 0 : 0);
             })
         ];
-        drawCustomRow(doc, x, cols, rowVals, { isAlternate: g % 2 === 1, height: 16.5, fontSize: 9.0 });
+        drawCustomRow(doc, x, cols, rowVals, { isAlternate: g % 2 === 1, height: 15, fontSize: 8.4 });
     }
 
     // JHS Subtotal
@@ -736,7 +1053,7 @@ function drawMultiYearStatTable(doc, x, width, years, statKey, countKey, totalLa
             return String(sub);
         })
     ];
-    drawCustomRow(doc, x, cols, jhsSubVals, { isBold: true, bgColor: '#f5f5f5', height: 17.5, fontSize: 9.3 });
+    drawCustomRow(doc, x, cols, jhsSubVals, { isBold: true, bgColor: '#f5f5f5', height: 16, fontSize: 8.6 });
 
     // SHS Grades
     const shsGrades = [11, 12];
@@ -748,7 +1065,7 @@ function drawMultiYearStatTable(doc, x, width, years, statKey, countKey, totalLa
                 return String(item ? item[countKey] || 0 : 0);
             })
         ];
-        drawCustomRow(doc, x, cols, rowVals, { isAlternate: g % 2 === 1, height: 16.5, fontSize: 9.0 });
+        drawCustomRow(doc, x, cols, rowVals, { isAlternate: g % 2 === 1, height: 15, fontSize: 8.4 });
     }
 
     // SHS Subtotal
@@ -761,7 +1078,7 @@ function drawMultiYearStatTable(doc, x, width, years, statKey, countKey, totalLa
             return String(sub);
         })
     ];
-    drawCustomRow(doc, x, cols, shsSubVals, { isBold: true, bgColor: '#f5f5f5', height: 17.5, fontSize: 9.3 });
+    drawCustomRow(doc, x, cols, shsSubVals, { isBold: true, bgColor: '#f5f5f5', height: 16, fontSize: 8.6 });
 
     // Overall Total
     const totalVals = [
@@ -771,7 +1088,7 @@ function drawMultiYearStatTable(doc, x, width, years, statKey, countKey, totalLa
             return String(tot || 0);
         })
     ];
-    drawCustomRow(doc, x, cols, totalVals, { isBold: true, bgColor: headerBg, textColor: headerText, height: 18.5, fontSize: 9.6 });
+    drawCustomRow(doc, x, cols, totalVals, { isBold: true, bgColor: headerBg, textColor: headerText, height: 17.5, fontSize: 8.8 });
 }
 
 // ── Retention & Mobility Summary Table ────────────────────────────────────────
@@ -787,7 +1104,7 @@ function drawRetentionSummaryTable(doc, x, width, years) {
     ];
 
     drawCustomRow(doc, x, cols, ['Retention & Mobility Indicator', ...years.map(y => `SY ${y.yearRange}`)], {
-        isHeader: true, bgColor: '#e2e8f0', textColor: '#0f172a', height: 18.5, fontSize: 9.5
+        isHeader: true, bgColor: '#e2e8f0', textColor: '#0f172a', height: 17.5, fontSize: 8.8
     });
 
     // Total Enrolled Learners
@@ -795,14 +1112,14 @@ function drawRetentionSummaryTable(doc, x, width, years) {
         'Total Enrolled Learners',
         ...years.map(y => String(y.enrollment?.overallTotal?.total || 0))
     ];
-    drawCustomRow(doc, x, cols, enrollVals, { height: 16.5, fontSize: 9.0 });
+    drawCustomRow(doc, x, cols, enrollVals, { height: 15.5, fontSize: 8.4 });
 
     // Total Dropouts
     const dropVals = [
         'Total Confirmed Dropouts',
         ...years.map(y => String(y.dropouts?.totalDropped || 0))
     ];
-    drawCustomRow(doc, x, cols, dropVals, { isAlternate: true, height: 16.5, fontSize: 9.0 });
+    drawCustomRow(doc, x, cols, dropVals, { isAlternate: true, height: 15.5, fontSize: 8.4 });
 
     // Dropout Rate %
     const dropRateVals = [
@@ -814,14 +1131,14 @@ function drawRetentionSummaryTable(doc, x, width, years) {
             return `${((drp / enr) * 100).toFixed(1)}%`;
         })
     ];
-    drawCustomRow(doc, x, cols, dropRateVals, { height: 16.5, fontSize: 9.0 });
+    drawCustomRow(doc, x, cols, dropRateVals, { height: 15.5, fontSize: 8.4 });
 
     // Total Transferees
     const transVals = [
         'Total Transferees',
         ...years.map(y => String(y.transferees?.totalTransferred || 0))
     ];
-    drawCustomRow(doc, x, cols, transVals, { isAlternate: true, height: 16.5, fontSize: 9.0 });
+    drawCustomRow(doc, x, cols, transVals, { isAlternate: true, height: 15.5, fontSize: 8.4 });
 
     // Net Learner Balance (Transferees - Dropouts)
     const netVals = [
@@ -833,7 +1150,7 @@ function drawRetentionSummaryTable(doc, x, width, years) {
             return net > 0 ? `+${net}` : String(net);
         })
     ];
-    drawCustomRow(doc, x, cols, netVals, { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 18.5, fontSize: 9.3 });
+    drawCustomRow(doc, x, cols, netVals, { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 17, fontSize: 8.6 });
 }
 
 // ── 4Ps Beneficiaries Table ───────────────────────────────────────────────────
@@ -852,10 +1169,10 @@ function drawFourPsTable(doc, x, width, latestYear, previousYear, hasPrev, prevL
         hasPrev ? currLabel : '4Ps Enrolled',
         'Difference',
         'Share in Enrollment'
-    ], { isHeader: true, bgColor: '#e2e8f0', textColor: '#0f172a', height: 21, fontSize: 9.5 });
+    ], { isHeader: true, bgColor: '#e2e8f0', textColor: '#0f172a', height: 18, fontSize: 8.8 });
 
     // JHS Section
-    drawCustomRow(doc, x, cols, ['KEY STAGE 3 (JUNIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 17, fontSize: 9.0 });
+    drawCustomRow(doc, x, cols, ['KEY STAGE 3 (JUNIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 15, fontSize: 8.2 });
 
     const grades = [7, 8, 9, 10];
     for (const g of grades) {
@@ -874,7 +1191,7 @@ function drawFourPsTable(doc, x, width, latestYear, previousYear, hasPrev, prevL
             String(currCount),
             formatDiff(diff, hasPrev),
             `${pct}%`
-        ], { isAlternate: g % 2 === 1, height: 18, fontSize: 9.1, diffValue: diff, hasPrev });
+        ], { isAlternate: g % 2 === 1, height: 15.5, fontSize: 8.4, diffValue: diff, hasPrev });
     }
 
     // JHS Subtotal
@@ -890,10 +1207,10 @@ function drawFourPsTable(doc, x, width, latestYear, previousYear, hasPrev, prevL
         String(jhsCurrCount),
         formatDiff(jhsDiff, hasPrev),
         `${jhsPct}%`
-    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 19, fontSize: 9.5, diffValue: jhsDiff, hasPrev });
+    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 16.5, fontSize: 8.6, diffValue: jhsDiff, hasPrev });
 
     // SHS Section
-    drawCustomRow(doc, x, cols, ['KEY STAGE 4 (SENIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 17, fontSize: 9.0 });
+    drawCustomRow(doc, x, cols, ['KEY STAGE 4 (SENIOR HIGH SCHOOL)', '', '', '', ''], { isBold: true, bgColor: '#f8fafc', textColor: '#334155', height: 15, fontSize: 8.2 });
 
     const shsGrades = [11, 12];
     for (const g of shsGrades) {
@@ -912,7 +1229,7 @@ function drawFourPsTable(doc, x, width, latestYear, previousYear, hasPrev, prevL
             String(currCount),
             formatDiff(diff, hasPrev),
             `${pct}%`
-        ], { isAlternate: g % 2 === 1, height: 18, fontSize: 9.1, diffValue: diff, hasPrev });
+        ], { isAlternate: g % 2 === 1, height: 15.5, fontSize: 8.4, diffValue: diff, hasPrev });
     }
 
     // SHS Subtotal
@@ -928,14 +1245,14 @@ function drawFourPsTable(doc, x, width, latestYear, previousYear, hasPrev, prevL
         String(shsCurrCount),
         formatDiff(shsDiff, hasPrev),
         `${shsPct}%`
-    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 19, fontSize: 9.5, diffValue: shsDiff, hasPrev });
+    ], { isBold: true, bgColor: '#f1f5f9', textColor: '#0f172a', height: 16.5, fontSize: 8.6, diffValue: shsDiff, hasPrev });
 
     // Overall Total
     const totCurrCount = latestYear?.fourPs?.overallTotal?.fourPsCount || 0;
     const totPrevCount = previousYear?.fourPs?.overallTotal?.fourPsCount || 0;
     const totStudents = latestYear?.fourPs?.overallTotal?.totalStudents || 0;
     const totDiff = hasPrev ? totCurrCount - totPrevCount : null;
-    const totPct = latestYear?.fourPs?.overallTotal?.percentage || (totStudents > 0 ? (totCount / totStudents * 100).toFixed(1) : '0.0');
+    const totPct = latestYear?.fourPs?.overallTotal?.percentage || (totStudents > 0 ? (totCurrCount / totStudents * 100).toFixed(1) : '0.0');
 
     drawCustomRow(doc, x, cols, [
         'OVERALL TOTAL 4Ps BENEFICIARIES',
@@ -943,7 +1260,7 @@ function drawFourPsTable(doc, x, width, latestYear, previousYear, hasPrev, prevL
         String(totCurrCount),
         formatDiff(totDiff, hasPrev),
         `${totPct}%`
-    ], { isBold: true, bgColor: '#e2e8f0', textColor: '#000000', height: 21, fontSize: 9.8, diffValue: totDiff, hasPrev });
+    ], { isBold: true, bgColor: '#e2e8f0', textColor: '#000000', height: 17.5, fontSize: 8.8, diffValue: totDiff, hasPrev });
 }
 
 // ── 4Ps Summary Table (Equity Indicators) ─────────────────────────────────────
@@ -956,7 +1273,7 @@ function drawFourPsSummaryTable(doc, x, width, latestYear) {
 
     drawCustomRow(doc, x, cols, [
         'Social Protection / Equity Indicator', 'Beneficiaries Count', 'Share in Stage (%)'
-    ], { isHeader: true, bgColor: '#e2e8f0', textColor: '#0f172a', height: 20, fontSize: 9.5 });
+    ], { isHeader: true, bgColor: '#e2e8f0', textColor: '#0f172a', height: 18, fontSize: 8.8 });
 
     const jhsCount = latestYear?.fourPs?.jhsTotal?.fourPsCount || 0;
     const jhsStudents = latestYear?.fourPs?.jhsTotal?.totalStudents || 0;
@@ -966,7 +1283,7 @@ function drawFourPsSummaryTable(doc, x, width, latestYear) {
         'Key Stage 3 (Junior High School) 4Ps Learners',
         `${jhsCount} / ${jhsStudents}`,
         `${jhsPct}% of JHS Learners`
-    ], { height: 18.5, fontSize: 9.1 });
+    ], { height: 16, fontSize: 8.4 });
 
     const shsCount = latestYear?.fourPs?.shsTotal?.fourPsCount || 0;
     const shsStudents = latestYear?.fourPs?.shsTotal?.totalStudents || 0;
@@ -976,7 +1293,7 @@ function drawFourPsSummaryTable(doc, x, width, latestYear) {
         'Key Stage 4 (Senior High School) 4Ps Learners',
         `${shsCount} / ${shsStudents}`,
         `${shsPct}% of SHS Learners`
-    ], { isAlternate: true, height: 18.5, fontSize: 9.1 });
+    ], { isAlternate: true, height: 16, fontSize: 8.4 });
 
     const totCount = latestYear?.fourPs?.overallTotal?.fourPsCount || 0;
     const totStudents = latestYear?.fourPs?.overallTotal?.totalStudents || 0;
@@ -986,12 +1303,12 @@ function drawFourPsSummaryTable(doc, x, width, latestYear) {
         'Total Institutional 4Ps Coverage',
         `${totCount} / ${totStudents}`,
         `${totPct}% School-wide Coverage`
-    ], { isBold: true, bgColor: '#e2e8f0', textColor: '#000000', height: 20.5, fontSize: 9.6 });
+    ], { isBold: true, bgColor: '#e2e8f0', textColor: '#000000', height: 17.5, fontSize: 8.8 });
 }
 
 // ── Generic Row Renderer ──────────────────────────────────────────────────────
 function drawCustomRow(doc, startX, cols, values, options = {}) {
-    const rowHeight = options.height || 18;
+    const rowHeight = options.height || 16;
     const y = doc.y;
 
     if (options.bgColor) {
@@ -1003,7 +1320,7 @@ function drawCustomRow(doc, startX, cols, values, options = {}) {
     }
 
     const padding = options.padding !== undefined ? options.padding : 5;
-    const fontSize = options.fontSize || (options.isHeader ? 9.8 : (options.isBold ? 9.5 : 9.1));
+    const fontSize = options.fontSize || (options.isHeader ? 8.8 : (options.isBold ? 8.6 : 8.4));
 
     let curX = startX;
     for (let i = 0; i < cols.length; i++) {
@@ -1041,24 +1358,24 @@ function drawSignatoryBlock(doc, x, width) {
     const y = doc.y;
     const colWidth = width / 3;
 
-    doc.fontSize(8.5).font('Helvetica').fillColor('#424242');
+    doc.fontSize(8).font('Helvetica').fillColor('#424242');
     doc.text('Prepared by:', x, y, { lineBreak: false });
     doc.text('Verified by:', x + colWidth, y, { lineBreak: false });
     doc.text('Approved by:', x + colWidth * 2, y, { lineBreak: false });
 
-    const lineY = y + 28;
+    const lineY = y + 24;
     const lineMargin = 14;
 
     doc.strokeColor('#616161').lineWidth(0.8).moveTo(x, lineY).lineTo(x + colWidth - lineMargin, lineY).stroke();
     doc.strokeColor('#616161').lineWidth(0.8).moveTo(x + colWidth, lineY).lineTo(x + colWidth * 2 - lineMargin, lineY).stroke();
     doc.strokeColor('#616161').lineWidth(0.8).moveTo(x + colWidth * 2, lineY).lineTo(x + width - lineMargin, lineY).stroke();
 
-    doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#000000');
-    doc.text('Class Adviser / Guidance Counselor', x, lineY + 3.5, { width: colWidth - lineMargin, lineBreak: false });
-    doc.text('Planning Officer / Assistant Principal', x + colWidth, lineY + 3.5, { width: colWidth - lineMargin, lineBreak: false });
-    doc.text('School Principal / Head Teacher', x + colWidth * 2, lineY + 3.5, { width: colWidth - lineMargin, lineBreak: false });
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#000000');
+    doc.text('Class Adviser / Guidance Counselor', x, lineY + 3, { width: colWidth - lineMargin, lineBreak: false });
+    doc.text('Planning Officer / Assistant Principal', x + colWidth, lineY + 3, { width: colWidth - lineMargin, lineBreak: false });
+    doc.text('School Principal / Head Teacher', x + colWidth * 2, lineY + 3, { width: colWidth - lineMargin, lineBreak: false });
 
-    doc.y = lineY + 20;
+    doc.y = lineY + 18;
 }
 
 module.exports = {

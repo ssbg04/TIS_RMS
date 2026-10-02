@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/services/haptic_service.dart';
 import '../../../../core/utils/download_service.dart';
 import '../../../../domain/entities/report_models.dart';
 import '../../../providers/reports_provider.dart';
@@ -499,12 +500,15 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
 
   // ── Standalone Section Card Container ─────────────────────────────────────
 
+  // ── Standalone Section Card Container ─────────────────────────────────────
+
   Widget _buildSectionCardContainer({
     required BuildContext context,
     required bool isDark,
     required IconData icon,
     required Color iconColor,
     required String title,
+    String? description,
     Widget? trailing,
     required Widget content,
   }) {
@@ -578,6 +582,11 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               );
             },
           ),
+          if (description != null && description.isNotEmpty)
+            _CollapsibleSectionDescription(
+              description: description,
+              isDark: isDark,
+            ),
           const SizedBox(height: AppSizes.p16),
           content,
         ],
@@ -600,6 +609,8 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       icon: Icons.bar_chart_rounded,
       iconColor: AppColors.primaryGreen,
       title: 'Data on Enrollment',
+      description:
+          'Presents official learner enrollment metrics across Key Stages 3 & 4 (Grades 7–12), comparative multi-year trends against previous school years, and gender disaggregation (male vs. female shares) following DepEd BEIS reporting standards.',
       trailing: Wrap(
         spacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -644,6 +655,8 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       icon: Icons.trending_down_rounded,
       iconColor: Colors.redAccent,
       title: 'Dropouts & Transferees',
+      description:
+          'Monitors learner retention and mobility across grade levels, tracking school leavers (dropouts) and learner transfers to calculate net mobility balance and internal institutional efficiency.',
       trailing: _buildCategoryExportButton(data, category: 'dropouts_transferees'),
       content: _buildDropoutTransfereeSection(context, years),
     );
@@ -664,6 +677,8 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       icon: Icons.family_restroom_rounded,
       iconColor: Colors.deepPurple,
       title: '4Ps Beneficiaries',
+      description:
+          'Analyzes Pantawid Pamilyang Pilipino Program (4Ps) learner coverage and social protection equity indicators across Junior and Senior High School grade levels.',
       trailing: Wrap(
         spacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -1050,7 +1065,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
                 groupsSpace: 24,
-                maxY: (maxVal * 1.45).ceilToDouble(),
+                maxY: (maxVal * 1.65).ceilToDouble(),
                 barTouchData: BarTouchData(
                   enabled: true,
                   handleBuiltInTouches: true,
@@ -1133,7 +1148,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   topTitles: const AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: false,
-                      reservedSize: 20,
+                      reservedSize: 34,
                     ),
                   ),
                   rightTitles: const AxisTitles(
@@ -2536,13 +2551,18 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
                 groupsSpace: 20,
-                maxY: (maxVal * 1.35).ceilToDouble(),
+                maxY: (maxVal * 1.65).ceilToDouble(),
                 barTouchData: BarTouchData(
                   enabled: true,
                   handleBuiltInTouches: true,
                   touchTooltipData: BarTouchTooltipData(
                     fitInsideHorizontally: true,
                     fitInsideVertically: true,
+                    tooltipMargin: 12,
+                    tooltipPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
                       final grade = grades[group.x.toInt()];
                       final isDrop = rodIndex == 0;
@@ -2560,7 +2580,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   ),
                 ),
                 titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false, reservedSize: 34)),
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
@@ -2671,17 +2691,24 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             SizedBox(
               height: isNarrow ? 360 : 320,
               child: isNarrow
-                  ? Scrollbar(
+                  ? SingleChildScrollView(
                       controller: _dropoutChartScrollController,
-                      thumbVisibility: true,
-                      child: SingleChildScrollView(
-                        controller: _dropoutChartScrollController,
-                        scrollDirection: Axis.horizontal,
-                        child: chartWidget,
-                      ),
+                      scrollDirection: Axis.horizontal,
+                      child: chartWidget,
                     )
                   : chartWidget,
             ),
+            if (isNarrow) ...[
+              const SizedBox(height: 6),
+              _CustomHorizontalScrollBar(
+                controller: _dropoutChartScrollController,
+                isDark: isDark,
+              ),
+              _buildTableScrollHint(
+                context,
+                text: 'Scroll horizontally to view all grades',
+              ),
+            ],
           ],
         );
       },
@@ -2719,13 +2746,18 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
                 groupsSpace: 20,
-                maxY: (maxVal * 1.3).ceilToDouble(),
+                maxY: (maxVal * 1.65).ceilToDouble(),
                 barTouchData: BarTouchData(
                   enabled: true,
                   handleBuiltInTouches: true,
                   touchTooltipData: BarTouchTooltipData(
                     fitInsideHorizontally: true,
                     fitInsideVertically: true,
+                    tooltipMargin: 12,
+                    tooltipPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
                       final grade = grades[group.x.toInt()];
                       final is4Ps = rodIndex == 0;
@@ -2743,7 +2775,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   ),
                 ),
                 titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false, reservedSize: 34)),
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
@@ -2829,17 +2861,24 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             SizedBox(
               height: isNarrow ? 360 : 320,
               child: isNarrow
-                  ? Scrollbar(
+                  ? SingleChildScrollView(
                       controller: _equity4PsChartScrollController,
-                      thumbVisibility: true,
-                      child: SingleChildScrollView(
-                        controller: _equity4PsChartScrollController,
-                        scrollDirection: Axis.horizontal,
-                        child: chartWidget,
-                      ),
+                      scrollDirection: Axis.horizontal,
+                      child: chartWidget,
                     )
                   : chartWidget,
             ),
+            if (isNarrow) ...[
+              const SizedBox(height: 6),
+              _CustomHorizontalScrollBar(
+                controller: _equity4PsChartScrollController,
+                isDark: isDark,
+              ),
+              _buildTableScrollHint(
+                context,
+                text: 'Scroll horizontally to view all grades',
+              ),
+            ],
           ],
         );
       },
@@ -2933,6 +2972,113 @@ class _StatefulResponsiveTableState extends State<_StatefulResponsiveTable> {
           ],
         );
       },
+    );
+  }
+}
+
+// ── Collapsible Section Description (Default Closed) ─────────────────────────
+class _CollapsibleSectionDescription extends StatefulWidget {
+  final String description;
+  final bool isDark;
+
+  const _CollapsibleSectionDescription({
+    required this.description,
+    required this.isDark,
+  });
+
+  @override
+  State<_CollapsibleSectionDescription> createState() =>
+      _CollapsibleSectionDescriptionState();
+}
+
+class _CollapsibleSectionDescriptionState
+    extends State<_CollapsibleSectionDescription> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDark;
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.darkSurface2.withValues(alpha: 0.45)
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark
+              ? AppColors.darkBorder.withValues(alpha: 0.55)
+              : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () {
+              HapticService.light();
+              setState(() => _isExpanded = !_isExpanded);
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 15,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'About this section',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _isExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox(width: double.infinity, height: 0),
+            secondChild: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+              child: Text(
+                widget.description,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.45,
+                  color: isDark
+                      ? AppColors.darkTextPrimary.withValues(alpha: 0.85)
+                      : const Color(0xFF334155),
+                ),
+              ),
+            ),
+            crossFadeState: _isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart' as pht;
+import '../../providers/navigation_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/login_sessions_provider.dart';
@@ -29,6 +31,9 @@ class AuditTrailScreen extends ConsumerStatefulWidget {
 class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
   late AuditTab _selectedTab;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _shortcutFocusNode = FocusNode();
+  ProviderSubscription<String>? _tabListener;
 
   DateTime? _fromDate;
   DateTime? _toDate;
@@ -40,11 +45,35 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
     _selectedTab = widget.userRole == 'teacher'
         ? AuditTab.activities
         : widget.initialTab;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(activeTabProvider) == 'History') {
+        _shortcutFocusNode.requestFocus();
+      }
+
+      _tabListener = ref.listenManual<String>(activeTabProvider, (
+        previous,
+        next,
+      ) {
+        if (!mounted) return;
+        if (next == 'History') {
+          Future.delayed(const Duration(milliseconds: 120), () {
+            if (mounted) {
+              _shortcutFocusNode.requestFocus();
+            }
+          });
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
+    _tabListener?.close();
     _searchController.dispose();
+    _searchFocusNode.dispose();
+    _shortcutFocusNode.dispose();
     super.dispose();
   }
 
@@ -149,6 +178,19 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
             ? 'Search user or admin...'
             : 'Search username or name...';
 
+    if (_searchController.text.isNotEmpty) {
+      _searchController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _searchController.text.length,
+      );
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
+
     await showDialog(
       context: context,
       barrierColor: Colors.black54,
@@ -164,6 +206,8 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
               child: AppSearchBar(
                 hint: hint,
                 controller: _searchController,
+                focusNode: _searchFocusNode,
+                autofocus: true,
                 collapsible: false,
                 maxWidth: 600,
                 onSubmitted: (val) {
@@ -179,7 +223,11 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
         );
       },
     );
-    if (mounted) setState(() {});
+    if (mounted) {
+      _searchFocusNode.unfocus();
+      _shortcutFocusNode.requestFocus();
+      setState(() {});
+    }
   }
 
   Future<void> _showFilterDialog(BuildContext context) async {
@@ -546,6 +594,9 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
         },
       ),
     );
+    if (mounted) {
+      _shortcutFocusNode.requestFocus();
+    }
   }
 
   Widget _buildTabSwitcher(bool isDark, {bool isMobile = false}) {
@@ -746,10 +797,19 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
 
     final hasActiveFilters = activeFilterCount > 0;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+          _showSearchDialog(context);
+        },
+      },
+      child: Focus(
+        focusNode: _shortcutFocusNode,
+        autofocus: true,
+        child: Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: SafeArea(
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Compact Header & Controls ─────────────────────────────
@@ -1005,7 +1065,9 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildTabItem({

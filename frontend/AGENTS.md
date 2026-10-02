@@ -1011,7 +1011,7 @@ Files backup/restore - mirror mode or zip -->
 - [x] remove Ctrl + A for filter (removed from documentation shortcuts table) -->
 
 
-# HISTORY SCREEN [DONE]
+<!-- # HISTORY SCREEN [DONE]
 - [x] PRINTED_HISTORY card has a overflowed for date and time
   - Made card headers in `audit_trail_screen.dart` responsive using `Wrap` layout so badges, entity types, and timestamps never overflow on any screen size.
 
@@ -1019,8 +1019,26 @@ Files backup/restore - mirror mode or zip -->
 - [x] fix FAQs make sure its on the current system features (added Socket.IO real-time sync, port 18484, 10-char randomized temporary admin passwords, OCR data extraction separated from raw folder upload, server-side lossless WebP PDF previews)
 - [x] connect the documentation based on the current system features (updated port 18484, real-time Socket.IO event broadcasts across LAN, and accurate keyboard shortcuts)
 - [x] dont speficy the android is for tablet just android (replaced all references of "Android Tablet", "tablet terminals", and "touch tablet" with "Android" / "Android device")
-- [x] redesign the entire documentation make it minimalist no extra design just make it normal documentation (removed fake window chrome titlebars/colored dots, removed simulated mobile phone bezels/notches, converted screenshots to standard figures with semantic figcaptions and zoom modals, streamlined typography and styling)
+- [x] redesign the entire documentation make it minimalist no extra design just make it normal documentation (removed fake window chrome titlebars/colored dots, removed simulated mobile phone bezels/notches, converted screenshots to standard figures with semantic figcaptions and zoom modals, streamlined typography and styling) -->
 
+<!--
+
+# DASHBOARD SCREEN
+- [x] auto play the document breakdown on android dont pause (enabled continuous auto-rotation on all platforms including Android)
+- [x] do not hide the set up required (removed banner dismissal action so Setup Required banner remains permanently visible to administrators, with minimize/expand preserved)
+
+# REPORTS SCREEN
+- [x] export of compliance is csv make it on excel (migrated compliance report export from CSV to native Excel .xlsx with Summary and Student Compliance List sheets via excel package)
+- [x] fix the graph in android app add huge space for graphs to fix the hover cannot read (increased chart heights, expanded topTitles reserved headroom, and enabled fitInsideHorizontally/Vertically for tooltips across all report and DepEd charts)
+- [x] make the horizontal bar the same design in deped tab (standardized custom styled horizontal scrollbar across Dropout/Transferee and 4Ps equity charts matching the rest of the DepEd tab)
+- [x] make the export pdf of deped tab include all graphs and tables like on in individual pdf export (implemented 3-page comprehensive DepEd PDF report with vector bar charts and full comparative, gender, dropout, transferee, retention, and 4Ps tables across both full and individual exports)
+- [x] deped tab add collapsable short description each sections, default is closed (added animated collapsible info guide pills for Enrollment, Dropouts/Transferees, and 4Ps Equity sections defaulting to closed) -->
+
+ <!-- # USERS SCREEN
+- [x] add new user make the button the same size (standardized Cancel and Create User buttons in the Add User modal with identical height 48px, consistent 14px typography, and matching border radius) -->
+
+<!-- # HISTORY SCREEN
+- [x] add keyboard shortcut Ctrl + F for search (implemented CallbackShortcuts and FocusNode in AuditTrailScreen to invoke search dialog on Ctrl+F) -->
 
 ---
 

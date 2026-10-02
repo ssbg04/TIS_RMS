@@ -15,6 +15,7 @@ class AppSearchBar extends ConsumerStatefulWidget {
   final bool enableHistory;
   final bool collapsible;
   final bool hideIconWhenExpanded;
+  final bool autofocus;
 
   const AppSearchBar({
     super.key,
@@ -28,6 +29,7 @@ class AppSearchBar extends ConsumerStatefulWidget {
     this.enableHistory = true,
     this.collapsible = false,
     this.hideIconWhenExpanded = false,
+    this.autofocus = false,
   });
 
   @override
@@ -87,6 +89,13 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
     _isExpanded = !widget.collapsible || _controller.text.trim().isNotEmpty;
     _controller.addListener(_onTextChanged);
     _focusNode.addListener(_onFocusChanged);
+    if (widget.autofocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
+      });
+    }
   }
 
   void _onTextChanged() {
@@ -482,6 +491,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
             child: TextField(
               controller: _controller,
               focusNode: _focusNode,
+              autofocus: widget.autofocus,
               textInputAction: TextInputAction.search,
               onSubmitted: _handleSubmit,
               onChanged: widget.onChanged,
