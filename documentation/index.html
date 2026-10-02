@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TIS-RMS User Guide & System Documentation</title>
-  <meta name="description" content="Official technical and operational manual for Talisay Integrated School - Records Management System on Windows Desktop and Android.">
+  <meta name="description" content="Official technical and operational manual for Talisay Integrated School - Records Management System on Windows and Android.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
@@ -17,8 +17,8 @@
   <header class="doc-header">
     <div class="header-left">
       <button id="mobileMenuBtn" class="mobile-menu-btn" title="Open Navigation Menu" aria-label="Open Navigation Menu">
-        <svg class="hamburger-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-        <svg class="close-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <svg class="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        <svg class="close-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
 
       <a href="#overview" class="header-brand">
@@ -32,8 +32,8 @@
 
     <div class="header-search" id="headerSearchBox">
       <div class="search-input-wrap">
-        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="docSearchInput" class="search-input" placeholder="Search guides, modules, FAQs, shortcuts..." autocomplete="off">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="docSearchInput" class="search-input" placeholder="Search documentation, modules, FAQs..." autocomplete="off">
         <span class="search-kbd">Ctrl+K</span>
       </div>
     </div>
@@ -46,21 +46,21 @@
       <div class="platform-pill-toggle">
         <button type="button" class="platform-btn active" data-platform-filter="all">All</button>
         <button type="button" class="platform-btn" data-platform-filter="windows">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.901-1.799"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.901-1.799"/></svg>
           <span class="platform-text">Windows</span>
         </button>
         <button type="button" class="platform-btn" data-platform-filter="android">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.084 12 8.084s-3.5902.3276-5.1368.8657L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.084 12 8.084s-3.5902.3276-5.1368.8657L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396"/></svg>
           <span class="platform-text">Android</span>
         </button>
       </div>
 
       <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Theme" aria-label="Toggle Theme">
-        <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
       </button>
 
       <button id="printBtn" class="print-btn" title="Print Documentation" aria-label="Print Documentation">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
       </button>
     </div>
   </header>
@@ -103,49 +103,49 @@
         <li>
           <a href="#dashboard" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg></span>
-            1. Dashboard & Analytics
+            Dashboard & Analytics
           </a>
         </li>
         <li>
           <a href="#students" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
-            2. Student Management
+            Student Information
           </a>
         </li>
         <li>
           <a href="#documents" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
-            3. Documents & Folders
+            Documents & Folders
           </a>
         </li>
         <li>
           <a href="#archives" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
-            4. Retention & Archives
+            Archival Vault
           </a>
         </li>
         <li>
           <a href="#batchprint" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></span>
-            5. Batch Print Queue
+            Batch Print Queue
           </a>
         </li>
         <li>
           <a href="#reports" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span>
-            6. SF10 & DepEd Reports
+            Reports & SF10 Engine
           </a>
         </li>
         <li>
           <a href="#users" class="nav-link">
-            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
-            7. User Accounts & Audit
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg></span>
+            Users & Audit Trail
           </a>
         </li>
         <li>
           <a href="#settings" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
-            8. Settings & Checklist
+            Settings & Backup
           </a>
         </li>
       </ul>
@@ -182,14 +182,15 @@
         <span class="hero-tag">System Manual & Operational Reference</span>
         <h1 class="hero-title">Talisay Integrated School - Records Management System</h1>
         <p class="hero-subtitle">
-          An institutional records management and document archiving system built for secondary schools. Supports offline SQLite operation, automated DepEd SF10 PDF compiling, multi-page batch scanning, and role-based access control.
+          An institutional records management and document archiving system built for secondary schools. Supports offline SQLite operation, Socket.IO real-time LAN synchronization, automated DepEd SF10 PDF compiling, multi-page batch scanning, and role-based access control.
         </p>
         <div class="hero-badges">
-          <span class="badge-item">Windows Desktop</span>
-          <span class="badge-item">Android Tablet</span>
-          <span class="badge-item">Offline Local Cache</span>
-          <span class="badge-item">RA 10173 Audit Ledger</span>
+          <span class="badge-item">Windows</span>
+          <span class="badge-item">Android</span>
+          <span class="badge-item">Socket.IO Real-Time Sync</span>
+          <span class="badge-item">Port 18484</span>
           <span class="badge-item">DepEd SF10 Engine</span>
+          <span class="badge-item">RA 10173 Audit Ledger</span>
         </div>
       </section>
 
@@ -249,51 +250,36 @@
                 <td><strong>Archive Completed Records</strong></td>
                 <td><span class="badge success">Allowed</span></td>
                 <td><span class="badge danger">Restricted</span></td>
-                <td>Admin credential required</td>
+                <td>Admin-only authorization</td>
               </tr>
               <tr>
-                <td><strong>Delete Student / Document</strong></td>
+                <td><strong>Generate Official SF10 Form</strong></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td>Watermark applied to drafts</td>
+              </tr>
+              <tr>
+                <td><strong>Manage User Accounts & Passwords</strong></td>
                 <td><span class="badge success">Allowed</span></td>
                 <td><span class="badge danger">Restricted</span></td>
-                <td>Moved to Soft-Delete Trash</td>
+                <td>Generates 10-char random temporary password</td>
               </tr>
               <tr>
-                <td><strong>Batch Print SF10 / SF9 Records</strong></td>
-                <td><span class="badge success">Allowed</span></td>
-                <td><span class="badge success">Allowed</span></td>
-                <td>Compiled via background queue</td>
-              </tr>
-              <tr>
-                <td><strong>Modify Checklist Requirements</strong></td>
+                <td><strong>Export Database Snapshots</strong></td>
                 <td><span class="badge success">Allowed</span></td>
                 <td><span class="badge danger">Restricted</span></td>
-                <td>Settings configuration panel</td>
-              </tr>
-              <tr>
-                <td><strong>Database Backup & Maintenance</strong></td>
-                <td><span class="badge success">Allowed</span></td>
-                <td><span class="badge danger">Restricted</span></td>
-                <td>Password/PIN re-verification</td>
+                <td>Direct SQLite backup</td>
               </tr>
             </tbody>
           </table>
         </div>
-
-        <div class="callout tip">
-          <div class="callout-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-          </div>
-          <div>
-            <strong>Password Management:</strong> User passwords are encrypted using bcrypt hashing. If a teacher forgets their credentials, the school administrator can reset their temporary password through the User Accounts screen.
-          </div>
-        </div>
       </section>
 
-      <!-- System Authentication & Login Screen -->
+      <!-- Access & Authentication Section -->
       <section id="login" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">System Authentication & Access</h2>
-          <p class="section-subtitle">Secure access portal for desktop workstations and touch tablet terminals.</p>
+          <h2 class="section-title">Login & System Access</h2>
+          <p class="section-subtitle">Secure access portal for desktop workstations and Android devices.</p>
         </div>
 
         <div class="module-summary">
@@ -304,45 +290,39 @@
           <ul class="module-summary-list">
             <li><strong>Single Sign-On Terminal:</strong> Users sign in using their registered username and encrypted password.</li>
             <li><strong>Role Auto-Detection:</strong> Upon successful sign-in, the system automatically tailors the navigation drawer to either Administrator or Teacher permissions.</li>
-            <li><strong>Local Server Connection:</strong> The Android tablet client connects directly to the school host machine via local IP configuration.</li>
+            <li><strong>Local Server Connection:</strong> The Android client connects directly to the school host machine via local network configuration (port 18484).</li>
           </ul>
         </div>
 
         <!-- Login Mockups -->
         <div class="mockup-container">
           <div class="mockup-tabs">
-            <button class="mockup-tab-btn active" data-tab-target="win-login">Windows Desktop</button>
-            <button class="mockup-tab-btn" data-tab-target="and-login">Android Tablet</button>
+            <button class="mockup-tab-btn active" data-tab-target="win-login">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-login">Android</button>
           </div>
 
           <div class="mockup-pane active" id="win-login">
-            <div class="window-chrome">
-              <div class="window-titlebar">
-                <div class="window-dots"><span></span><span></span><span></span></div>
-                <span>TIS-RMS - Authentication Portal</span>
-                <span></span>
+            <figure class="doc-figure" data-lightbox="assets/images/windows/login.webp" data-caption="Windows Login Screen with credential entry and server status">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/login.webp" alt="Windows Login Screen" loading="lazy">
               </div>
-              <div class="mockup-img-wrap" data-lightbox="assets/images/windows/login.webp" data-caption="Windows Desktop Login Screen with institutional branding and credential entry">
-                <img src="assets/images/windows/login.webp" alt="Windows Desktop Login">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
-              </div>
-            </div>
+              <figcaption>
+                <span>Figure 1A: Windows Authentication Screen</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
 
           <div class="mockup-pane" id="and-login" style="display:none;">
-            <div class="mobile-chrome">
-              <div class="mobile-notch"><div class="mobile-notch-camera"></div></div>
-              <div class="mobile-img-wrap" data-lightbox="assets/images/android/login.webp" data-caption="Android Touch Login Interface with host connection settings">
-                <img src="assets/images/android/login.webp" alt="Android Login Screen">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/login.webp" data-caption="Android Login Interface with host connection settings">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/login.webp" alt="Android Login Screen" loading="lazy">
               </div>
-            </div>
+              <figcaption>
+                <span>Figure 1B: Android Authentication Screen</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
       </section>
@@ -360,51 +340,45 @@
             Key Capabilities
           </div>
           <ul class="module-summary-list">
-            <li><strong>Summary Counters:</strong> Displays total enrolled students, total archived records, digitized pages, and folders with incomplete documents.</li>
-            <li><strong>Demographic Graphs:</strong> Visualizes student distribution across grade levels (Grade 7 through Grade 12) and academic strands.</li>
+            <li><strong>Summary Counters:</strong> Instant visibility into Total Students, Incomplete Requirements, Total Documents, and Active Cohorts.</li>
+            <li><strong>Socket.IO Live Synchronization:</strong> Counters update reactively whenever students or documents are added across the local network.</li>
             <li><strong>Activity Feed:</strong> Shows chronological stream of recent scans, edits, and status transitions.</li>
           </ul>
         </div>
 
         <p class="paragraph">
-          The Dashboard serves as the central operational hub for both administrative staff and classroom advisers. Statistics are updated reactively from local SQLite cache queries, ensuring zero latency even when internet connectivity is unavailable.
+          The Dashboard serves as the central operational hub for both administrative staff and classroom advisers. Statistics are updated reactively from local SQLite queries and Socket.IO broadcasts, ensuring zero latency even when internet connectivity is unavailable.
         </p>
 
         <!-- Platform Mockup Showcase -->
         <div class="mockup-container">
           <div class="mockup-tabs">
-            <button class="mockup-tab-btn active" data-tab-target="win-dash">Windows Desktop</button>
-            <button class="mockup-tab-btn" data-tab-target="and-dash">Android Tablet</button>
+            <button class="mockup-tab-btn active" data-tab-target="win-dash">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-dash">Android</button>
           </div>
 
           <div class="mockup-pane active" id="win-dash">
-            <div class="window-chrome">
-              <div class="window-titlebar">
-                <div class="window-dots"><span></span><span></span><span></span></div>
-                <span>TIS-RMS - Dashboard & Analytics</span>
-                <span></span>
+            <figure class="doc-figure" data-lightbox="assets/images/windows/dashboard.webp" data-caption="Windows Dashboard with Metric Cards and Grade Level Distribution">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/dashboard.webp" alt="Windows Dashboard" loading="lazy">
               </div>
-              <div class="mockup-img-wrap" data-lightbox="assets/images/windows/dashboard.webp" data-caption="Windows Dashboard with Metric Cards and Grade Level Distribution">
-                <img src="assets/images/windows/dashboard.webp" alt="Windows Dashboard">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
-              </div>
-            </div>
+              <figcaption>
+                <span>Figure 2A: Windows Dashboard & Real-Time Analytics</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
 
           <div class="mockup-pane" id="and-dash" style="display:none;">
-            <div class="mobile-chrome">
-              <div class="mobile-notch"><div class="mobile-notch-camera"></div></div>
-              <div class="mobile-img-wrap" data-lightbox="assets/images/android/dashboard.webp" data-caption="Android Touch-Optimized Dashboard">
-                <img src="assets/images/android/dashboard.webp" alt="Android Dashboard">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/dashboard.webp" data-caption="Android Dashboard Interface">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/dashboard.webp" alt="Android Dashboard" loading="lazy">
               </div>
-            </div>
+              <figcaption>
+                <span>Figure 2B: Android Dashboard & Analytics</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
 
@@ -428,27 +402,27 @@
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
             </div>
-            <h4 class="card-title">Audit Stream Feed</h4>
-            <p class="card-desc">Chronological log of document scans, grade updates, and folder status changes with user attribution and timestamping.</p>
+            <h4 class="card-title">Live Audit Stream</h4>
+            <p class="card-desc">Continuous audit trail logging user authentication, student profile edits, document attachments, and batch print executions.</p>
           </div>
         </div>
       </section>
 
-      <!-- Module 2: Student Management -->
+      <!-- Module 2: Student Information Management -->
       <section id="students" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">Module 2: Student Management</h2>
-          <p class="section-subtitle">Learner Reference Number (LRN) registry, student profiles, and multi-select batch actions.</p>
+          <h2 class="section-title">Module 2: Student Information System</h2>
+          <p class="section-subtitle">Learner profiles, enrollment management, requirement tracking, and optical character recognition (OCR).</p>
         </div>
 
         <div class="module-summary">
           <div class="module-summary-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
             Key Capabilities
           </div>
           <ul class="module-summary-list">
             <li><strong>LRN Master Index:</strong> All records are keyed by DepEd's unique 12-digit Learner Reference Number to prevent duplication.</li>
-            <li><strong>Multi-Select Toolbar:</strong> Batch operations to print, export to Excel, or archive multiple selected students simultaneously.</li>
+            <li><strong>OCR-Assisted Data Entry:</strong> Scan birth certificates or SF9 cards to auto-populate demographic fields into the registration form.</li>
             <li><strong>Missing Requirements Flag:</strong> Red status badges immediately indicate students with missing birth certificates or Form 137 records.</li>
           </ul>
         </div>
@@ -460,38 +434,32 @@
         <!-- Mockup Display -->
         <div class="mockup-container">
           <div class="mockup-tabs">
-            <button class="mockup-tab-btn active" data-tab-target="win-stud">Windows Desktop</button>
-            <button class="mockup-tab-btn" data-tab-target="and-stud">Android Tablet</button>
+            <button class="mockup-tab-btn active" data-tab-target="win-stud">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-stud">Android</button>
           </div>
 
           <div class="mockup-pane active" id="win-stud">
-            <div class="window-chrome">
-              <div class="window-titlebar">
-                <div class="window-dots"><span></span><span></span><span></span></div>
-                <span>TIS-RMS - Students Master List</span>
-                <span></span>
+            <figure class="doc-figure" data-lightbox="assets/images/windows/students.webp" data-caption="Student Master List with Quick Search, Filter Badges, and Action Menu">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/students.webp" alt="Windows Student Master List" loading="lazy">
               </div>
-              <div class="mockup-img-wrap" data-lightbox="assets/images/windows/students.webp" data-caption="Student Master List with Quick Search, Filter Badges, and Action Menu">
-                <img src="assets/images/windows/students.webp" alt="Windows Student Master List">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
-              </div>
-            </div>
+              <figcaption>
+                <span>Figure 3A: Windows Students Master List</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
 
           <div class="mockup-pane" id="and-stud" style="display:none;">
-            <div class="mobile-chrome">
-              <div class="mobile-notch"><div class="mobile-notch-camera"></div></div>
-              <div class="mobile-img-wrap" data-lightbox="assets/images/android/students.webp" data-caption="Android Student List with Tab Filters">
-                <img src="assets/images/android/students.webp" alt="Android Student Master List">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/students.webp" data-caption="Android Student List with Tab Filters">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/students.webp" alt="Android Student Master List" loading="lazy">
               </div>
-            </div>
+              <figcaption>
+                <span>Figure 3B: Android Students List</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
 
@@ -501,14 +469,14 @@
             <div class="step-number">1</div>
             <div class="step-content">
               <h4>Open Registration Form</h4>
-              <p>Navigate to the Students screen and select <strong>Add Student</strong> in the upper right header or press keyboard shortcut <kbd>Ctrl+N</kbd>.</p>
+              <p>Navigate to the Students screen and select <strong>Add Student</strong> or press keyboard shortcut <kbd>Ctrl+N</kbd>.</p>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number">2</div>
             <div class="step-content">
               <h4>Provide Learner Profile</h4>
-              <p>Enter the 12-digit LRN, legal name (Last, First, Middle, Suffix), date of birth, sex, grade level, section, and guardian contact numbers.</p>
+              <p>Enter the 12-digit LRN, legal name (Last, First, Middle, Suffix), date of birth, sex, grade level, section, and guardian contact numbers. Alternatively, choose <strong>Scan with OCR</strong> to extract details automatically.</p>
             </div>
           </div>
           <div class="step-card">
@@ -522,7 +490,7 @@
             <div class="step-number">4</div>
             <div class="step-content">
               <h4>Save and Commit</h4>
-              <p>Click <strong>Save Record</strong>. The student is immediately indexed in local SQLite storage and replicated across the local network.</p>
+              <p>Click <strong>Save Record</strong>. The student is immediately indexed in local SQLite storage and Socket.IO broadcasts the update to all connected Windows and Android clients.</p>
             </div>
           </div>
         </div>
@@ -532,7 +500,7 @@
       <section id="documents" class="doc-section">
         <div class="section-header">
           <h2 class="section-title">Module 3: Documents & Virtual Folders</h2>
-          <p class="section-subtitle">Tree directory structure, requirement taxonomy, and high-performance in-app rendering.</p>
+          <p class="section-subtitle">Tree directory structure, requirement taxonomy, and high-performance in-app WebP rendering.</p>
         </div>
 
         <div class="module-summary">
@@ -543,7 +511,7 @@
           <ul class="module-summary-list">
             <li><strong>Virtual Filing Cabinets:</strong> Organizes student documents by School Year, Grade Level, and Section without file path conflicts.</li>
             <li><strong>Standard DepEd Taxonomy:</strong> Categorizes documents into PSA Birth Certificates, SF9 Progress Reports, SF10 Permanent Records, and Ancillary Certifications.</li>
-            <li><strong>Optimized Image Rendering:</strong> Multi-page documents and scanned PDFs are converted into optimized WebP thumbnails for immediate in-app viewing.</li>
+            <li><strong>Server-Side WebP Conversion:</strong> Multi-page documents and scanned PDFs are converted into optimized WebP images for immediate in-app viewing without external PDF viewer software.</li>
           </ul>
         </div>
 
@@ -554,38 +522,32 @@
         <!-- Document Mockups -->
         <div class="mockup-container">
           <div class="mockup-tabs">
-            <button class="mockup-tab-btn active" data-tab-target="win-doc">Windows Desktop</button>
-            <button class="mockup-tab-btn" data-tab-target="and-doc">Android Tablet</button>
+            <button class="mockup-tab-btn active" data-tab-target="win-doc">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-doc">Android</button>
           </div>
 
           <div class="mockup-pane active" id="win-doc">
-            <div class="window-chrome">
-              <div class="window-titlebar">
-                <div class="window-dots"><span></span><span></span><span></span></div>
-                <span>TIS-RMS - Documents & Virtual Folders</span>
-                <span></span>
+            <figure class="doc-figure" data-lightbox="assets/images/windows/documents.webp" data-caption="Windows Document Explorer showing virtual school year folders and student document intake">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/documents.webp" alt="Windows Documents Explorer" loading="lazy">
               </div>
-              <div class="mockup-img-wrap" data-lightbox="assets/images/windows/documents.webp" data-caption="Windows Document Explorer showing virtual school year folders and student document intake">
-                <img src="assets/images/windows/documents.webp" alt="Windows Documents Explorer">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
-              </div>
-            </div>
+              <figcaption>
+                <span>Figure 4A: Windows Documents Explorer</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
 
           <div class="mockup-pane" id="and-doc" style="display:none;">
-            <div class="mobile-chrome">
-              <div class="mobile-notch"><div class="mobile-notch-camera"></div></div>
-              <div class="mobile-img-wrap" data-lightbox="assets/images/android/documents.webp" data-caption="Android Touch Document Viewer and scanning interface">
-                <img src="assets/images/android/documents.webp" alt="Android Documents View">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/documents.webp" data-caption="Android Document Viewer and scanning interface">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/documents.webp" alt="Android Documents View" loading="lazy">
               </div>
-            </div>
+              <figcaption>
+                <span>Figure 4B: Android Documents View</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
 
@@ -603,39 +565,30 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
             </div>
             <h4 class="card-title">DepEd Form 138 (SF9)</h4>
-            <p class="card-desc">Quarterly progress report detailing subject grades, core values, attendance, and annual promotion status.</p>
+            <p class="card-desc">Report card displaying quarterly learning area ratings, attendance marks, and observed behavioral values.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
             </div>
-            <h4 class="card-title">DepEd Form 137 (SF10)</h4>
-            <p class="card-desc">Official cumulative scholastic transcript spanning all school years attended in junior or senior high school.</p>
+            <h4 class="card-title">Certificate of Good Moral</h4>
+            <p class="card-desc">Character certification required for transferring in, scholarship verification, and graduation clearance.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"></circle><path d="M5.5 21h13a2 2 0 0 0 2-2v-2a7 7 0 0 0-14 0v2a2 2 0 0 0 2 2z"></path></svg>
             </div>
-            <h4 class="card-title">Certificates & Credentials</h4>
-            <p class="card-desc">Certificate of Good Moral Character, clinic medical records, DepEd Form 58, and transfer documentation.</p>
-          </div>
-        </div>
-
-        <div class="callout important">
-          <div class="callout-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-          </div>
-          <div>
-            <strong>WebP Rendering Engine:</strong> Uploaded documents are automatically converted to optimized WebP image pages in the backend. This enables rapid thumbnail generation and in-app viewing without depending on external PDF applications.
+            <h4 class="card-title">2x2 Formal Identification Photo</h4>
+            <p class="card-desc">Official student identification portrait used for Form 137 records, diploma inserts, and examination badges.</p>
           </div>
         </div>
       </section>
 
-      <!-- Module 4: Archives & Real-Time Filtering -->
+      <!-- Module 4: Archive System -->
       <section id="archives" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">Module 4: Retention & Archives</h2>
-          <p class="section-subtitle">Long-term storage, graduation cohorts, transfer records, and real-time backend querying.</p>
+          <h2 class="section-title">Module 4: Archival Vault & Records Retention</h2>
+          <p class="section-subtitle">Long-term preservation for graduated, transferred-out, and dropped student records.</p>
         </div>
 
         <div class="module-summary">
@@ -657,38 +610,32 @@
         <!-- Mockup Display -->
         <div class="mockup-container">
           <div class="mockup-tabs">
-            <button class="mockup-tab-btn active" data-tab-target="win-arch">Windows Desktop</button>
-            <button class="mockup-tab-btn" data-tab-target="and-arch">Android Tablet</button>
+            <button class="mockup-tab-btn active" data-tab-target="win-arch">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-arch">Android</button>
           </div>
 
           <div class="mockup-pane active" id="win-arch">
-            <div class="window-chrome">
-              <div class="window-titlebar">
-                <div class="window-dots"><span></span><span></span><span></span></div>
-                <span>TIS-RMS - Archival Vault</span>
-                <span></span>
+            <figure class="doc-figure" data-lightbox="assets/images/windows/archives.webp" data-caption="Archive Explorer with Real-time Filters for Status, School Year, and Grade">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/archives.webp" alt="Windows Archive Explorer" loading="lazy">
               </div>
-              <div class="mockup-img-wrap" data-lightbox="assets/images/windows/archives.webp" data-caption="Archive Explorer with Real-time Filters for Status, School Year, and Grade">
-                <img src="assets/images/windows/archives.webp" alt="Windows Archive Explorer">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
-              </div>
-            </div>
+              <figcaption>
+                <span>Figure 5A: Windows Archival Vault</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
 
           <div class="mockup-pane" id="and-arch" style="display:none;">
-            <div class="mobile-chrome">
-              <div class="mobile-notch"><div class="mobile-notch-camera"></div></div>
-              <div class="mobile-img-wrap" data-lightbox="assets/images/android/archives.webp" data-caption="Android Archive Vault View">
-                <img src="assets/images/android/archives.webp" alt="Android Archive View">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/archives.webp" data-caption="Android Archive Vault View">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/archives.webp" alt="Android Archive View" loading="lazy">
               </div>
-            </div>
+              <figcaption>
+                <span>Figure 5B: Android Archival Vault</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
 
@@ -752,31 +699,31 @@
           <div class="step-card">
             <div class="step-number">2</div>
             <div class="step-content">
-              <h4>Choose Document Types</h4>
-              <p>In the Print dialog, select which records to include (e.g., SF10 only, or Complete Package: PSA + SF9 + SF10 + Certificate of Good Moral).</p>
+              <h4>Launch Batch Print Dialog</h4>
+              <p>Click the <strong>Batch Print</strong> toolbar icon or press keyboard shortcut <kbd>Ctrl+P</kbd>.</p>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number">3</div>
             <div class="step-content">
-              <h4>Formatting and Margins</h4>
-              <p>The compiler formats pages according to DepEd margins, page numbers, and optional division office watermarks.</p>
+              <h4>Configure Compilation Options</h4>
+              <p>Choose document types to compile (SF10 only, SF9 only, or Full Dossier including PSA birth certificates). Toggle duplex page alignment if your printer supports double-sided printing.</p>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number">4</div>
             <div class="step-content">
-              <h4>Spool to Printer or Save PDF</h4>
-              <p>Send jobs directly to networked printers or download a consolidated multi-page PDF.</p>
+              <h4>Compile & Print</h4>
+              <p>Click <strong>Compile Dossier</strong>. TIS-RMS streams the merged output directly to the system print dialogue or saves a merged PDF.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Module 6: Reports & DepEd SF10 Generation -->
+      <!-- Module 6: DepEd SF10 & Reports -->
       <section id="reports" class="doc-section">
         <div class="section-header">
-          <h2 class="section-title">Module 6: DepEd SF10 & Reports</h2>
+          <h2 class="section-title">Module 6: DepEd SF10 & Reports Engine</h2>
           <p class="section-subtitle">Official DepEd Form 137/SF10 compilation directly from Excel templates into standardized PDF outputs.</p>
         </div>
 
@@ -799,38 +746,32 @@
         <!-- Reports Mockup -->
         <div class="mockup-container">
           <div class="mockup-tabs">
-            <button class="mockup-tab-btn active" data-tab-target="win-rep">Windows Desktop</button>
-            <button class="mockup-tab-btn" data-tab-target="and-rep">Android Tablet</button>
+            <button class="mockup-tab-btn active" data-tab-target="win-rep">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-rep">Android</button>
           </div>
 
           <div class="mockup-pane active" id="win-rep">
-            <div class="window-chrome">
-              <div class="window-titlebar">
-                <div class="window-dots"><span></span><span></span><span></span></div>
-                <span>TIS-RMS - Reports & Form Generator</span>
-                <span></span>
+            <figure class="doc-figure" data-lightbox="assets/images/windows/reports.webp" data-caption="Reports Generator Interface with Grade Selection and Export Formats">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/reports.webp" alt="Windows Reports Generator" loading="lazy">
               </div>
-              <div class="mockup-img-wrap" data-lightbox="assets/images/windows/reports.webp" data-caption="Reports Generator Interface with Grade Selection and Export Formats">
-                <img src="assets/images/windows/reports.webp" alt="Windows Reports Generator">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
-              </div>
-            </div>
+              <figcaption>
+                <span>Figure 6A: Windows Reports & SF10 Generator</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
 
           <div class="mockup-pane" id="and-rep" style="display:none;">
-            <div class="mobile-chrome">
-              <div class="mobile-notch"><div class="mobile-notch-camera"></div></div>
-              <div class="mobile-img-wrap" data-lightbox="assets/images/android/reports.webp" data-caption="Android Reports Screen with template selectors">
-                <img src="assets/images/android/reports.webp" alt="Android Reports Generator">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/reports.webp" data-caption="Android Reports Screen with template selectors">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/reports.webp" alt="Android Reports Generator" loading="lazy">
               </div>
-            </div>
+              <figcaption>
+                <span>Figure 6B: Android Reports & Form Generator</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
       </section>
@@ -849,8 +790,8 @@
           </div>
           <ul class="module-summary-list">
             <li><strong>Data Privacy Act Compliance:</strong> Maintains an immutable activity log recording user ID, target student LRN, action type, IP address, and timestamp.</li>
-            <li><strong>Account Administration:</strong> Manage teacher accounts, assign section advisory roles, and reset temporary credentials.</li>
-            <li><strong>Access Forensics:</strong> Filter audit logs by user, action (View, Update, Delete, Print), or student record.</li>
+            <li><strong>Cryptographic Password Generation:</strong> Newly created user accounts and password resets generate a 10-character randomized temporary password displayed directly on screen.</li>
+            <li><strong>Access Forensics:</strong> Filter audit logs by user, action (View, Update, Delete, Print, Login), or student record. Responsive badge layout ensures zero text clipping.</li>
           </ul>
         </div>
 
@@ -861,38 +802,32 @@
         <!-- Users Mockup -->
         <div class="mockup-container">
           <div class="mockup-tabs">
-            <button class="mockup-tab-btn active" data-tab-target="win-usr">Windows Desktop</button>
-            <button class="mockup-tab-btn" data-tab-target="and-usr">Android Tablet</button>
+            <button class="mockup-tab-btn active" data-tab-target="win-usr">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-usr">Android</button>
           </div>
 
           <div class="mockup-pane active" id="win-usr">
-            <div class="window-chrome">
-              <div class="window-titlebar">
-                <div class="window-dots"><span></span><span></span><span></span></div>
-                <span>TIS-RMS - User Account Management</span>
-                <span></span>
+            <figure class="doc-figure" data-lightbox="assets/images/windows/users.webp" data-caption="User Accounts Screen with Role Assignment and Security Status">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/users.webp" alt="Windows User Accounts" loading="lazy">
               </div>
-              <div class="mockup-img-wrap" data-lightbox="assets/images/windows/users.webp" data-caption="User Accounts Screen with Role Assignment and Security Status">
-                <img src="assets/images/windows/users.webp" alt="Windows User Accounts">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
-              </div>
-            </div>
+              <figcaption>
+                <span>Figure 7A: Windows User Account Management</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
 
           <div class="mockup-pane" id="and-usr" style="display:none;">
-            <div class="mobile-chrome">
-              <div class="mobile-notch"><div class="mobile-notch-camera"></div></div>
-              <div class="mobile-img-wrap" data-lightbox="assets/images/android/users.webp" data-caption="Android User Accounts View">
-                <img src="assets/images/android/users.webp" alt="Android User Accounts">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/users.webp" data-caption="Android User Accounts View">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/users.webp" alt="Android User Accounts" loading="lazy">
               </div>
-            </div>
+              <figcaption>
+                <span>Figure 7B: Android User Accounts Management</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
 
@@ -904,38 +839,32 @@
         <!-- Audit History Mockup -->
         <div class="mockup-container">
           <div class="mockup-tabs">
-            <button class="mockup-tab-btn active" data-tab-target="win-hist">Windows Desktop</button>
-            <button class="mockup-tab-btn" data-tab-target="and-hist">Android Tablet</button>
+            <button class="mockup-tab-btn active" data-tab-target="win-hist">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-hist">Android</button>
           </div>
 
           <div class="mockup-pane active" id="win-hist">
-            <div class="window-chrome">
-              <div class="window-titlebar">
-                <div class="window-dots"><span></span><span></span><span></span></div>
-                <span>TIS-RMS - Immutable Audit History Log</span>
-                <span></span>
+            <figure class="doc-figure" data-lightbox="assets/images/windows/history.webp" data-caption="Windows Audit Ledger recording user IP, action type, student LRN, and timestamp">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/history.webp" alt="Windows History Log" loading="lazy">
               </div>
-              <div class="mockup-img-wrap" data-lightbox="assets/images/windows/history.webp" data-caption="Windows Audit Ledger recording user IP, action type, student LRN, and timestamp">
-                <img src="assets/images/windows/history.webp" alt="Windows History Log">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
-              </div>
-            </div>
+              <figcaption>
+                <span>Figure 8A: Windows Immutable Audit History Log</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
 
           <div class="mockup-pane" id="and-hist" style="display:none;">
-            <div class="mobile-chrome">
-              <div class="mobile-notch"><div class="mobile-notch-camera"></div></div>
-              <div class="mobile-img-wrap" data-lightbox="assets/images/android/history.webp" data-caption="Android Audit Ledger View">
-                <img src="assets/images/android/history.webp" alt="Android History View">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/history.webp" data-caption="Android Audit Ledger View">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/history.webp" alt="Android History View" loading="lazy">
               </div>
-            </div>
+              <figcaption>
+                <span>Figure 8B: Android Immutable Audit Ledger</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
       </section>
@@ -966,38 +895,32 @@
         <!-- Settings Mockup -->
         <div class="mockup-container">
           <div class="mockup-tabs">
-            <button class="mockup-tab-btn active" data-tab-target="win-set">Windows Desktop</button>
-            <button class="mockup-tab-btn" data-tab-target="and-set">Android Tablet</button>
+            <button class="mockup-tab-btn active" data-tab-target="win-set">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-set">Android</button>
           </div>
 
           <div class="mockup-pane active" id="win-set">
-            <div class="window-chrome">
-              <div class="window-titlebar">
-                <div class="window-dots"><span></span><span></span><span></span></div>
-                <span>TIS-RMS - System Settings</span>
-                <span></span>
+            <figure class="doc-figure" data-lightbox="assets/images/windows/settings.webp" data-caption="Settings Panel with Database Backup, Checklist Configurator, and Links">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/settings.webp" alt="Windows Settings" loading="lazy">
               </div>
-              <div class="mockup-img-wrap" data-lightbox="assets/images/windows/settings.webp" data-caption="Settings Panel with Database Backup, Checklist Configurator, and Links">
-                <img src="assets/images/windows/settings.webp" alt="Windows Settings">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
-              </div>
-            </div>
+              <figcaption>
+                <span>Figure 9A: Windows System Settings Panel</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
 
           <div class="mockup-pane" id="and-set" style="display:none;">
-            <div class="mobile-chrome">
-              <div class="mobile-notch"><div class="mobile-notch-camera"></div></div>
-              <div class="mobile-img-wrap" data-lightbox="assets/images/android/settings.webp" data-caption="Android Settings View with Mobile Link Handlers">
-                <img src="assets/images/android/settings.webp" alt="Android Settings">
-                <div class="zoom-overlay-hint">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                  Expand view
-                </div>
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/settings.webp" data-caption="Android Settings View with Mobile Link Handlers">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/settings.webp" alt="Android Settings" loading="lazy">
               </div>
-            </div>
+              <figcaption>
+                <span>Figure 9B: Android System Settings</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
 
@@ -1058,13 +981,13 @@
       <section id="faq" class="doc-section">
         <div class="section-header">
           <h2 class="section-title">Frequently Asked Questions (FAQ)</h2>
-          <p class="section-subtitle">Detailed answers to common technical, operational, and DepEd compliance questions.</p>
+          <p class="section-subtitle">Detailed answers to common technical, operational, and DepEd compliance questions based on current system capabilities.</p>
         </div>
 
         <!-- Category: System Access & Security -->
         <div class="faq-category">
           <h3 class="faq-category-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             System Access & Security
           </h3>
 
@@ -1074,17 +997,17 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>Teachers and staff are issued an individual username and password by the School Registrar or System Administrator. If this is your first time logging in, you will be prompted to choose a personal password.</p>
+              <p>Teachers and staff are issued an individual username and temporary password by the System Administrator. When an Administrator creates a user account or resets a password, TIS-RMS automatically generates a 10-character cryptographically randomized temporary password displayed directly in the creation dialog.</p>
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>Who can reset a forgotten password or PIN?</span>
+              <span>How are new user passwords created and reset?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>Passwords can be reset by any authorized Administrator. The Administrator navigates to <strong>User Accounts</strong>, selects the user's name, and clicks <strong>Reset Password</strong>. The user is issued a temporary password that must be updated upon their next sign-in.</p>
+              <p>Administrators navigate to <strong>User Accounts</strong>, click <strong>Create User</strong> or select an existing account and click <strong>Reset Password</strong>. The system generates a randomized 10-character alphanumeric password (e.g., <code>k9Xm2Wq7Lp</code>). The user logs in using this temporary credential and can change it to a personal password under their profile settings.</p>
             </div>
           </div>
 
@@ -1094,17 +1017,65 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>Yes. TIS-RMS supports concurrent connections across the local area network (LAN). Teachers can scan records, update profiles, and check document checklists on their Android tablets or desktop PCs simultaneously without data lock conflicts.</p>
+              <p>Yes. TIS-RMS supports concurrent connections across the local area network (LAN). Teachers can scan records, update profiles, and check document checklists on their Android devices or desktop PCs simultaneously without data lock conflicts.</p>
             </div>
           </div>
         </div>
 
-        <!-- Category: Student Records & Enrollment -->
+        <!-- Category: Real-Time Sync & Networking -->
         <div class="faq-category">
           <h3 class="faq-category-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-            Student Records & Enrollment
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            Real-Time Sync & Networking
           </h3>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>How does real-time synchronization work across the school network?</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>TIS-RMS utilizes Socket.IO WebSocket connections across the local school network. Whenever any teacher or administrator creates, edits, or deletes a student record, or uploads documents, the server broadcasts the event instantaneously. Connected Windows and Android clients update their screens in real time without requiring manual page refreshes or pull-to-refresh actions.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Does TIS-RMS require an active internet connection to work?</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>No. TIS-RMS operates completely offline on the school's local area network (LAN). It uses an embedded SQLite database and a local Node.js server running on port <strong>18484</strong>, guaranteeing full system uptime even during internet service provider outages.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>How do I connect an Android device to the school server?</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Connect both the server computer and Android device to the same Wi-Fi access point or local network router. Find the server's local IPv4 address using <code>ipconfig</code> in Command Prompt (e.g., <code>192.168.1.100</code>). On the Android app login screen, configure the server URL with the default port: <code>http://192.168.1.100:18484</code> and tap <strong>Connect</strong>.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category: Student Records & OCR -->
+        <div class="faq-category">
+          <h3 class="faq-category-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+            Student Records & OCR Intake
+          </h3>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>When adding a student using OCR, does the scanned file automatically save into their folder?</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>No. The OCR engine reads the scanned document (e.g., PSA Birth Certificate or SF9) to extract learner details (LRN, full name, birthdate, sex, etc.) directly into the registration form. However, to keep student folders cleanly organized and ensure each file is verified, the raw OCR scan is not automatically saved into their document checklist. The official final document can be uploaded directly to the student's virtual folder when verified.</p>
+            </div>
+          </div>
 
           <div class="faq-item">
             <button class="faq-question">
@@ -1125,24 +1096,24 @@
               <p>The red badge indicates that one or more documents marked as <em>Mandatory</em> in the Settings Checklist (e.g., PSA Birth Certificate or Grade 7 SF10) have not yet been uploaded for that student. Once the missing file is uploaded, the badge automatically updates to green.</p>
             </div>
           </div>
-
-          <div class="faq-item">
-            <button class="faq-question">
-              <span>How do I process students who transfer out to another school?</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-            <div class="faq-answer">
-              <p>Navigate to the student's profile, click <strong>Update Status</strong>, and select <strong>Transferred Out</strong>. Enter the receiving school name and division. The student record is cleanly moved to the Archives under the Transferred cohort, locking it from active section attendance while keeping scholastic history accessible.</p>
-            </div>
-          </div>
         </div>
 
         <!-- Category: Document Management & File Formats -->
         <div class="faq-category">
           <h3 class="faq-category-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-            Document Management & Scanning
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            Document Management & Viewing
           </h3>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>How do I view uploaded documents without opening an external PDF application?</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>TIS-RMS converts scanned PDF pages into lossless WebP images on the server. Clicking any document card opens the built-in high-resolution preview modal with instant page navigation, zoom, and rotation, eliminating the need to launch third-party PDF viewers like Adobe Acrobat.</p>
+            </div>
+          </div>
 
           <div class="faq-item">
             <button class="faq-question">
@@ -1156,21 +1127,11 @@
 
           <div class="faq-item">
             <button class="faq-question">
-              <span>How do I view uploaded documents without opening an external PDF application?</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-            <div class="faq-answer">
-              <p>TIS-RMS converts scanned PDF pages into optimized WebP images on the server. Clicking any document card opens the built-in high-resolution preview modal with instant page navigation, eliminating the need to launch third-party PDF viewers like Adobe Acrobat.</p>
-            </div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question">
               <span>What should I do if a scanned document preview appears blank?</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>Right-click the document card (or tap the three-dot context menu on tablet) and select <strong>Regenerate Thumbnail</strong>. The system will re-parse the raw source file and re-render lossless WebP preview pages.</p>
+              <p>Right-click the document card (or tap the context menu on Android) and select <strong>Regenerate Thumbnail</strong>. The system will re-parse the raw source file and re-render lossless WebP preview pages.</p>
             </div>
           </div>
         </div>
@@ -1178,7 +1139,7 @@
         <!-- Category: SF10, Reports & Batch Printing -->
         <div class="faq-category">
           <h3 class="faq-category-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             SF10 & DepEd Reports
           </h3>
 
@@ -1198,63 +1159,7 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="faq-answer">
-              <p>From the Students or Archives screen, select the desired section using the filter dropdown, click the <strong>Select All in Section</strong> checkbox, and tap the <strong>Batch Print</strong> button. The system queues the records in background chunks and outputs a single consolidated PDF package ready for duplex printing.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Category: Retention, Archives & Data Privacy -->
-        <div class="faq-category">
-          <h3 class="faq-category-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-            Retention, Archives & Data Privacy
-          </h3>
-
-          <div class="faq-item">
-            <button class="faq-question">
-              <span>What is the difference between Archiving and Deleting a record?</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-            <div class="faq-answer">
-              <p><strong>Archiving</strong> preserves the student's complete record permanently in read-only storage for future transcript requests (SF10 reproduction) while keeping active class lists clean. <strong>Deleting</strong> moves a record to the soft-delete trash for removal of erroneous entries. Teachers cannot delete records.</p>
-            </div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question">
-              <span>How does TIS-RMS ensure compliance with RA 10173 (Data Privacy Act)?</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-            <div class="faq-answer">
-              <p>Every view, download, edit, and print action is recorded in an immutable audit ledger with the user's account name, terminal IP address, and timestamp. Passwords use salted bcrypt hashes, and records cannot be accessed outside the authenticated local school network.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Category: Network Sync & Offline Operations -->
-        <div class="faq-category">
-          <h3 class="faq-category-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
-            Network Sync & Offline Operation
-          </h3>
-
-          <div class="faq-item">
-            <button class="faq-question">
-              <span>Does TIS-RMS require an active internet connection to work?</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-            <div class="faq-answer">
-              <p>No. TIS-RMS runs completely offline on the school's local area network (LAN). It uses a local SQLite database that guarantees full system operation even during power interruptions or ISP service outages.</p>
-            </div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question">
-              <span>How do I connect an Android tablet to the school server?</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-            <div class="faq-answer">
-              <p>Connect both the server computer and tablet to the same Wi-Fi router. On the server, check your IPv4 address using <code>ipconfig</code>. On the tablet login screen, enter the host address (e.g., <code>192.168.1.100:3000</code>) and tap <strong>Connect</strong>.</p>
+              <p>From the Students or Archives screen, select the desired section using the filter dropdown, click the <strong>Select All in Section</strong> checkbox, and tap the <strong>Batch Print</strong> button (<kbd>Ctrl+P</kbd>). The system queues the records in background chunks and outputs a single consolidated PDF package ready for duplex printing.</p>
             </div>
           </div>
 
@@ -1268,7 +1173,6 @@
             </div>
           </div>
         </div>
-
       </section>
 
       <!-- Troubleshooting & Connection Diagnostics -->
@@ -1283,8 +1187,8 @@
             <div class="card-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
             </div>
-            <h4 class="card-title">Android Tablet Cannot Reach Server</h4>
-            <p class="card-desc">Verify both the computer hosting <code>tis_rms_server</code> and the Android tablet are connected to the same local network router. Ensure the Server IP in the app login matches the host machine's LAN address (e.g., <code>192.168.1.100:3000</code>).</p>
+            <h4 class="card-title">Android Device Cannot Reach Server</h4>
+            <p class="card-desc">Verify both the computer hosting <code>tis_rms_server</code> and the Android device are connected to the same local network router. Ensure the Server IP in the app login matches the host machine's LAN address with port 18484 (e.g., <code>http://192.168.1.100:18484</code>).</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">

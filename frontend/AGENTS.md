@@ -1015,11 +1015,11 @@ Files backup/restore - mirror mode or zip -->
 - [x] PRINTED_HISTORY card has a overflowed for date and time
   - Made card headers in `audit_trail_screen.dart` responsive using `Wrap` layout so badges, entity types, and timestamps never overflow on any screen size.
 
-# Documentation website
-- fix FAQs make sure its on the current system features 
-- connect the documentation based on the current system features
-- dont speficy the android is for tablet just android
-- redesign the entire documentation make it minimalist no extra design just make it normal documentation
+# Documentation website [DONE]
+- [x] fix FAQs make sure its on the current system features (added Socket.IO real-time sync, port 18484, 10-char randomized temporary admin passwords, OCR data extraction separated from raw folder upload, server-side lossless WebP PDF previews)
+- [x] connect the documentation based on the current system features (updated port 18484, real-time Socket.IO event broadcasts across LAN, and accurate keyboard shortcuts)
+- [x] dont speficy the android is for tablet just android (replaced all references of "Android Tablet", "tablet terminals", and "touch tablet" with "Android" / "Android device")
+- [x] redesign the entire documentation make it minimalist no extra design just make it normal documentation (removed fake window chrome titlebars/colored dots, removed simulated mobile phone bezels/notches, converted screenshots to standard figures with semantic figcaptions and zoom modals, streamlined typography and styling)
 
 
 ---
