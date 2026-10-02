@@ -930,7 +930,7 @@ Files backup/restore - mirror mode or zip -->
   - Clicking the "Enrolled" tab automatically clears the search field and restores the active year enrolled filter.
   - Also cleared view-tab filters when search is triggered from the mobile search dialog in android_bottom_nav_layout.dart. -->
 
-# ANDROID APP
+<!-- # ANDROID APP
 - [DONE] hamburger nav bar slide too much touch area on the left
   - In `android_bottom_nav_layout.dart`, reduced `drawerEdgeDragWidth` from `MediaQuery.of(context).size.width * 0.45` down to a strict `28.0` edge touch area to prevent accidental drawer opening when interacting with screen content.
 - [DONE] report screen in deped tab export pdf cannot download the generated pdf, because of permission denied in android app
@@ -962,7 +962,63 @@ Files backup/restore - mirror mode or zip -->
 - [DONE] make the about, support, system information in settings responsive
   - System/Client Description Header now adapts using `LayoutBuilder` (<460px): renders icon + title in a row and full-width description below on mobile screens, avoiding horizontal squishing.
   - System Information items (`_buildAboutInfoRow`) dynamically switch from a 2-column fixed-label layout to stacked label & selectable value on compact viewports (<460px), preventing text compression.
-  - Developer Contact container adapts on viewports <500px: stacks label and email with a clean indentation to prevent horizontal overflows. Action buttons seamlessly wrap with `Wrap`.
+  - Developer Contact container adapts on viewports <500px: stacks label and email with a clean indentation to prevent horizontal overflows. Action buttons seamlessly wrap with `Wrap`. -->
+
+<!-- # SETTINGS SCREEN
+- [DONE] android app cannot open links in about, support & information buttons cannot redirect to browser
+  - Added `<queries>` intent declarations for `https`, `http`, and `mailto` schemes to `AndroidManifest.xml` (required on Android 11+ / API 30+ for `url_launcher` visibility).
+  - Enhanced external link handling in `settings_screen.dart` with dual launch mode fallback (`LaunchMode.externalApplication` -> `LaunchMode.platformDefault`) and clipboard copy fallback with user feedback snackbars if no browser or email client responds.
+
+# STUDENT SCREEN
+- [DONE] in android list remove the bottom space
+  - Removed obsolete 76px bottom spacer on Android when `totalPages <= 1` in `students_screen.dart`.
+  - Adjusted Android card list bottom padding from 24px to 8px, eliminating the dead whitespace at the bottom of the list.
+- [DONE] move the filter button into the header tabs
+  - Removed the filter button from the Android top AppBar in `android_bottom_nav_layout.dart`.
+  - Integrated the filter button into the header tabs row in `students_screen.dart` (alongside the view switcher tabs) with active filter badge and direct tap target.
+
+# DOCUMENT AND ARCHIVE SCREEN
+- [DONE] make the filter realtime from the backend
+  - Added `GET /api/documents/types` endpoint on backend (`documentController.getDocumentTypes` and `routes/documents.js`) returning distinct active document types and requirements categorized into JHS, SHS, and General in real time directly from the database.
+  - Enhanced `documentController.getAllDocuments` and `archiveController.getArchivedDocuments` to handle category prefixes, raw names, and clean names seamlessly when filtering.
+  - Added `realtimeDocumentTypesProvider` in Flutter and updated `studentFoldersProvider` to perform real-time backend search queries.
+  - Updated `documents_screen.dart` and `archives_screen.dart` PopupMenuButton to invalidate and pull fresh types on open, displaying real-time JHS, SHS, and Other document categories with instant reactive queries. -->
+
+<!-- # STATIC WEBSITE
+- [DONE] for a system documentation how to use/ guide
+  - Created dedicated standalone directory [documentation/](file:///f:/SumbrerongBato/tis_rms_server/documentation) completely decoupled from frontend and backend builds.
+  - Implemented high-aesthetic responsive user guide [documentation/index.html](file:///f:/SumbrerongBato/tis_rms_server/documentation/index.html) with modern typography (`Inter`), Emerald green (`#00B074`) & Slate dark/light theme, and offline-capable architecture.
+  - Structured modular sections: System Overview, RBAC Roles & Security Matrix, Interactive Virtual Tour, Modules 1–8 (Dashboard, Students & Multi-Select, Virtual Folders & Document Taxonomy, Retention & Real-time Archives, Batch Print Queue & Duplex Merging, DepEd SF10 Excel-to-PDF Engine, Users & Immutable RA 10173 Audit Trail, Settings & Mandatory Checklists), Keyboard Shortcuts, and Connection Diagnostics & FAQ.
+  - Integrated dual-platform mockup frames: Windows desktop titlebars and Android tablet/notch frames with live tab switcher.
+  - Sourced and centralized all real system assets under `documentation/assets/images/windows/`, `documentation/assets/images/android/`, `documentation/assets/images/features/`, and `documentation/assets/videos/`.
+  - Built interactive JavaScript engine [documentation/app.js](file:///f:/SumbrerongBato/tis_rms_server/documentation/app.js): interactive frame-by-frame virtual tour reel with HUD overlay and timeline progress, real-time client search with `Ctrl+K` shortcut, image zoom Lightbox modal, theme switcher with `localStorage` persistence, and scrollspy navigation.
+  - Verified in browser with subagent: zero console errors, smooth tab transitions, working zoom lightbox, live search, and dark mode toggle.  -->
+
+<!-- # USER SCREEN -> PASSWORD UPON CREATE AN USER [DONE]
+- [x] dont make the password `username123` for new admin user, make it randomized
+  - Implemented 10-character cryptographically secure randomized password generator for new admin accounts in `userController.js`.
+  - Exposed and highlighted generated temporary password in user creation success dialog in `users_screen.dart`.
+
+# STUDENT SCREEN -> add student using OCR [DONE]
+- [x] dont upload the document that used for OCR in their folder
+  - Removed document auto-upload logic from `add_student_modal.dart` and `bulk_ocr_import_dialog.dart` after creating students.
+
+# KEYBOARD SHORTCUTS [DONE]
+- [x] Ctrl + N in student screen not working (wired to `_openModal()` in `students_screen.dart`)
+- [x] Ctrl + U in document screen not working (wired to `UploadOcrModal.show(...)` in `documents_screen.dart`)
+- [x] Ctrl + P in document and archive screen not working (wired to `PrintQueueModal.show(context)` in `documents_screen.dart` and `archives_screen.dart`)
+- [x] remove Ctrl + B for backup (removed from documentation shortcuts table and FAQ)
+- [x] remove Ctrl + A for filter (removed from documentation shortcuts table) -->
+
+
+# HISTORY SCREEN
+- PRINTED_HISTORY card has a overflowed for date and time
+
+# Documentation website
+- fix FAQs make sure its on the current system features 
+- connect the documentation based on the current system features
+- dont speficy the android is for tablet just android
+- redesign the entire documentation make it minimalist no extra design just make it normal documentation
 
 
 ---

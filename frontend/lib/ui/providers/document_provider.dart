@@ -151,10 +151,19 @@ final studentDocumentsProvider = FutureProvider.family
 final studentFoldersProvider = FutureProvider.autoDispose<List<FolderModel>>((
   ref,
 ) async {
+  final query = ref.watch(documentQueryProvider);
   final repo = ref.read(documentRepositoryProvider);
-  // Fetch top-level folders (no parentId filter = all root folders)
-  return repo.getFolders();
+  return repo.getFolders(search: query.search);
 });
+
+// ============================================================
+// Realtime document types provider — live from backend database
+// ============================================================
+final realtimeDocumentTypesProvider =
+    FutureProvider.autoDispose<Map<String, List<String>>>((ref) async {
+      final repo = ref.read(documentRepositoryProvider);
+      return repo.getDocumentTypes();
+    });
 
 // ============================================================
 // Document statuses provider — fetches distinct statuses from backend

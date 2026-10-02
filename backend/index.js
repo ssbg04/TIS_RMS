@@ -1,8 +1,10 @@
 process.env.TZ = 'Asia/Manila';
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
+const { initSocket } = require('./src/services/socketService');
 require('dotenv').config({ path: path.join(__dirname, '.env'), override: true });
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: true });
 
@@ -32,7 +34,11 @@ const settingsRoutes = require('./src/routes/settings');
 const templateRoutes = require('./src/routes/templates');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 18484;
+
+// Initialize Socket.IO Real-Time Server
+initSocket(server);
 
 // Initialize Database
 initSchema();
@@ -67,7 +73,7 @@ app.get(['/', '/api'], (req, res) => {
     res.json({ message: 'TIS RMS API is running' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT} (0.0.0.0)`);
     // Run auto-graduation check on startup and daily
     try {

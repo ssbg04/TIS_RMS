@@ -153,8 +153,27 @@ exports.createUser = async (req, res) => {
         }
     }
 
-    // Temporary password = username + 123 (e.g. ccharles123)
-    const temporaryPassword = `${username}123`;
+    // Generate secure randomized temporary password for admin users, or username123 for standard users
+    let temporaryPassword;
+    if (role === 'admin') {
+        const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        const lowercase = 'abcdefghjkmnpqrstuvwxyz';
+        const digits = '23456789';
+        const symbols = '!@#$%&*';
+        const allChars = uppercase + lowercase + digits + symbols;
+        const pwdParts = [
+            uppercase[crypto.randomInt(0, uppercase.length)],
+            lowercase[crypto.randomInt(0, lowercase.length)],
+            digits[crypto.randomInt(0, digits.length)],
+            symbols[crypto.randomInt(0, symbols.length)],
+        ];
+        for (let i = 4; i < 10; i++) {
+            pwdParts.push(allChars[crypto.randomInt(0, allChars.length)]);
+        }
+        temporaryPassword = pwdParts.sort(() => crypto.randomInt(-1, 2)).join('');
+    } else {
+        temporaryPassword = `${username}123`;
+    }
 
     try {
         const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);

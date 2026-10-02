@@ -28,7 +28,6 @@ import '../providers/navigation_provider.dart';
 import '../providers/connected_users_provider.dart';
 import '../screens/capstone_members/capstone_members_screen.dart';
 import '../shared/dialogs/disconnected_dialog.dart';
-import '../screens/students/widgets/student_filter_dialog.dart';
 import '../shared/inputs/app_search_bar.dart';
 import '../shared/menus/profile_dropdown_menu.dart';
 import '../shared/widgets/notification_icon_button.dart';
@@ -744,32 +743,6 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                   child: IconButton(
                                     icon: const Icon(Icons.search, size: 22),
                                     onPressed: () => _showStudentSearchDialog(context, ref),
-                                  ),
-                                );
-                              },
-                            ),
-                            // 2. Filter Icon with Badge
-                            Consumer(
-                              builder: (context, ref, _) {
-                                final activeCount = ref.watch(studentActiveFilterCountProvider);
-                                final query = ref.watch(studentQueryProvider);
-                                return Tooltip(
-                                  message: 'Filter Students',
-                                  child: IconButton(
-                                    onPressed: () =>
-                                        StudentFilterDialog.show(
-                                          context,
-                                          query: query,
-                                          isEnrolledTab: ref.read(studentViewTabProvider) == StudentViewTab.enrolled,
-                                        ),
-                                    icon: Badge(
-                                      isLabelVisible: activeCount > 0,
-                                      label: Text(activeCount.toString()),
-                                      child: const Icon(
-                                        Icons.tune_rounded,
-                                        size: 22,
-                                      ),
-                                    ),
                                   ),
                                 );
                               },

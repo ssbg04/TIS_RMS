@@ -745,6 +745,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
           _showSearchDialog(context);
         },
+        const SingleActivator(LogicalKeyboardKey.keyP, control: true): () {
+          PrintQueueModal.show(context);
+        },
       },
       child: Focus(
         focusNode: _shortcutFocusNode,
@@ -1196,6 +1199,10 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 tooltip: 'Filter by Document Type',
                 padding: const EdgeInsets.all(8),
                 constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                onOpened: () {
+                  ref.invalidate(realtimeDocumentTypesProvider);
+                  ref.invalidate(documentRequirementsProvider);
+                },
                 icon: Badge(
                   isLabelVisible: _getActiveFilterCount() > 0,
                   label: Text(_getActiveFilterCount().toString()),
@@ -1216,25 +1223,30 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   _applyFilters();
                 },
                 itemBuilder: (context) {
-                  final requirementsAsync = ref.read(documentRequirementsProvider);
-                  final jhsReqs = requirementsAsync.maybeWhen(
-                    data: (reqs) => reqs
+                  final realtimeData = ref.read(realtimeDocumentTypesProvider).asData?.value;
+                  final requirementsData = ref.read(documentRequirementsProvider).asData?.value ?? [];
+                  List<String> jhsReqs = [];
+                  List<String> shsReqs = [];
+                  List<String> generalReqs = [];
+
+                  if (realtimeData != null) {
+                    jhsReqs = List<String>.from(realtimeData['jhs'] ?? []);
+                    shsReqs = List<String>.from(realtimeData['shs'] ?? []);
+                    generalReqs = List<String>.from(realtimeData['general'] ?? []);
+                  } else {
+                    jhsReqs = requirementsData
                         .where((r) => r.category == 'JHS')
-                        .map((r) => r.name)
+                        .map((r) => r.name.replaceFirst(RegExp(r'^(JHS|SHS)\s*-\s*', caseSensitive: false), ''))
                         .toSet()
                         .toList()
-                      ..sort(),
-                    orElse: () => <String>[],
-                  );
-                  final shsReqs = requirementsAsync.maybeWhen(
-                    data: (reqs) => reqs
+                      ..sort();
+                    shsReqs = requirementsData
                         .where((r) => r.category == 'SHS')
-                        .map((r) => r.name)
+                        .map((r) => r.name.replaceFirst(RegExp(r'^(JHS|SHS)\s*-\s*', caseSensitive: false), ''))
                         .toSet()
                         .toList()
-                      ..sort(),
-                    orElse: () => <String>[],
-                  );
+                      ..sort();
+                  }
 
                   // Update cached lists for _applyFilters
                   if (jhsReqs.isNotEmpty) _jhsItems = jhsReqs;
@@ -1313,6 +1325,18 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     ));
                     items.add(buildItem('All SHS', 'All SHS', isSubItem: true));
                     for (final doc in shsReqs) {
+                      items.add(buildItem(doc, doc, isSubItem: true));
+                    }
+                  }
+
+                  if (generalReqs.isNotEmpty) {
+                    items.add(const PopupMenuDivider(height: 8));
+                    items.add(PopupMenuItem<String>(
+                      enabled: false,
+                      height: 28,
+                      child: buildHeader('OTHER DOCUMENTS'),
+                    ));
+                    for (final doc in generalReqs) {
                       items.add(buildItem(doc, doc, isSubItem: true));
                     }
                   }

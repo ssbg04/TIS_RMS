@@ -2,6 +2,11 @@ const db = require('../config/db');
 const fs = require('fs');
 const path = require('path');
 const { createNotification } = require('./notificationController');
+const {
+    emitStudentAdded,
+    emitStudentUpdated,
+    emitStudentDeleted,
+} = require('../services/socketService');
 
 // ============================================================
 // HELPER — insert one row into activity_log
@@ -534,6 +539,7 @@ exports.createStudent = (req, res) => {
         logActivity(req.user?.id, 'CREATE', 'student', newId, `Created student ${firstName} ${lastName}`);
 
         createNotification(null, 'Student Created', `New student ${firstName} ${lastName} (LRN: ${lrn.trim()}) has been enrolled.`, 'student', 'student', newId);
+        emitStudentAdded({ id: newId, lrn: lrn.trim(), firstName, lastName });
 
         res.status(201).json({
             id: newId,
@@ -605,6 +611,7 @@ exports.bulkGraduate = (req, res) => {
                 `${count} student(s) status updated to Graduated.`,
                 'student'
             );
+            emitStudentUpdated({ action: 'bulkGraduate', count });
         }
 
         res.json({ message: `${count} student(s) successfully graduated.` });
@@ -751,6 +758,7 @@ exports.updateStudent = (req, res) => {
 
         logActivity(req.user?.id, 'UPDATE', 'student', id, `Updated student ${maskLrn(lrn)}`);
         createNotification(null, 'Student Updated', `Student ${firstName} ${lastName} (LRN: ${lrn.trim()}) record was updated.`, 'student', 'student', id);
+        emitStudentUpdated({ id, lrn: lrn.trim() });
         res.json({ message: 'Student updated successfully.' });
     } catch (error) {
         console.error('updateStudent error:', error);
@@ -780,6 +788,7 @@ exports.deleteStudent = (req, res) => {
 
         logActivity(req.user?.id, 'DELETE', 'student', id, `Deleted student: ${student.first_name} ${student.last_name} (LRN: ${maskLrn(student.lrn)})`);
         createNotification(null, 'Student Deleted', `Student ${student.first_name} ${student.last_name} was removed.`, 'student', 'student', id);
+        emitStudentDeleted({ id });
         res.json({ message: 'Student deleted successfully.' });
     } catch (error) {
         console.error('deleteStudent error:', error);
@@ -897,6 +906,7 @@ exports.bulkStatusStudents = (req, res) => {
             ? `Updated ${studentRows.length} students\n${studentListText}`
             : (studentRows.length === 1 ? `Updated 1 student ${studentRows[0].last_name || ''} - ${maskLrn(studentRows[0].lrn)}` : `Bulk updated status to "${status}" for ${studentIds.length} students`);
         logActivity(req.user?.id, 'UPDATE', 'student', null, bulkDesc);
+        emitStudentUpdated({ action: 'bulkStatus', studentIds, status });
         res.json({ message: `Successfully updated status to "${status}" for ${studentIds.length} students.` });
     } catch (error) {
         console.error('bulkStatusStudents error:', error);
@@ -933,6 +943,7 @@ exports.addEnrollment = (req, res) => {
         const lrn = studentRow?.lrn || studentId;
         logActivity(req.user?.id, 'CREATE', 'enrollment', info.lastInsertRowid, getEnrollmentLogDesc(academicYearId, gradeLevel, sectionId, lrn));
         createNotification(null, 'Student Enrolled', `Student (LRN: ${lrn}) was enrolled in a new section.`, 'student', 'student', studentId);
+        emitStudentUpdated({ id: studentId });
         res.status(201).json({ message: 'Enrollment added successfully', id: info.lastInsertRowid });
     } catch (error) {
         console.error('addEnrollment error:', error);
@@ -969,6 +980,7 @@ exports.updateEnrollment = (req, res) => {
         const studentRow = db.prepare('SELECT lrn FROM students WHERE id = ?').get(existing.student_id);
         const lrn = studentRow?.lrn || existing.student_id;
         logActivity(req.user?.id, 'UPDATE', 'enrollment', enrollmentId, getEnrollmentLogDesc(academicYearId, gradeLevel, sectionId, lrn));
+        emitStudentUpdated({ id: existing.student_id });
         res.json({ message: 'Enrollment updated successfully' });
     } catch (error) {
         console.error('updateEnrollment error:', error);
@@ -990,6 +1002,7 @@ exports.deleteEnrollment = (req, res) => {
         const studentRow = db.prepare('SELECT lrn FROM students WHERE id = ?').get(existing.student_id);
         const lrn = studentRow?.lrn || existing.student_id;
         logActivity(req.user?.id, 'DELETE', 'enrollment', enrollmentId, getEnrollmentLogDesc(existing.academic_year_id, existing.grade_level, existing.section_id, lrn));
+        emitStudentUpdated({ id: existing.student_id });
         res.json({ message: 'Enrollment deleted successfully' });
     } catch (error) {
         console.error('deleteEnrollment error:', error);
@@ -1209,6 +1222,7 @@ exports.bulkCreateStudents = (req, res) => {
             `${created} student(s) imported via OCR Bulk Import.`,
             'student'
         );
+        emitStudentAdded({ action: 'bulkCreate', count: created });
     }
 
     res.status(207).json({ created, skipped, failed, results });

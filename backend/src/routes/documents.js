@@ -6,6 +6,7 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 router.get('/', authenticateToken, documentController.getAllDocuments);
 router.get('/requirements', authenticateToken, documentController.getRequirements);
 router.get('/statuses', authenticateToken, documentController.getStatuses);
+router.get('/types', authenticateToken, documentController.getDocumentTypes);
 
 // Print Queue routes — must be BEFORE /:id routes to avoid conflict
 router.get('/print-queue', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.getPrintQueue);

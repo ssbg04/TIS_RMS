@@ -450,13 +450,20 @@ exports.getAllDocuments = (req, res) => {
             if (types.length > 0) {
                 const typeConditions = [];
                 for (const t of types) {
-                    if (t === 'All JHS') {
+                    if (t === 'All JHS' || t === 'All JHS Requirements') {
                         typeConditions.push(`dr.category = 'JHS'`);
-                    } else if (t === 'All SHS') {
+                    } else if (t === 'All SHS' || t === 'All SHS Requirements') {
                         typeConditions.push(`dr.category = 'SHS'`);
                     } else {
-                        typeConditions.push(`(d.document_type = ? OR dr.name = ?)`);
-                        params.push(t, t);
+                        const cleanT = t.replace(/^(JHS|SHS)\s*-\s*/i, '').trim();
+                        typeConditions.push(`(
+                            d.document_type = ? 
+                            OR dr.name = ? 
+                            OR d.document_type = ? 
+                            OR d.document_type = ? 
+                            OR dr.name = ?
+                        )`);
+                        params.push(t, t, `JHS - ${cleanT}`, `SHS - ${cleanT}`, cleanT);
                     }
                 }
                 conditions.push(`(${typeConditions.join(' OR ')})`);
@@ -595,6 +602,60 @@ exports.getStatuses = (req, res) => {
         res.json(statuses);
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch statuses', error: error.message });
+    }
+};
+
+exports.getDocumentTypes = (req, res) => {
+    try {
+        const reqRows = db.prepare(`
+            SELECT DISTINCT name, category 
+            FROM document_requirements 
+            WHERE is_enabled = 1 
+            ORDER BY name ASC
+        `).all();
+
+        const docRows = db.prepare(`
+            SELECT DISTINCT document_type 
+            FROM documents 
+            WHERE document_type IS NOT NULL AND document_type != ''
+            ORDER BY document_type ASC
+        `).all();
+
+        const jhsSet = new Set();
+        const shsSet = new Set();
+        const generalSet = new Set();
+
+        for (const r of reqRows) {
+            const cleanName = r.name.replace(/^(JHS|SHS)\s*-\s*/i, '').trim();
+            if (r.category === 'JHS') {
+                jhsSet.add(cleanName);
+            } else if (r.category === 'SHS') {
+                shsSet.add(cleanName);
+            } else {
+                generalSet.add(cleanName);
+            }
+        }
+
+        for (const d of docRows) {
+            const dt = d.document_type.trim();
+            if (/^JHS\s*-\s*/i.test(dt)) {
+                jhsSet.add(dt.replace(/^JHS\s*-\s*/i, '').trim());
+            } else if (/^SHS\s*-\s*/i.test(dt)) {
+                shsSet.add(dt.replace(/^SHS\s*-\s*/i, '').trim());
+            } else if (dt) {
+                if (!jhsSet.has(dt) && !shsSet.has(dt)) {
+                    generalSet.add(dt);
+                }
+            }
+        }
+
+        res.json({
+            jhs: Array.from(jhsSet).sort(),
+            shs: Array.from(shsSet).sort(),
+            general: Array.from(generalSet).sort(),
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch document types', error: error.message });
     }
 };
 

@@ -10,7 +10,6 @@ import '../../../../domain/repositories/student_repository.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../providers/ocr_provider.dart';
 import '../../../providers/student_provider.dart';
-import '../../../providers/document_provider.dart';
 import '../../documents/widgets/document_preview_modal.dart';
 import '../../../shared/inputs/document_source_picker.dart';
 import 'ocr_enrollment_validation_modal.dart';
@@ -59,8 +58,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   final List<OcrEnrollmentPrefill> _ocrSavedEnrollments = [];
 
   File? _ocrScannedFile;
-  String _ocrScannedFileName = '';
-  String? _selectedOcrDocType;
 
   static const _extSuggestions = [
     'JR.',
@@ -297,7 +294,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     setState(() {
       _errorMessage = null;
       _ocrScannedFile = file;
-      _ocrScannedFileName = fileName;
     });
 
     String? docType = _detectDocType(fileName);
@@ -308,7 +304,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
 
     if (docType == null || !mounted) return;
     setState(() {
-      _selectedOcrDocType = docType;
       _isLoading = true;
     });
 
@@ -334,7 +329,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
           _selectedDob = _parseFlexibleDob(ocrResult.dob);
         }
         _ocrScannedFile = file;
-        _selectedOcrDocType = docType;
         _currentStep = 1;
       });
 
@@ -425,7 +419,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     setState(() => _isLoading = true);
     try {
       final notifier = ref.read(studentMutationProvider.notifier);
-      final studentId = await notifier.createStudent(
+      await notifier.createStudent(
         lrn: _lrnController.text.trim(),
         firstName: _firstNameController.text.trim(),
         middleName: _middleNameController.text.trim().isEmpty
@@ -444,56 +438,9 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         is4ps: _is4ps,
       );
 
-      // After the student's directory is created, upload the scanned
-      // SF9/SF10 document into it.
-      String? uploadError;
-      if (_ocrScannedFile != null) {
-        try {
-          final bytes = await _ocrScannedFile!.readAsBytes();
-          final docType = _selectedOcrDocType ?? 'SF9';
-          final originalName = _ocrScannedFileName.isEmpty
-              ? _ocrScannedFile!.path.split(RegExp(r'[\\/]')).last
-              : _ocrScannedFileName;
-          final ext = originalName.contains('.')
-              ? originalName.split('.').last
-              : 'pdf';
-          final lrn = _lrnController.text.trim();
-          final renamedFileName = '${docType}_$lrn.$ext';
-
-          await ref.read(documentRepositoryProvider).uploadDocumentBytes(
-            studentId: studentId,
-            documentType: docType,
-            fileName: renamedFileName,
-            bytes: bytes,
-          );
-        } catch (e) {
-          final raw = e.toString();
-          uploadError = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
-        }
-      }
-
       if (!mounted) return;
       ref.invalidate(studentPageProvider);
       if (mounted) setState(() => _isLoading = false);
-      if (uploadError != null) {
-        await showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Student Created - Upload Failed'),
-            content: Text(
-              'The student was created successfully, but the scanned '
-              'document could not be uploaded to their folder.\n\n'
-              '$uploadError',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -810,8 +757,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                   onPressed: () => setState(() {
                                     _errorMessage = null;
                                     _ocrScannedFile = null;
-                                    _ocrScannedFileName = '';
-                                    _selectedOcrDocType = null;
                                     _ocrSavedEnrollments.clear();
                                     _lrnController.text = '308035';
                                     _firstNameController.clear();

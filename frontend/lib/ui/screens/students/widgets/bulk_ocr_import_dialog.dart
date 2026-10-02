@@ -9,7 +9,6 @@ import 'package:desktop_drop/desktop_drop.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/entities/setup_models.dart';
-import '../../../providers/document_provider.dart';
 import '../../../providers/ocr_provider.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/setup_provider.dart';
@@ -773,49 +772,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           .read(studentMutationProvider.notifier)
           .bulkCreateStudents(payload);
 
-      // Auto-upload scanned documents for newly created students
-      final rawResults = result['results'];
-      if (rawResults is List) {
-        for (final r in rawResults) {
-          if (r is Map && r['status'] == 'created' && r['id'] != null) {
-            final studentId = r['id'] as int;
-            final studentLrn = (r['lrn'] ?? '').toString();
-            // Find corresponding _OcrItem with local scanned file
-            final matchingItem = validItems.cast<_OcrItem?>().firstWhere(
-              (item) =>
-                  item != null &&
-                  item.lrn.trim() == studentLrn.trim() &&
-                  !item.filePath.startsWith('csv_row_'),
-              orElse: () => null,
-            );
 
-            if (matchingItem != null) {
-              final localFile = File(matchingItem.filePath);
-              if (await localFile.exists()) {
-                try {
-                  final bytes = await localFile.readAsBytes();
-                  final docType = matchingItem.docType ?? 'SF9';
-                  final originalName = matchingItem.fileName;
-                  final ext = originalName.contains('.')
-                      ? originalName.split('.').last
-                      : 'pdf';
-                  // Renaming convention according to docType: e.g. SF9_308035123456.pdf or SF10_308035123456.pdf
-                  final renamedFileName = '${docType}_${matchingItem.lrn}.$ext';
-
-                  await ref.read(documentRepositoryProvider).uploadDocumentBytes(
-                    studentId: studentId,
-                    documentType: docType,
-                    fileName: renamedFileName,
-                    bytes: bytes,
-                  );
-                } catch (upErr) {
-                  debugPrint('Failed to auto-upload OCR doc for student $studentId: $upErr');
-                }
-              }
-            }
-          }
-        }
-      }
 
       setState(() {
         _importResult = result;

@@ -49,6 +49,21 @@ exports.createNotification = (userId, title, message, category = 'system', entit
         entityId,
         notificationId: notifId
     }).catch(() => {});
+
+    // Real-time WebSocket notification emission to active clients
+    try {
+        const { emitNotificationCreated } = require('../services/socketService');
+        emitNotificationCreated({
+            id: notifId,
+            userId: userId || null,
+            title,
+            message,
+            category,
+            entityType,
+            entityId,
+            createdAt: new Date().toISOString(),
+        });
+    } catch (_) {}
 };
 
 // POST /api/notifications/fcm-token

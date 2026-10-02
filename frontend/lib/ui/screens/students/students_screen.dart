@@ -1066,6 +1066,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
           _showSearchDialog(context);
         },
+        const SingleActivator(LogicalKeyboardKey.keyN, control: true): () {
+          _openModal();
+        },
       },
       child: Focus(
         focusNode: _shortcutFocusNode,
@@ -1232,7 +1235,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           height: (MediaQuery.of(context).size.width < 700 ||
                                   defaultTargetPlatform ==
                                       TargetPlatform.android)
-                              ? 76
+                              ? 0
                               : 16,
                         ),
                   orElse: () => const SizedBox.shrink(),
@@ -1339,6 +1342,30 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             _buildViewTabSwitcher(context),
 
             const Spacer(),
+
+            // Right: Filter Button for Android in header tabs
+            if (isAndroid) ...[
+              IconButton(
+                onPressed: () => StudentFilterDialog.show(
+                  context,
+                  query: query,
+                  isEnrolledTab: _viewTab == StudentViewTab.enrolled,
+                ),
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                icon: Badge(
+                  isLabelVisible: activeCount > 0,
+                  label: Text(activeCount.toString()),
+                  child: Icon(
+                    Icons.tune_rounded,
+                    size: 20,
+                    color: activeCount > 0
+                        ? AppColors.primaryGreen
+                        : (isDark ? AppColors.darkTextPrimary : Colors.black87),
+                  ),
+                ),
+              ),
+            ],
 
             // Right: Action buttons (desktop / non-android)
             if (!isAndroid) ...[
@@ -1677,7 +1704,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(
           top: isDesktop ? 10 : 14,
-          bottom: isDesktop ? 20 : 24,
+          bottom: isDesktop ? 20 : (defaultTargetPlatform == TargetPlatform.android ? 8 : 16),
         ),
         itemCount: students.length,
         separatorBuilder: (ctx, index) => SizedBox(

@@ -2317,9 +2317,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ),
                                       OutlinedButton.icon(
                                         onPressed: () async {
-                                          final uri = Uri.parse('https://github.com/ssbg04/TIS_RMS/issues');
-                                          if (await canLaunchUrl(uri)) {
-                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                          const url = 'https://github.com/ssbg04/TIS_RMS/issues';
+                                          final uri = Uri.parse(url);
+                                          bool launched = false;
+                                          try {
+                                            launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                            if (!launched) {
+                                              launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+                                            }
+                                          } catch (_) {}
+                                          if (!launched) {
+                                            await Clipboard.setData(const ClipboardData(text: url));
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Issue tracker link copied to clipboard: https://github.com/ssbg04/TIS_RMS/issues'),
+                                                  backgroundColor: AppColors.primaryGreen,
+                                                ),
+                                              );
+                                            }
                                           }
                                         },
                                         icon: const Icon(Icons.bug_report_outlined, size: 15),
@@ -2334,9 +2350,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ),
                                       OutlinedButton.icon(
                                         onPressed: () async {
-                                          final uri = Uri.parse('https://github.com/ssbg04/TIS_RMS');
-                                          if (await canLaunchUrl(uri)) {
-                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                          const url = 'https://github.com/ssbg04/TIS_RMS';
+                                          final uri = Uri.parse(url);
+                                          bool launched = false;
+                                          try {
+                                            launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                            if (!launched) {
+                                              launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+                                            }
+                                          } catch (_) {}
+                                          if (!launched) {
+                                            await Clipboard.setData(const ClipboardData(text: url));
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('GitHub repository link copied to clipboard: https://github.com/ssbg04/TIS_RMS'),
+                                                  backgroundColor: AppColors.primaryGreen,
+                                                ),
+                                              );
+                                            }
                                           }
                                         },
                                         icon: const Icon(Icons.code_rounded, size: 15),

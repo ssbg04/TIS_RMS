@@ -2006,7 +2006,7 @@ class _AddUserModalContentState extends ConsumerState<_AddUserModalContent> {
       }
 
       final username = _usernameCtrl.text.trim();
-      await ref.read(usersProvider.notifier).createUser(
+      final tempPassword = await ref.read(usersProvider.notifier).createUser(
             username: username,
             firstName: _firstNameCtrl.text.trim(),
             middleName: _middleNameCtrl.text.trim(),
@@ -2022,6 +2022,7 @@ class _AddUserModalContentState extends ConsumerState<_AddUserModalContent> {
       _showUserCreatedSuccessDialog(
         context,
         username: username,
+        temporaryPassword: tempPassword,
         email: _emailCtrl.text.trim(),
       );
     } catch (e) {
@@ -2401,6 +2402,7 @@ Widget _buildEmailDomainSuggestions(
 void _showUserCreatedSuccessDialog(
   BuildContext ctx, {
   required String username,
+  required String temporaryPassword,
   String? email,
 }) {
   final isDark = Theme.of(ctx).brightness == Brightness.dark;
@@ -2426,6 +2428,13 @@ void _showUserCreatedSuccessDialog(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _credentialRow(dialogCtx, 'Username', username),
+          const SizedBox(height: 10),
+          _credentialRow(
+            dialogCtx,
+            'Temporary Password',
+            temporaryPassword,
+            highlight: true,
+          ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),

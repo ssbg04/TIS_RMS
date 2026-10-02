@@ -253,6 +253,24 @@ class DocumentRepository {
     }
   }
 
+  Future<Map<String, List<String>>> getDocumentTypes() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get('/documents/types', options: options);
+      final data = response.data as Map<String, dynamic>;
+      return {
+        'jhs': (data['jhs'] as List? ?? []).map((e) => e.toString()).toList(),
+        'shs': (data['shs'] as List? ?? []).map((e) => e.toString()).toList(),
+        'general':
+            (data['general'] as List? ?? []).map((e) => e.toString()).toList(),
+      };
+    } on DioException catch (e) {
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to fetch document types.';
+      throw Exception(msg);
+    }
+  }
+
   Future<DocumentPage> getDocuments({
     String search = '',
     int page = 1,

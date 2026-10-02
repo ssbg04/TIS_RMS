@@ -216,13 +216,20 @@ exports.getArchivedDocuments = (req, res) => {
             if (types.length > 0) {
                 const typeConditions = [];
                 for (const t of types) {
-                    if (t === 'All JHS') {
+                    if (t === 'All JHS' || t === 'All JHS Requirements') {
                         typeConditions.push(`dr.category = 'JHS'`);
-                    } else if (t === 'All SHS') {
+                    } else if (t === 'All SHS' || t === 'All SHS Requirements') {
                         typeConditions.push(`dr.category = 'SHS'`);
                     } else {
-                        typeConditions.push(`(d.document_type = ? OR dr.name = ?)`);
-                        params.push(t, t);
+                        const cleanT = t.replace(/^(JHS|SHS)\s*-\s*/i, '').trim();
+                        typeConditions.push(`(
+                            d.document_type = ? 
+                            OR dr.name = ? 
+                            OR d.document_type = ? 
+                            OR d.document_type = ? 
+                            OR dr.name = ?
+                        )`);
+                        params.push(t, t, `JHS - ${cleanT}`, `SHS - ${cleanT}`, cleanT);
                     }
                 }
                 conditions.push(`(${typeConditions.join(' OR ')})`);
