@@ -14,7 +14,7 @@ const sanitizeFolderName = (str) =>
 // GET /api/folders — list folders (manual + auto-created)
 // ============================================================
 exports.getFolders = (req, res) => {
-    const { studentId, parentId, search = '' } = req.query;
+    const { studentId, parentId, search = '', gradeLevel = '', section = '', academicYear = '' } = req.query;
     const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
     const teacherId = req.user?.id;
 
@@ -30,11 +30,13 @@ exports.getFolders = (req, res) => {
         `).run();
 
         const conditions = [];
-        const params = [];
+        const whereParams = [];
+        const enrollmentParams = [];
+        const teacherParams = [];
 
         if (studentId) {
             conditions.push('f.student_id = ?');
-            params.push(studentId);
+            whereParams.push(studentId);
         }
 
         if (parentId !== undefined) {
@@ -42,17 +44,62 @@ exports.getFolders = (req, res) => {
                 conditions.push('f.parent_id IS NULL');
             } else {
                 conditions.push('f.parent_id = ?');
-                params.push(parseInt(parentId));
+                whereParams.push(parseInt(parentId));
             }
+        } else if (!studentId) {
+            conditions.push('f.parent_id IS NULL');
         }
 
         if (search.trim()) {
             conditions.push('f.name LIKE ?');
-            params.push(`%${search.trim().split('').join('%' )}%`);
+            whereParams.push(`%${search.trim().split('').join('%')}%`);
         }
 
         // Only show folders for Enrolled students (or manual subfolders)
         conditions.push("(f.student_id IS NULL OR s.status = 'Enrolled')");
+
+        // Resolve target academic year: explicitly requested or active academic year
+        let targetYearRange = academicYear.trim();
+        if (!targetYearRange || targetYearRange === 'All Years') {
+            const activeAy = db.prepare("SELECT year_range FROM academic_years WHERE LOWER(status) = 'active' LIMIT 1").get();
+            if (activeAy) {
+                targetYearRange = activeAy.year_range;
+            }
+        }
+
+        let enrollmentJoin = '';
+        if (gradeLevel.trim() || section.trim() || targetYearRange) {
+            enrollmentJoin = `JOIN (
+                SELECT e1.student_id, e1.grade_level, sec.name as section_name
+                FROM enrollments e1
+                JOIN academic_years ay1 ON e1.academic_year_id = ay1.id
+                LEFT JOIN sections sec ON e1.section_id = sec.id
+                WHERE e1.id = (
+                    SELECT e2.id
+                    FROM enrollments e2
+                    JOIN academic_years ay2 ON e2.academic_year_id = ay2.id
+                    WHERE e2.student_id = e1.student_id
+                      ${targetYearRange ? 'AND ay2.year_range = ?' : "AND LOWER(ay2.status) = 'active'"}
+                    ORDER BY e2.id DESC
+                    LIMIT 1
+                )
+            ) latest_enr ON latest_enr.student_id = f.student_id`;
+            if (targetYearRange) {
+                enrollmentParams.push(targetYearRange);
+            }
+
+            if (gradeLevel.trim()) {
+                const gradeMatch = gradeLevel.match(/\d+/);
+                if (gradeMatch) {
+                    conditions.push('latest_enr.grade_level = ?');
+                    whereParams.push(parseInt(gradeMatch[0]));
+                }
+            }
+            if (section.trim()) {
+                conditions.push('latest_enr.section_name = ?');
+                whereParams.push(section.trim());
+            }
+        }
 
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -65,7 +112,7 @@ exports.getFolders = (req, res) => {
                 JOIN teacher_sections ts_sub ON e_sub.section_id = ts_sub.section_id
                 WHERE ts_sub.teacher_id = ?
             ) ts_scope ON ts_scope.student_id = f.student_id`;
-            params.unshift(teacherId);
+            teacherParams.push(teacherId);
         }
 
         const sql = `
@@ -101,6 +148,7 @@ exports.getFolders = (req, res) => {
                    ) as shs_completed
             FROM document_folders f
             ${teacherJoinSql}
+            ${enrollmentJoin}
             LEFT JOIN students s ON f.student_id = s.id
             LEFT JOIN users u ON f.created_by = u.id
             LEFT JOIN deleted_users_history dh ON f.created_by = dh.deleted_user_id
@@ -108,7 +156,8 @@ exports.getFolders = (req, res) => {
             ORDER BY f.name ASC
         `;
 
-        const folders = db.prepare(sql).all(params);
+        const finalParams = [...teacherParams, ...enrollmentParams, ...whereParams];
+        const folders = db.prepare(sql).all(...finalParams);
         res.json(folders);
     } catch (error) {
         console.error('getFolders error:', error);

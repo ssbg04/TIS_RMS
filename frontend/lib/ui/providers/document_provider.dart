@@ -20,6 +20,7 @@ class DocumentQueryParams {
   final String documentType;
   final String gradeLevel;
   final String schoolYear;
+  final String section;
   // Optional: filter by specific student (for "Open Documents Folder" redirect)
   final int? studentId;
 
@@ -31,6 +32,7 @@ class DocumentQueryParams {
     this.documentType = 'All Types',
     this.gradeLevel = '',
     this.schoolYear = '',
+    this.section = '',
     this.studentId,
   });
 
@@ -42,6 +44,7 @@ class DocumentQueryParams {
     String? documentType,
     String? gradeLevel,
     String? schoolYear,
+    String? section,
     int? studentId,
     bool clearStudentId = false,
   }) {
@@ -53,6 +56,7 @@ class DocumentQueryParams {
       documentType: documentType ?? this.documentType,
       gradeLevel: gradeLevel ?? this.gradeLevel,
       schoolYear: schoolYear ?? this.schoolYear,
+      section: section ?? this.section,
       studentId: clearStudentId ? null : (studentId ?? this.studentId),
     );
   }
@@ -100,6 +104,8 @@ class DocumentQueryNotifier extends Notifier<DocumentQueryParams> {
       state = state.copyWith(gradeLevel: gradeLevel, page: 1);
   void setSchoolYear(String schoolYear) =>
       state = state.copyWith(schoolYear: schoolYear, page: 1);
+  void setSection(String section) =>
+      state = state.copyWith(section: section, page: 1);
 
   /// Navigate to a specific student's documents
   void setStudentId(int? studentId) {
@@ -153,7 +159,12 @@ final studentFoldersProvider = FutureProvider.autoDispose<List<FolderModel>>((
 ) async {
   final query = ref.watch(documentQueryProvider);
   final repo = ref.read(documentRepositoryProvider);
-  return repo.getFolders(search: query.search);
+  return repo.getFolders(
+    search: query.search,
+    academicYear: query.schoolYear.isNotEmpty && query.schoolYear != 'All Years' ? query.schoolYear : null,
+    gradeLevel: query.gradeLevel.isNotEmpty && query.gradeLevel != 'All Grades' ? query.gradeLevel : null,
+    section: query.section.isNotEmpty && query.section != 'All Sections' ? query.section : null,
+  );
 });
 
 // ============================================================

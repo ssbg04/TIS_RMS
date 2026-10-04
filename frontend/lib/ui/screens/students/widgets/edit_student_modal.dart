@@ -20,12 +20,14 @@ class EditStudentModal extends ConsumerStatefulWidget {
   final StudentModel student;
   final bool isDialog;
   final int initialTabIndex;
+  final String userRole;
 
   const EditStudentModal({
     super.key,
     required this.student,
     this.isDialog = false,
     this.initialTabIndex = 0,
+    this.userRole = 'teacher',
   });
 
   @override
@@ -401,7 +403,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
           items: _availableStatuses
               .map((s) => DropdownMenuItem(value: s, child: Text(s)))
               .toList(),
-          onChanged: (v) {
+          onChanged: widget.userRole == 'teacher' ? null : (v) {
             if (v == null) return;
             if (v == 'Graduated') {
               if (!_hasGraduationEligibleGrade()) {
@@ -435,6 +437,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                   controller: _lrnController,
                   keyboardType: TextInputType.number,
                   maxLength: 12,
+                  readOnly: widget.userRole == 'teacher',
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: _validateLRN,
                   decoration: const InputDecoration(
@@ -1015,7 +1018,8 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                                 ],
                               ),
                             ),
-                            IconButton(
+                            if (widget.userRole != 'teacher')
+                              IconButton(
                               icon: const Icon(Icons.edit,
                                   size: 18, color: Colors.blue),
                               tooltip: 'Edit Enrollment',
@@ -1037,7 +1041,8 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                                 });
                               },
                             ),
-                            IconButton(
+                            if (widget.userRole != 'teacher')
+                              IconButton(
                               icon: const Icon(
                                 Icons.delete_outline,
                                 size: 18,
@@ -1124,20 +1129,22 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                 tooltip: 'Close',
               ),
             ],
-            bottom: TabBar(
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white70,
-              indicatorColor: Colors.white,
-              indicatorWeight: 3,
-              tabs: [
-                Tab(
-                    icon: (!kIsWeb && Platform.isAndroid) ? null : const Icon(Icons.person_outline, size: 20),
-                    text: 'Student Details'),
-                Tab(
-                    icon: (!kIsWeb && Platform.isAndroid) ? null : const Icon(Icons.school_outlined, size: 20),
-                    text: 'Enrollments'),
-              ],
-            ),
+            bottom: widget.userRole == 'teacher'
+                ? null
+                : TabBar(
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white70,
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 3,
+                    tabs: [
+                      Tab(
+                          icon: (!kIsWeb && Platform.isAndroid) ? null : const Icon(Icons.person_outline, size: 20),
+                          text: 'Student Details'),
+                      Tab(
+                          icon: (!kIsWeb && Platform.isAndroid) ? null : const Icon(Icons.school_outlined, size: 20),
+                          text: 'Enrollments'),
+                    ],
+                  ),
           ),
           body: GestureDetector(
             onTap: () {
@@ -1154,12 +1161,14 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                       minHeight: 3,
                     ),
                   Expanded(
-                    child: TabBarView(
-                      children: [
-                        _buildStudentDetailsTab(),
-                        _buildEnrollmentsTab(),
-                      ],
-                    ),
+                    child: widget.userRole == 'teacher'
+                        ? _buildStudentDetailsTab()
+                        : TabBarView(
+                            children: [
+                              _buildStudentDetailsTab(),
+                              _buildEnrollmentsTab(),
+                            ],
+                          ),
                   ),
                 ],
               ),

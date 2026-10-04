@@ -470,12 +470,23 @@ exports.getAllDocuments = (req, res) => {
             }
         }
 
-        if (gradeLevel.trim()) {
-            conditions.push(`e.grade_level = ?`);
-            params.push(gradeLevel.trim());
+                if (gradeLevel.trim()) {
+            const gradeMatch = gradeLevel.trim().match(/\d+/);
+            if (gradeMatch) {
+                conditions.push(`e.grade_level = ?`);
+                params.push(parseInt(gradeMatch[0]));
+            }
         }
 
         if (schoolYear.trim()) {
+            conditions.push(`ay.year_range = ?`);
+            params.push(schoolYear.trim());
+        } else {
+            conditions.push(`LOWER(ay.status) = ?`);
+            params.push('active');
+        }
+
+        if (false) {
             conditions.push(`ay.year_range = ?`);
             params.push(schoolYear.trim());
         }

@@ -18,6 +18,7 @@ import 'widgets/edit_student_modal.dart';
 import 'widgets/bulk_ocr_import_dialog.dart';
 import 'widgets/student_filter_dialog.dart';
 import 'widgets/student_bulk_actions.dart';
+import 'widgets/bulk_enrollment_modal.dart';
 import '../../providers/setup_provider.dart';
 import '../../shared/inputs/app_search_bar.dart';
 import '../../providers/navigation_provider.dart';
@@ -281,6 +282,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       student: student,
                       isDialog: true,
                       initialTabIndex: initialTabIndex,
+                      userRole: widget.userRole,
                     ),
             ),
           ),
@@ -294,6 +296,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               : EditStudentModal(
                   student: student,
                   initialTabIndex: initialTabIndex,
+                  userRole: widget.userRole,
                 ),
         ),
       );
@@ -1458,6 +1461,39 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 ),
               ],
 
+              if (widget.userRole == 'admin' || widget.userRole == 'super_admin') ...[
+                const SizedBox(width: 6),
+                Tooltip(
+                  message: 'Bulk Enroll Students (CSV)',
+                  child: SizedBox(
+                    height: 36,
+                    child: OutlinedButton.icon(
+                      onPressed: () => BulkEnrollmentModal.show(context),
+                      icon: const Icon(Icons.school_outlined, size: 16),
+                      label: Text(
+                        isDesktop ? 'Bulk Enroll' : 'Enroll',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? Colors.white : AppColors.darkGreen,
+                        side: BorderSide(
+                          color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isDesktop ? 12 : 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
               // Bulk Import button (hidden on Windows)
               if (!isWindows && widget.userRole != 'teacher') ...[
                 const SizedBox(width: 6),
@@ -1538,23 +1574,25 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             icon: Icons.school_outlined,
             activeIcon: Icons.school_rounded,
             label: isMobile ? 'Enrolled' : 'Enrolled$yearLabel',
-            isSelected: isEnrolled,
+            isSelected: widget.userRole == 'teacher' ? true : isEnrolled,
             isDark: isDark,
             isMobile: isMobile,
             isMobileOrAndroid: isMobileOrAndroid,
-            onTap: () => _applyViewTab(StudentViewTab.enrolled),
+            onTap: widget.userRole == 'teacher' ? () {} : () => _applyViewTab(StudentViewTab.enrolled),
           ),
-          const SizedBox(width: 2),
-          _buildSegmentedTabItem(
-            icon: Icons.people_outline_rounded,
-            activeIcon: Icons.people_alt_rounded,
-            label: isMobile ? 'All' : 'All Students',
-            isSelected: !isEnrolled,
-            isDark: isDark,
-            isMobile: isMobile,
-            isMobileOrAndroid: isMobileOrAndroid,
-            onTap: () => _applyViewTab(StudentViewTab.all),
-          ),
+          if (widget.userRole != 'teacher') ...[
+            const SizedBox(width: 2),
+            _buildSegmentedTabItem(
+              icon: Icons.people_outline_rounded,
+              activeIcon: Icons.people_alt_rounded,
+              label: isMobile ? 'All' : 'All Students',
+              isSelected: !isEnrolled,
+              isDark: isDark,
+              isMobile: isMobile,
+              isMobileOrAndroid: isMobileOrAndroid,
+              onTap: () => _applyViewTab(StudentViewTab.all),
+            ),
+          ],
         ],
       ),
     );

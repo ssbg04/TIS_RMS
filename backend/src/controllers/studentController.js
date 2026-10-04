@@ -255,8 +255,8 @@ exports.getAllStudents = (req, res) => {
                    SELECT e.id FROM enrollments e
                    JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
                    WHERE e.student_id = s.id
-                     ${filterYearRange ? 'AND ay_inner.year_range = ?' : ''}
-                   ORDER BY e.grade_level DESC, ay_inner.year_range DESC, e.id DESC LIMIT 1
+                     ${filterYearRange ? 'AND ay_inner.year_range = ?' : 'AND LOWER(ay_inner.status) = \'active\''}
+                   ORDER BY e.grade_level DESC, e.id DESC LIMIT 1
                )
                LEFT JOIN sections sec ON sec.id = e_latest.section_id
                JOIN academic_years ay ON ay.id = e_latest.academic_year_id`;
@@ -265,9 +265,12 @@ exports.getAllStudents = (req, res) => {
             }
         }
 
-        if (gradeLevel.trim()) {
-            conditions.push(`e_latest.grade_level = ?`);
-            whereParams.push(parseInt(gradeLevel));
+                if (gradeLevel.trim()) {
+            const gradeMatch = gradeLevel.trim().match(/\d+/);
+            if (gradeMatch) {
+                conditions.push(`e_latest.grade_level = ?`);
+                whereParams.push(parseInt(gradeMatch[0]));
+            }
         }
         if (section.trim()) {
             conditions.push(`sec.name = ?`);
@@ -793,6 +796,56 @@ exports.deleteStudent = (req, res) => {
     } catch (error) {
         console.error('deleteStudent error:', error);
         res.status(500).json({ message: 'Failed to delete student.', error: error.message });
+    }
+};
+
+// ============================================================
+// POST /api/students/verify-lrns
+// ============================================================
+exports.verifyLrns = (req, res) => {
+    const { lrns } = req.body;
+    if (!Array.isArray(lrns)) {
+        return res.status(400).json({ message: 'lrns must be an array' });
+    }
+
+    try {
+        const uniqueLrns = [...new Set(lrns.map(l => String(l).trim()).filter(l => l.length > 0))];
+        if (uniqueLrns.length === 0) {
+            return res.json({ verified: [] });
+        }
+
+        const placeholders = uniqueLrns.map(() => '?').join(',');
+        const foundStudents = db.prepare(`
+            SELECT id, lrn, first_name, last_name, status 
+            FROM students 
+            WHERE lrn IN (${placeholders})
+        `).all(...uniqueLrns);
+
+        const foundMap = new Map(foundStudents.map(s => [s.lrn, s]));
+
+        const verified = uniqueLrns.map(lrn => {
+            const st = foundMap.get(lrn);
+            if (st) {
+                return {
+                    lrn,
+                    studentId: st.id,
+                    firstName: st.first_name,
+                    lastName: st.last_name,
+                    status: st.status,
+                    found: true
+                };
+            } else {
+                return {
+                    lrn,
+                    found: false
+                };
+            }
+        });
+
+        res.json({ verified });
+    } catch (error) {
+        console.error('verifyLrns error:', error);
+        res.status(500).json({ message: 'Failed to verify LRNs', error: error.message });
     }
 };
 

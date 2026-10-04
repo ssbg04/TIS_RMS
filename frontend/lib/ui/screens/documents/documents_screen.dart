@@ -10,6 +10,8 @@ import '../../shared/inputs/app_search_bar.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/student_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/setup_provider.dart';
+import '../../../domain/entities/setup_models.dart';
 import '../../shared/dialogs/document_properties_dialog.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
@@ -32,6 +34,7 @@ import 'widgets/student_archives_modal.dart';
 import 'widgets/bulk_operations_bar.dart';
 import 'widgets/styled_folder_icon.dart';
 import '../../../domain/entities/document_model.dart';
+import 'widgets/folder_filter_dialog.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -67,7 +70,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   String _selectedStatus = 'All Statuses';
   String _selectedDocumentType = 'All Types';
   String _selectedGradeLevel = 'All Grades';
-  String _selectedSchoolYear = 'All Years';
+  String _selectedSection = 'All Sections';
 
   // Cached doc type lists for filter expansion
   List<String> _jhsItems = [];
@@ -105,8 +108,26 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       }
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+      // Initialize active academic year in background for folder filtering
+      if (ref.read(documentQueryProvider).schoolYear.isEmpty) {
+        List<AcademicYearModel> years =
+            ref.read(academicYearsListProvider).asData?.value ?? [];
+        if (years.isEmpty) {
+          try {
+            years = await ref.read(academicYearsListProvider.future);
+          } catch (_) {}
+        }
+        final active = years.cast<AcademicYearModel?>().firstWhere(
+          (y) => y?.status.toLowerCase() == 'active',
+          orElse: () => null,
+        );
+        if (active != null && active.yearRange.isNotEmpty && mounted) {
+          ref.read(documentQueryProvider.notifier).setSchoolYear(active.yearRange);
+        }
+      }
+
       // If a specific student was passed, jump to Folders tab and open that folder
       final initialFolder = ref.read(openedFolderProvider);
       if (initialFolder != null) {
@@ -260,22 +281,47 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     n.setGradeLevel(
       _selectedGradeLevel == 'All Grades' ? '' : _selectedGradeLevel,
     );
-    n.setSchoolYear(
-      _selectedSchoolYear == 'All Years' ? '' : _selectedSchoolYear,
+    n.setSection(
+      _selectedSection == 'All Sections' ? '' : _selectedSection,
     );
   }
 
   void _clearFilters() {
+    final activeYear = ref.read(academicYearsListProvider).asData?.value.cast<AcademicYearModel?>().firstWhere(
+      (y) => y?.status.toLowerCase() == 'active',
+      orElse: () => null,
+    );
+    final activeYearRange = activeYear?.yearRange ?? '';
+
     setState(() {
       _foldersPage = 1;
       _selectedStatus = 'All Statuses';
       _selectedDocumentType = 'All Types';
       _selectedGradeLevel = 'All Grades';
-      _selectedSchoolYear = 'All Years';
+      _selectedSection = 'All Sections';
       _searchController.clear();
     });
     ref.read(documentQueryProvider.notifier).reset();
+    if (activeYearRange.isNotEmpty) {
+      ref.read(documentQueryProvider.notifier).setSchoolYear(activeYearRange);
+    }
     _applyFilters();
+  }
+
+  void _showFolderFilterDialog(BuildContext context) {
+    final currentQuery = ref.read(documentQueryProvider);
+    FolderFilterDialog.show(context, query: currentQuery).then((_) {
+      if (!mounted) return;
+      // Re-read query in case it was updated by the dialog
+      final updatedQuery = ref.read(documentQueryProvider);
+      setState(() {
+        _selectedGradeLevel = updatedQuery.gradeLevel.isEmpty ? 'All Grades' : updatedQuery.gradeLevel;
+        _selectedSection = updatedQuery.section.isEmpty ? 'All Sections' : updatedQuery.section;
+      });
+      // The dialog already updates the notifier, so we just invalidate the providers
+      ref.invalidate(foldersProvider);
+      ref.invalidate(studentFoldersProvider);
+    });
   }
 
   void _handleAction(String action, DocumentModel document) async {
@@ -683,7 +729,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final requirementsAsync = ref.watch(documentRequirementsProvider);
     final academicYearsAsync = ref.watch(academicYearsProvider);
     final statusesAsync = ref.watch(documentStatusesProvider);
-    final foldersAsync = ref.watch(foldersProvider);
+    final foldersAsync = ref.watch(studentFoldersProvider);
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 700;
     final isStudentFiltered = query.studentId != null;
@@ -1234,6 +1280,32 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               const SizedBox(width: 2),
             ],
 
+            // Folder Filters (Academic Year, Grade Level, Section)
+            if (_tabController.index == 0 && !isFolderOpened) ...[
+              Tooltip(
+                message: 'Folder Filters',
+                child: IconButton(
+                  onPressed: () {
+                    _showFolderFilterDialog(context);
+                  },
+                  icon: Badge(
+                    isLabelVisible: _getFolderFilterCount() > 0,
+                    label: Text(_getFolderFilterCount().toString()),
+                    child: Icon(
+                      Icons.filter_list_rounded,
+                      size: 20,
+                      color: _getFolderFilterCount() > 0
+                          ? AppColors.primaryGreen
+                          : (isDark ? AppColors.darkTextPrimary : Colors.black87),
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                ),
+              ),
+              const SizedBox(width: 2),
+            ],
+
             // Filter button (Dropdown only for Document Type, between Search and Upload/Bulk Add)
             if (_tabController.index == 1 || isFolderOpened) ...[
               PopupMenuButton<String>(
@@ -1460,11 +1532,17 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     );
   }
 
+  int _getFolderFilterCount() {
+    int count = 0;
+    if (_selectedGradeLevel != 'All Grades' && _selectedGradeLevel.isNotEmpty) count++;
+    if (_selectedSection != 'All Sections' && _selectedSection.isNotEmpty) count++;
+    return count;
+  }
+
   int _getActiveFilterCount() {
     int count = 0;
     if (_selectedDocumentType != 'All Types') count++;
     if (_selectedGradeLevel != 'All Grades') count++;
-    if (_selectedSchoolYear != 'All Years') count++;
     return count;
   }
 
@@ -1768,13 +1846,16 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'You have no sections assigned to your account yet.\nContact your administrator to assign sections.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      fontSize: 13,
-                      height: 1.5,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Text(
+                      'You have no sections assigned to your account yet.\nContact your administrator to assign sections.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
                     ),
                   ),
                 ],
@@ -2430,13 +2511,16 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'You have no sections assigned to your account yet.\nContact your administrator to assign sections.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                fontSize: 13,
-                height: 1.5,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Text(
+                'You have no sections assigned to your account yet.\nContact your administrator to assign sections.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
               ),
             ),
           ],
@@ -2468,7 +2552,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ),
           if (_selectedDocumentType != 'All Types' ||
               _selectedGradeLevel != 'All Grades' ||
-              _selectedSchoolYear != 'All Years' ||
               _searchController.text.isNotEmpty) ...[
             const SizedBox(height: 16),
             TextButton.icon(

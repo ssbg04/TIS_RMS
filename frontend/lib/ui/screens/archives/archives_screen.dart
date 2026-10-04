@@ -2281,12 +2281,15 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
           ),
           const SizedBox(height: 16),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              ),
             ),
           ),
         ],

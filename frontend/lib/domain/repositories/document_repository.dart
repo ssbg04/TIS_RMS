@@ -574,6 +574,9 @@ class DocumentRepository {
     int? studentId,
     int? parentId,
     String search = '',
+    String? academicYear,
+    String? gradeLevel,
+    String? section,
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -583,6 +586,9 @@ class DocumentRepository {
           if (studentId != null) 'studentId': studentId,
           if (parentId != null) 'parentId': parentId.toString(),
           if (search.trim().isNotEmpty) 'search': search.trim(),
+          if (academicYear != null) 'academicYear': academicYear,
+          if (gradeLevel != null) 'gradeLevel': gradeLevel,
+          if (section != null) 'section': section,
         },
         options: options,
       );
