@@ -14,10 +14,12 @@ router.post('/bulk-enroll', authenticateToken, authorizeRoles('admin'), studentC
 router.post('/bulk-ocr-import', authenticateToken, authorizeRoles('admin'), studentController.bulkCreateStudents);
 router.put('/bulk-graduate', authenticateToken, authorizeRoles('admin'), studentController.bulkGraduate);
 router.post('/bulk-status', authenticateToken, authorizeRoles('admin'), studentController.bulkStatusStudents);
-router.put('/:id',  authenticateToken, authorizeRoles('admin'), studentController.updateStudent);
+router.put('/:id',  authenticateToken, authorizeRoles('admin', 'teacher'), studentController.updateStudent);
 router.delete('/:id', authenticateToken, authorizeRoles('admin'), studentController.deleteStudent);
 
 router.post('/:id/enrollments', authenticateToken, authorizeRoles('admin'), studentController.addEnrollment);
+router.post('/:id/verify-enrollments', authenticateToken, authorizeRoles('admin'), studentController.verifyStudentEnrollments);
+router.post('/:id/bulk-enrollments', authenticateToken, authorizeRoles('admin'), studentController.bulkAddStudentEnrollments);
 router.post('/:id/ocr-enrollment', authenticateToken, authorizeRoles('admin'), studentController.scanEnrollmentFromSF);
 router.put('/enrollments/:enrollmentId', authenticateToken, authorizeRoles('admin'), studentController.updateEnrollment);
 router.delete('/enrollments/:enrollmentId', authenticateToken, authorizeRoles('admin'), studentController.deleteEnrollment);

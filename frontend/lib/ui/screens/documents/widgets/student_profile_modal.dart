@@ -103,7 +103,7 @@ class _StudentProfileDialogShellState
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasDelete =
         (widget.onDelete != null || widget.onDeleteById != null) &&
-            widget.userRole != 'teacher';
+            widget.userRole.toLowerCase() != 'teacher';
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -179,7 +179,9 @@ class _StudentProfileDialogShellState
                       hideEnrollmentActions: widget.hideEnrollmentActions,
                       onEditDetails: widget.onEditDetailsById != null
                           ? () => widget.onEditDetailsById!(_currentStudentId)
-                          : null,
+                          : (widget.onEditById != null
+                              ? () => widget.onEditById!(_currentStudentId)
+                              : widget.onEdit),
                       onEditEnrollment: widget.onEditEnrollmentById != null
                           ? () => widget.onEditEnrollmentById!(_currentStudentId)
                           : null,
@@ -392,7 +394,7 @@ class StudentProfileModalBody extends ConsumerWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                if (onEditEnrollment != null && userRole != 'teacher')
+                if (onEditEnrollment != null && userRole.toLowerCase() != 'teacher')
                   Tooltip(
                     message: 'Manage or Add Enrollments',
                     child: InkWell(
@@ -595,7 +597,7 @@ class StudentProfileModalBody extends ConsumerWidget {
                     _buildStatusBadge(student.status),
                   ],
                 ),
-                if (onEditDetails != null && userRole != 'teacher') ...[
+                if (onEditDetails != null) ...[
                   const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
@@ -689,7 +691,7 @@ class StudentProfileModalBody extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildStatusBadge(student.status),
-                        if (onEditDetails != null && userRole != 'teacher') ...[
+                        if (onEditDetails != null) ...[
                           const SizedBox(height: 6),
                           Tooltip(
                             message: 'Edit Student Details',
@@ -950,7 +952,7 @@ class StudentProfileModalBody extends ConsumerWidget {
               ],
             ),
           ),
-          if (onEditEnrollment != null && userRole != 'teacher')
+          if (onEditEnrollment != null && userRole.toLowerCase() != 'teacher')
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 18),
               color: AppColors.primaryGreen,

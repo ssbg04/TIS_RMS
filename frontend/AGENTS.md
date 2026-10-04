@@ -1040,6 +1040,14 @@ Files backup/restore - mirror mode or zip -->
 <!-- # HISTORY SCREEN
 - [x] add keyboard shortcut Ctrl + F for search (implemented CallbackShortcuts and FocusNode in AuditTrailScreen to invoke search dialog on Ctrl+F) -->
 
+
+# STUDENT SCREEN
+- [x] student profile modal enrollment tab, (Admin Only: Administrators can add and edit enrollments, with support for CSV bulk enrollment for 1 student to enroll multiple records across school years with live progression verification with backend. Features interactive editable CSV text area with sample format reference, Fill Example, and real-time backend verification)
+  - Admin Only: Administrators can add and edit enrollments, with support for CSV bulk enrollment and live verification with the backend.
+  - csv input add sample format then they can type on it 
+  
+
+
 ---
 
 

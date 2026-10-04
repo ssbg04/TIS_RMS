@@ -6,6 +6,8 @@ import '../../../shared/modals/custom_modal.dart';
 import '../../../shared/widgets/app_button_loader.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/setup_provider.dart';
+import '../../../providers/auth_provider.dart';
+import 'student_csv_enrollment_modal.dart';
 import '../../../../domain/entities/setup_models.dart';
 import '../../../../domain/entities/student_model.dart';
 
@@ -362,6 +364,12 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
     final allSections = sectionsAsync.asData?.value ?? [];
 
     final studentDetail = studentDetailAsync.asData?.value;
+    final studentName = studentDetail != null
+        ? '${studentDetail.firstName} ${studentDetail.lastName}'
+        : 'Student';
+    final studentLrn = studentDetail?.lrn ?? '';
+    final currentUserRole = ref.watch(authProvider).value?.role ?? 'teacher';
+    final isAdmin = currentUserRole == 'admin' || currentUserRole == 'super_admin';
     final enrollments =
         studentDetail?.enrollments ?? <EnrollmentModel>[];
     final sortedEnrollments = List<EnrollmentModel>.from(enrollments)
@@ -689,6 +697,35 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                         ),
                       ),
                     ),
+                    if (isAdmin) ...[
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          StudentCsvEnrollmentModal.show(
+                            context,
+                            studentId: widget.studentId,
+                            studentName: studentName,
+                            studentLrn: studentLrn,
+                          ).then((imported) {
+                            if (imported == true && mounted) {
+                              ref.invalidate(
+                                studentDetailProvider(widget.studentId),
+                              );
+                              ref.invalidate(studentPageProvider);
+                            }
+                          });
+                        },
+                        icon: const Icon(Icons.playlist_add_rounded, size: 15),
+                        label: const Text('Bulk CSV', style: TextStyle(fontSize: 11)),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
                     if (studentDetailAsync.isLoading)
                       const SizedBox(
                         width: 16,

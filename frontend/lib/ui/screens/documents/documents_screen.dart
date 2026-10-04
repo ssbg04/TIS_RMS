@@ -1873,12 +1873,16 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   color: isDark ? AppColors.darkTextMuted : Colors.grey.shade300,
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  'No Student Folders',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Text(
+                    'No Student Folders',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ],

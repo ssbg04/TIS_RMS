@@ -12,6 +12,7 @@ import '../../../shared/dialogs/error_dialog.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/setup_provider.dart';
 import 'edit_enrollment_modal.dart';
+import 'student_csv_enrollment_modal.dart';
 import 'ocr_enrollment_validation_modal.dart';
 import 'student_form_helpers.dart';
 import '../../../shared/widgets/app_button_loader.dart';
@@ -58,6 +59,8 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
   // Cache of all enrollments loaded for the student being edited
   List<EnrollmentModel>? _loadedEnrollments;
   int _statusDropdownKey = 0;
+
+  bool get _isTeacher => widget.userRole.toLowerCase() == 'teacher';
 
   static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped'];
   static const _extSuggestions = [
@@ -299,7 +302,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
       return;
     }
 
-    if (_selectedStatus == 'Graduated') {
+    if (!_isTeacher && _selectedStatus == 'Graduated') {
       if (!_hasGraduationEligibleGrade()) {
         final latestGrade = _getLatestGradeLevel();
         _showValidationDialog(
@@ -395,15 +398,17 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
           initialValue: _selectedStatus,
           decoration: InputDecoration(
             labelText: 'STATUS',
-            prefixIcon: const Icon(Icons.info_outline),
-            helperText: !isEligibleForGraduation
-                ? 'Graduation requires Grade 10 or 12 (${currentGrade != null ? 'Grade $currentGrade' : 'No Grade 10/12'})'
-                : null,
+            prefixIcon: Icon(_isTeacher ? Icons.lock_outline : Icons.info_outline),
+            helperText: _isTeacher
+                ? 'Status can only be modified by administrators'
+                : (!isEligibleForGraduation
+                    ? 'Graduation requires Grade 10 or 12 (${currentGrade != null ? 'Grade $currentGrade' : 'No Grade 10/12'})'
+                    : null),
           ),
           items: _availableStatuses
               .map((s) => DropdownMenuItem(value: s, child: Text(s)))
               .toList(),
-          onChanged: widget.userRole == 'teacher' ? null : (v) {
+          onChanged: _isTeacher ? null : (v) {
             if (v == null) return;
             if (v == 'Graduated') {
               if (!_hasGraduationEligibleGrade()) {
@@ -437,13 +442,14 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                   controller: _lrnController,
                   keyboardType: TextInputType.number,
                   maxLength: 12,
-                  readOnly: widget.userRole == 'teacher',
+                  readOnly: _isTeacher,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: _validateLRN,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'LRN (Learner Reference Number)',
                     hintText: '12-digit number',
-                    prefixIcon: Icon(Icons.pin_outlined),
+                    prefixIcon: Icon(_isTeacher ? Icons.lock_outline : Icons.pin_outlined),
+                    helperText: _isTeacher ? 'LRN can only be modified by administrators' : null,
                     counterText: '',
                   ),
                 ),
@@ -796,6 +802,38 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
             ),
           );
 
+          if (_isTeacher) {
+            return const SizedBox.shrink();
+          }
+
+          final bulkEnrollButton = OutlinedButton.icon(
+            onPressed: () {
+              StudentCsvEnrollmentModal.show(
+                context,
+                studentId: widget.student.id,
+                studentName:
+                    '${widget.student.firstName} ${widget.student.lastName}',
+                studentLrn: widget.student.lrn,
+              ).then((imported) {
+                if (imported == true && mounted) {
+                  ref.invalidate(studentDetailProvider(widget.student.id));
+                  ref.invalidate(studentPageProvider);
+                }
+              });
+            },
+            icon: const Icon(Icons.playlist_add_rounded, size: 18),
+            label: Text(
+              isMobile ? 'Bulk CSV' : 'Bulk Enroll (CSV)',
+              overflow: TextOverflow.ellipsis,
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 8 : 14,
+                vertical: 10,
+              ),
+            ),
+          );
+
           final addButton = ElevatedButton.icon(
             onPressed: () {
               showDialog(
@@ -832,6 +870,8 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
               children: [
                 Expanded(child: ocrButton),
                 const SizedBox(width: 8),
+                Expanded(child: bulkEnrollButton),
+                const SizedBox(width: 8),
                 Expanded(child: addButton),
               ],
             );
@@ -839,6 +879,8 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
             return Row(
               children: [
                 ocrButton,
+                const SizedBox(width: 8),
+                bulkEnrollButton,
                 const SizedBox(width: 8),
                 addButton,
               ],
@@ -1018,7 +1060,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                                 ],
                               ),
                             ),
-                            if (widget.userRole != 'teacher')
+                            if (!_isTeacher)
                               IconButton(
                               icon: const Icon(Icons.edit,
                                   size: 18, color: Colors.blue),
@@ -1041,7 +1083,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                                 });
                               },
                             ),
-                            if (widget.userRole != 'teacher')
+                            if (!_isTeacher)
                               IconButton(
                               icon: const Icon(
                                 Icons.delete_outline,
@@ -1129,7 +1171,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                 tooltip: 'Close',
               ),
             ],
-            bottom: widget.userRole == 'teacher'
+            bottom: _isTeacher
                 ? null
                 : TabBar(
                     labelColor: Colors.white,
@@ -1161,7 +1203,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                       minHeight: 3,
                     ),
                   Expanded(
-                    child: widget.userRole == 'teacher'
+                    child: _isTeacher
                         ? _buildStudentDetailsTab()
                         : TabBarView(
                             children: [

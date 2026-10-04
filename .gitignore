@@ -27,6 +27,7 @@ frontend/android/app/google-services.json
 **/google-services.json
 backend/brain
 frontend/brain
+documentation/TODO.md
 
 # Database and runtime data folder (never commit)
 backend/*.db

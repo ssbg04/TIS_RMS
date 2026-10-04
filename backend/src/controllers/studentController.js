@@ -632,6 +632,31 @@ exports.updateStudent = (req, res) => {
     let { lrn, firstName, middleName, lastName, extension, sex, birthDate, status, academicYearId, gradeLevel, sectionId, trackStrand, is4ps } = req.body;
     birthDate = normalizeBirthDate(birthDate);
 
+    // ---- Existence check ----
+    const existing = db.prepare('SELECT * FROM students WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ message: 'Student not found.' });
+
+    // Teacher restrictions: verify section access and limit editable fields
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+    if (isTeacher) {
+        const hasAccess = db.prepare(`
+            SELECT 1
+            FROM enrollments e
+            JOIN teacher_sections ts ON e.section_id = ts.section_id
+            WHERE e.student_id = ? AND ts.teacher_id = ?
+        `).get(id, req.user.id);
+        if (!hasAccess) {
+            return res.status(403).json({ message: "Access denied to update this student." });
+        }
+        // Teachers can ONLY edit: Name, Date of Birth, Sex, 4Ps Beneficiary
+        // Lock non-editable fields to existing student record values
+        status = existing.status;
+        lrn = existing.lrn;
+        academicYearId = null;
+        gradeLevel = null;
+        sectionId = null;
+    }
+
     // ---- Server-side validation ----
     const errors = [];
     if (!lrn || !isValidLRN(lrn))           errors.push('LRN must be exactly 12 digits.');
@@ -664,10 +689,6 @@ exports.updateStudent = (req, res) => {
     }
 
     if (errors.length) return res.status(400).json({ message: errors[0], errors });
-
-    // ---- Existence check ----
-    const existing = db.prepare('SELECT id FROM students WHERE id = ?').get(id);
-    if (!existing) return res.status(404).json({ message: 'Student not found.' });
 
     // ---- Duplicate LRN check (excluding self) ----
     const duplicate = db.prepare('SELECT id FROM students WHERE lrn = ? AND id != ?').get(lrn.trim(), id);
@@ -981,6 +1002,16 @@ exports.addEnrollment = (req, res) => {
     const student = db.prepare('SELECT id FROM students WHERE id = ?').get(studentId);
     if (!student) return res.status(404).json({ message: 'Student not found.' });
 
+    if (req.user && req.user.role === 'teacher') {
+        const isAssigned = db.prepare(`
+            SELECT 1 FROM teacher_sections
+            WHERE teacher_id = ? AND section_id = ?
+        `).get(req.user.id, sectionId);
+        if (!isAssigned) {
+            return res.status(403).json({ message: "You can only enroll students into sections assigned to you." });
+        }
+    }
+
     const progressionCheck = validateEnrollmentProgression(studentId, academicYearId, gradeLevel);
     if (!progressionCheck.valid) {
         return res.status(400).json({ message: progressionCheck.message });
@@ -1001,6 +1032,252 @@ exports.addEnrollment = (req, res) => {
     } catch (error) {
         console.error('addEnrollment error:', error);
         res.status(500).json({ message: 'Failed to add enrollment', error: error.message });
+    }
+};
+
+// ============================================================
+// POST /api/students/:id/verify-enrollments
+// ============================================================
+exports.verifyStudentEnrollments = (req, res) => {
+    const { id: studentId } = req.params;
+    const { enrollments } = req.body;
+
+    if (!Array.isArray(enrollments) || enrollments.length === 0) {
+        return res.status(400).json({ message: 'enrollments must be a non-empty array' });
+    }
+
+    const student = db.prepare('SELECT id, lrn, first_name, last_name FROM students WHERE id = ?').get(studentId);
+    if (!student) return res.status(404).json({ message: 'Student not found.' });
+
+    const allAcademicYears = db.prepare('SELECT id, year_range, status FROM academic_years ORDER BY year_range ASC').all();
+    const allSections = db.prepare('SELECT id, name, grade_level, academic_year_id FROM sections').all();
+
+    // Query existing enrollments for this student
+    const existingEnrollments = db.prepare(`
+        SELECT e.id, e.grade_level, e.academic_year_id, ay.year_range, sec.name as section_name
+        FROM enrollments e
+        JOIN academic_years ay ON e.academic_year_id = ay.id
+        LEFT JOIN sections sec ON e.section_id = sec.id
+        WHERE e.student_id = ?
+        ORDER BY ay.year_range ASC
+    `).all(studentId);
+
+    const verifiedRecords = [];
+    const seenYearsInBatch = new Set();
+
+    const cleanStr = (s) => (s != null ? String(s).trim() : '');
+    const normalizeYear = (s) => cleanStr(s).replace(/\s+/g, '');
+
+    for (let i = 0; i < enrollments.length; i++) {
+        const item = enrollments[i];
+        const rawSchoolYear = cleanStr(item.schoolYear || item.yearRange);
+        const rawGradeLevel = cleanStr(item.gradeLevel);
+        const rawSection = cleanStr(item.section || item.sectionName);
+        const rawTrack = cleanStr(item.trackStrand || item.track);
+
+        const rec = {
+            index: i,
+            schoolYear: rawSchoolYear,
+            gradeLevel: rawGradeLevel,
+            sectionName: rawSection,
+            trackStrand: rawTrack || null,
+            academicYearId: null,
+            sectionId: null,
+            parsedGradeLevel: null,
+            isValid: false,
+            error: null,
+        };
+
+        if (!rawSchoolYear || !rawGradeLevel || !rawSection) {
+            rec.error = 'School Year, Grade Level, and Section are all required.';
+            verifiedRecords.push(rec);
+            continue;
+        }
+
+        // Match School Year
+        const normTargetYear = normalizeYear(rawSchoolYear);
+        const matchedAy = allAcademicYears.find(ay => normalizeYear(ay.year_range) === normTargetYear);
+        if (!matchedAy) {
+            const available = allAcademicYears.map(a => a.year_range).slice(-5).join(', ');
+            rec.error = `School Year "${rawSchoolYear}" does not exist in the system.${available ? ` (Available: ${available})` : ''}`;
+            verifiedRecords.push(rec);
+            continue;
+        }
+        rec.academicYearId = matchedAy.id;
+        rec.schoolYear = matchedAy.year_range;
+
+        // Match Grade Level (7 - 12)
+        const gradeDigits = rawGradeLevel.match(/\d+/);
+        const gLevel = gradeDigits ? parseInt(gradeDigits[0], 10) : NaN;
+        if (isNaN(gLevel) || gLevel < 7 || gLevel > 12) {
+            rec.error = `Invalid Grade Level "${rawGradeLevel}". Must be between 7 and 12.`;
+            verifiedRecords.push(rec);
+            continue;
+        }
+        rec.parsedGradeLevel = gLevel;
+
+        // Match Section for that Academic Year and Grade Level
+        const sectionMatch = allSections.find(s => 
+            s.academic_year_id === matchedAy.id &&
+            s.grade_level === gLevel &&
+            s.name.toLowerCase() === rawSection.toLowerCase()
+        );
+
+        if (!sectionMatch) {
+            const availableForGrade = allSections
+                .filter(s => s.academic_year_id === matchedAy.id && s.grade_level === gLevel)
+                .map(s => s.name);
+
+            if (availableForGrade.length > 0) {
+                rec.error = `Section "${rawSection}" not found for Grade ${gLevel} in S.Y. ${matchedAy.year_range}. Available sections: ${availableForGrade.join(', ')}.`;
+            } else {
+                rec.error = `No sections configured for Grade ${gLevel} in S.Y. ${matchedAy.year_range}.`;
+            }
+            verifiedRecords.push(rec);
+            continue;
+        }
+        rec.sectionId = sectionMatch.id;
+        rec.sectionName = sectionMatch.name;
+
+        // Check if duplicate year in this CSV batch
+        if (seenYearsInBatch.has(matchedAy.id)) {
+            rec.error = `Duplicate School Year: "${matchedAy.year_range}" is specified more than once in this batch.`;
+            verifiedRecords.push(rec);
+            continue;
+        }
+        seenYearsInBatch.add(matchedAy.id);
+
+        // Check if student is already enrolled in this school year in DB
+        const existingInYear = existingEnrollments.find(e => e.academic_year_id === matchedAy.id || normalizeYear(e.year_range) === normTargetYear);
+        if (existingInYear) {
+            rec.error = `Already enrolled: Student is already enrolled in Grade ${existingInYear.grade_level}${existingInYear.section_name ? ` - ${existingInYear.section_name}` : ''} for S.Y. ${existingInYear.year_range}.`;
+            verifiedRecords.push(rec);
+            continue;
+        }
+
+        // Progression validation against existing enrollments
+        let progressionError = null;
+        for (const other of existingEnrollments) {
+            if (other.year_range < matchedAy.year_range) {
+                if (gLevel < other.grade_level) {
+                    progressionError = `Progression error: Cannot enroll in Grade ${gLevel} for S.Y. ${matchedAy.year_range}. Student was already enrolled in Grade ${other.grade_level} in earlier S.Y. ${other.year_range} (downgrading restriction).`;
+                    break;
+                }
+            } else if (other.year_range > matchedAy.year_range) {
+                if (gLevel > other.grade_level) {
+                    progressionError = `Progression error: Cannot enroll in Grade ${gLevel} for S.Y. ${matchedAy.year_range}. Student is already enrolled in Grade ${other.grade_level} in subsequent S.Y. ${other.year_range} (downgrading restriction).`;
+                    break;
+                }
+            }
+        }
+        if (progressionError) {
+            rec.error = progressionError;
+            verifiedRecords.push(rec);
+            continue;
+        }
+
+        rec.isValid = true;
+        verifiedRecords.push(rec);
+    }
+
+    // Validate progression AMONG valid batch items
+    const validBatchItems = verifiedRecords.filter(r => r.isValid);
+    validBatchItems.sort((a, b) => a.schoolYear.localeCompare(b.schoolYear));
+
+    for (let j = 0; j < validBatchItems.length - 1; j++) {
+        const current = validBatchItems[j];
+        const next = validBatchItems[j + 1];
+        if (current.schoolYear < next.schoolYear && current.parsedGradeLevel > next.parsedGradeLevel) {
+            next.isValid = false;
+            next.error = `Progression error: Grade ${next.parsedGradeLevel} in S.Y. ${next.schoolYear} cannot downgrade from Grade ${current.parsedGradeLevel} in earlier S.Y. ${current.schoolYear}.`;
+        }
+    }
+
+    const allValid = verifiedRecords.length > 0 && verifiedRecords.every(r => r.isValid);
+    const validCount = verifiedRecords.filter(r => r.isValid).length;
+
+    return res.json({
+        success: true,
+        allValid,
+        validCount,
+        totalCount: verifiedRecords.length,
+        results: verifiedRecords,
+    });
+};
+
+// ============================================================
+// POST /api/students/:id/bulk-enrollments
+// ============================================================
+exports.bulkAddStudentEnrollments = (req, res) => {
+    const { id: studentId } = req.params;
+    const { enrollments } = req.body;
+
+    if (!Array.isArray(enrollments) || enrollments.length === 0) {
+        return res.status(400).json({ message: 'enrollments must be a non-empty array' });
+    }
+
+    const student = db.prepare('SELECT id, lrn, first_name, last_name FROM students WHERE id = ?').get(studentId);
+    if (!student) return res.status(404).json({ message: 'Student not found.' });
+
+    try {
+        let insertedCount = 0;
+
+        db.transaction(() => {
+            const insertEnrollment = db.prepare(`
+                INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
+                VALUES (?, ?, ?, ?, ?)
+            `);
+            const updateStudentStatus = db.prepare('UPDATE students SET status = ? WHERE id = ?');
+
+            for (const item of enrollments) {
+                const { academicYearId, sectionId, gradeLevel, trackStrand } = item;
+                if (!academicYearId || !sectionId || !gradeLevel) {
+                    throw new Error('Each enrollment requires academicYearId, sectionId, and gradeLevel');
+                }
+
+                // Verify progression before inserting
+                const progressionCheck = validateEnrollmentProgression(studentId, academicYearId, gradeLevel);
+                if (!progressionCheck.valid) {
+                    throw new Error(progressionCheck.message);
+                }
+
+                const resIns = insertEnrollment.run(studentId, academicYearId, sectionId, gradeLevel, trackStrand || null);
+                insertedCount++;
+
+                const logDesc = getEnrollmentLogDesc(academicYearId, gradeLevel, sectionId, student.lrn, `${student.first_name} ${student.last_name}`);
+                logActivity(req.user?.id, 'CREATE', 'enrollment', resIns.lastInsertRowid, logDesc);
+            }
+
+            // Ensure student status is updated to Enrolled
+            updateStudentStatus.run('Enrolled', studentId);
+        })();
+
+        // Overall activity log and notification
+        logActivity(
+            req.user?.id,
+            'CREATE',
+            'enrollment',
+            studentId,
+            `Imported ${insertedCount} enrollment records via CSV for student ${student.first_name} ${student.last_name} (${maskLrn(student.lrn)})`
+        );
+        createNotification(
+            null,
+            'Enrollments Imported',
+            `${insertedCount} enrollment(s) imported for ${student.first_name} ${student.last_name}.`,
+            'student',
+            'student',
+            studentId
+        );
+        emitStudentUpdated({ id: studentId });
+
+        res.status(201).json({
+            success: true,
+            message: `Successfully imported ${insertedCount} enrollment(s) for ${student.first_name} ${student.last_name}.`,
+            count: insertedCount,
+        });
+    } catch (error) {
+        console.error('bulkAddStudentEnrollments error:', error);
+        res.status(400).json({ message: error.message || 'Failed to bulk import enrollments.' });
     }
 };
 

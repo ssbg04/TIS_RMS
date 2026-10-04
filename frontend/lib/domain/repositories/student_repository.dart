@@ -537,4 +537,48 @@ class StudentRepository {
       throw Exception(msg);
     }
   }
+
+  // ----------------------------------------------------------------
+  // Verify Student Enrollments (Single student CSV verification)
+  // ----------------------------------------------------------------
+  Future<Map<String, dynamic>> verifyStudentEnrollments({
+    required int studentId,
+    required List<Map<String, dynamic>> enrollments,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post(
+        '/students/$studentId/verify-enrollments',
+        data: {'enrollments': enrollments},
+        options: options,
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to verify enrollments.';
+      throw Exception(msg);
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // Bulk Add Student Enrollments (Single student CSV import)
+  // ----------------------------------------------------------------
+  Future<Map<String, dynamic>> bulkAddStudentEnrollments({
+    required int studentId,
+    required List<Map<String, dynamic>> enrollments,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post(
+        '/students/$studentId/bulk-enrollments',
+        data: {'enrollments': enrollments},
+        options: options,
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to import enrollments.';
+      throw Exception(msg);
+    }
+  }
 }

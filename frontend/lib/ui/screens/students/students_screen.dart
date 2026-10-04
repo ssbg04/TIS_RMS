@@ -19,6 +19,7 @@ import 'widgets/bulk_ocr_import_dialog.dart';
 import 'widgets/student_filter_dialog.dart';
 import 'widgets/student_bulk_actions.dart';
 import 'widgets/bulk_enrollment_modal.dart';
+import 'widgets/edit_enrollment_modal.dart';
 import '../../providers/setup_provider.dart';
 import '../../shared/inputs/app_search_bar.dart';
 import '../../providers/navigation_provider.dart';
@@ -94,8 +95,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       final initialQuery = ref.read(studentQueryProvider).search;
       if (initialQuery.isNotEmpty) {
         _searchController.text = initialQuery;
-        if (mounted) setState(() => _viewTab = StudentViewTab.all);
-        ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
+        if (widget.userRole != 'teacher') {
+          if (mounted) setState(() => _viewTab = StudentViewTab.all);
+          ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
+        }
       } else {
         // Apply the default enrolled-tab filter on first load
         _applyViewTab(StudentViewTab.enrolled);
@@ -137,7 +140,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             _searchController.text = currentQuery;
             if (mounted) setState(() {});
           }
-          if (currentQuery.isNotEmpty) {
+          if (currentQuery.isNotEmpty && widget.userRole != 'teacher') {
             if (mounted) setState(() => _viewTab = StudentViewTab.all);
             ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
           } else if (mounted) {
@@ -169,7 +172,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   void _onSearchChanged() {
     _debounce?.cancel();
     final text = _searchController.text;
-    if (text.trim().isNotEmpty && _viewTab != StudentViewTab.all) {
+    if (widget.userRole != 'teacher' && text.trim().isNotEmpty && _viewTab != StudentViewTab.all) {
       if (mounted) setState(() => _viewTab = StudentViewTab.all);
       ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
       ref.read(studentQueryProvider.notifier).setFilters(
@@ -232,7 +235,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   void _onSearchSubmitted(String query) {
     _debounce?.cancel();
-    if (query.trim().isNotEmpty && _viewTab != StudentViewTab.all) {
+    if (widget.userRole != 'teacher' && query.trim().isNotEmpty && _viewTab != StudentViewTab.all) {
       if (mounted) setState(() => _viewTab = StudentViewTab.all);
       ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
       ref.read(studentQueryProvider.notifier).setFilters(
@@ -568,16 +571,17 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             ],
           ),
         ),
-        const PopupMenuItem<String>(
-          value: 'enroll',
-          child: Row(
-            children: [
-              Icon(Icons.person_add_alt_1_outlined, size: 18, color: AppColors.primaryGreen),
-              SizedBox(width: 10),
-              Text('Add Enrollment'),
-            ],
+        if (widget.userRole.toLowerCase() != 'teacher')
+          const PopupMenuItem<String>(
+            value: 'enroll',
+            child: Row(
+              children: [
+                Icon(Icons.person_add_alt_1_outlined, size: 18, color: AppColors.primaryGreen),
+                SizedBox(width: 10),
+                Text('Add Enrollment'),
+              ],
+            ),
           ),
-        ),
         PopupMenuItem<String>(
           value: 'docs',
           child: Row(
@@ -592,7 +596,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             ],
           ),
         ),
-        if (widget.userRole != 'teacher') ...[
+        if (widget.userRole.toLowerCase() != 'teacher') ...[
           const PopupMenuDivider(),
           const PopupMenuItem<String>(
             value: 'status_graduate',
@@ -636,7 +640,18 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         await _openModal(student: student, initialTabIndex: 0);
         break;
       case 'enroll':
-        await _openModal(student: student, initialTabIndex: 1);
+        await showDialog(
+          context: context,
+          barrierColor: Colors.black.withValues(alpha: 0.45),
+          builder: (ctx) => EditEnrollmentModal(
+            studentId: student.id,
+            enrollment: null,
+          ),
+        );
+        if (mounted) {
+          ref.invalidate(studentDetailProvider(student.id));
+          ref.invalidate(studentPageProvider);
+        }
         break;
       case 'docs':
         _openDocumentsFolder(student);
@@ -914,22 +929,36 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         );
         await _openModal(student: targetStudent, initialTabIndex: 0);
         if (mounted) {
-          _viewProfile(targetStudent);
+          final updatedPageState = ref.read(studentPageProvider);
+          final updatedStudents = updatedPageState.value?.students ?? [];
+          final freshStudent = updatedStudents.firstWhere(
+            (s) => s.id == currentId,
+            orElse: () => targetStudent,
+          );
+          _viewProfile(freshStudent);
         }
       },
-      onEditEnrollmentById: (currentId) async {
-        Navigator.pop(context);
-        final pageState = ref.read(studentPageProvider);
-        final students = pageState.value?.students ?? [];
-        final targetStudent = students.firstWhere(
-          (s) => s.id == currentId,
-          orElse: () => student,
-        );
-        await _openModal(student: targetStudent, initialTabIndex: 1);
-        if (mounted) {
-          _viewProfile(targetStudent);
-        }
-      },
+      onEditEnrollmentById: widget.userRole.toLowerCase() == 'teacher'
+          ? null
+          : (currentId) async {
+              Navigator.pop(context);
+              final pageState = ref.read(studentPageProvider);
+              final students = pageState.value?.students ?? [];
+              final targetStudent = students.firstWhere(
+                (s) => s.id == currentId,
+                orElse: () => student,
+              );
+              await _openModal(student: targetStudent, initialTabIndex: 1);
+              if (mounted) {
+                final updatedPageState = ref.read(studentPageProvider);
+                final updatedStudents = updatedPageState.value?.students ?? [];
+                final freshStudent = updatedStudents.firstWhere(
+                  (s) => s.id == currentId,
+                  orElse: () => targetStudent,
+                );
+                _viewProfile(freshStudent);
+              }
+            },
       onDeleteById: (currentId) {
         Navigator.pop(context);
         final pageState = ref.read(studentPageProvider);
