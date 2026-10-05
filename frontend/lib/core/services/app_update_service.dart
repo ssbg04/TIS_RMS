@@ -325,9 +325,12 @@ class AppUpdateService {
     Directory targetDir;
     if (!kIsWeb && Platform.isAndroid) {
       try {
-        final externalCache = await getExternalCacheDirectories();
-        if (externalCache != null && externalCache.isNotEmpty) {
-          targetDir = externalCache.first;
+        // Use getExternalStorageDirectory() which maps to Android's context.getExternalFilesDir(null).
+        // Storing in the app's external files directory is explicitly recognized by OpenFilex and FileProvider,
+        // preventing false-positive MANAGE_EXTERNAL_STORAGE permission checks on Android 11+ (API 30+).
+        final extDir = await getExternalStorageDirectory();
+        if (extDir != null) {
+          targetDir = extDir;
         } else {
           targetDir = await getTemporaryDirectory();
         }
@@ -369,23 +372,54 @@ class AppUpdateService {
   /// On Android: Prompts the user to install via default Android package installer.
   /// On Windows: Launches the installer executable detached and closes the Windows app.
   static Future<void> installDownloadedUpdate(String filePath) async {
-    final file = File(filePath);
+    var file = File(filePath);
     if (!await file.exists()) {
       throw Exception('Downloaded installer file does not exist at $filePath');
     }
 
     if (!kIsWeb && Platform.isAndroid) {
-      // Check REQUEST_INSTALL_PACKAGES permission on Android
+      // Ensure file is in getExternalStorageDirectory() so OpenFilex and FileProvider
+      // can serve it to the Android Package Installer without triggering MANAGE_EXTERNAL_STORAGE.
       try {
-        final status = await Permission.requestInstallPackages.status;
-        if (status.isDenied) {
-          await Permission.requestInstallPackages.request();
+        final extDir = await getExternalStorageDirectory();
+        if (extDir != null) {
+          final updatesDir = Directory('${extDir.path}/updates');
+          if (!await updatesDir.exists()) {
+            await updatesDir.create(recursive: true);
+          }
+          final fileName = file.uri.pathSegments.isNotEmpty
+              ? file.uri.pathSegments.last
+              : 'update.apk';
+          final targetPath = '${updatesDir.path}/$fileName';
+          if (file.path != targetPath) {
+            final copied = await file.copy(targetPath);
+            file = copied;
+            filePath = copied.path;
+          }
         }
       } catch (e) {
+        debugPrint('[AppUpdateService] Relocating update file warning: $e');
+      }
+
+      // Check REQUEST_INSTALL_PACKAGES ("Install unknown apps") permission on Android
+      try {
+        var installPermStatus = await Permission.requestInstallPackages.status;
+        if (!installPermStatus.isGranted) {
+          installPermStatus = await Permission.requestInstallPackages.request();
+        }
+        if (!installPermStatus.isGranted) {
+          throw Exception(
+            'Installation permission denied. Please allow "Install unknown apps" for TIS RMS in Android Settings.',
+          );
+        }
+      } catch (e) {
+        if (e.toString().contains('Installation permission denied')) {
+          rethrow;
+        }
         debugPrint('[AppUpdateService] Permission request warning: $e');
       }
 
-      // Launch Android's default package installer
+      // Launch Android's default package installer via OpenFilex
       final result = await OpenFilex.open(
         filePath,
         type: 'application/vnd.android.package-archive',
@@ -393,13 +427,18 @@ class AppUpdateService {
       debugPrint('[AppUpdateService] OpenFilex result: ${result.type} - ${result.message}');
 
       if (result.type == ResultType.permissionDenied) {
+        if (result.message.contains('MANAGE_EXTERNAL_STORAGE')) {
+          throw Exception(
+            'Storage permission error while accessing update file. Please restart the app and try again.',
+          );
+        }
         throw Exception(
           'Installation permission denied. Please allow "Install unknown apps" for TIS RMS in Android Settings.',
         );
       } else if (result.type == ResultType.fileNotFound) {
         throw Exception('The update installer file could not be found.');
       } else if (result.type == ResultType.error) {
-        throw Exception(result.message);
+        throw Exception(result.message.isNotEmpty ? result.message : 'Failed to launch installer.');
       }
     } else if (!kIsWeb && Platform.isWindows) {
       // Windows: launch installer detached, then cleanly close and exit the app
