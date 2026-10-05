@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Overview - TIS-RMS User Guide</title>
-  <meta name="description" content="Official user guide and comprehensive handbook for Talisay Integrated School records management system on Windows and Android.">
+  <title>Sign In & Getting Started - TIS-RMS User Guide</title>
+  <meta name="description" content="Accessing TIS-RMS on Windows and Android via local network and secure internet tunnel, login credentials, and OTP password recovery.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
       <div class="sidebar-heading">Getting Started</div>
       <ul class="sidebar-nav">
         <li>
-          <a href="index.html" class="nav-link active">
+          <a href="index.html" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
             System Overview
             <span class="nav-badge">Guide</span>
@@ -91,7 +91,7 @@
           </a>
         </li>
         <li>
-          <a href="login.html" class="nav-link">
+          <a href="login.html" class="nav-link active">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
             Sign In &amp; Getting Started
             <span class="nav-badge">Sign In</span>
@@ -188,44 +188,127 @@
     <!-- Main Content Body -->
     <main class="doc-main">
       
-      <!-- Section 2: Overview Tab -->
-      <section id="overview" class="hero-banner">
-        <span class="hero-tag">Official User Guide &amp; Technical Handbook</span>
-        <h1 class="hero-title">Talisay Integrated School - Records Management System</h1>
-        <p class="hero-subtitle">
-          A dedicated, offline-first records and document management system built for Talisay Integrated School. Manage learner records with official 12-digit LRN tracking, scan SF9 and SF10 forms with automated OCR text recognition, track dynamic JHS &amp; SHS compliance checklists, view DepEd statistical reports, and execute batch print requests &mdash; accessible on Windows desktop computers and Android mobile devices across the local school network or securely over the internet.
-        </p>
-        <div class="hero-badges">
-          <span class="badge-item">Windows Desktop</span>
-          <span class="badge-item">Android App</span>
-          <span class="badge-item">Works Offline &amp; Online</span>
-          <span class="badge-item">Real-Time Sync</span>
-          <span class="badge-item">SF9 &amp; SF10 OCR Scanning</span>
-          <span class="badge-item">DepEd Compliance Reports</span>
-          <span class="badge-item">Batch Print Queue</span>
-          <span class="badge-item">Dynamic Checklists</span>
+      <!-- Section 4: Sign In & Getting Started -->
+      <section id="login" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title">Sign In &amp; Getting Started</h2>
+          <p class="section-subtitle">How to access and sign into TIS-RMS on Windows desktop computers and Android mobile devices.</p>
         </div>
 
-        <div class="module-summary" style="margin-top: 36px; text-align: left;">
+        <div class="module-summary">
           <div class="module-summary-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-            System Highlights &amp; Scope
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Sign In &amp; Access Summary
           </div>
           <ul class="module-summary-list">
-            <li><strong>Cross-Platform Parity:</strong> Full-featured Windows desktop suite paired with an Android tablet app tailored for classroom mobility.</li>
-            <li><strong>Offline-First Resilience:</strong> Works 100% offline within the school local area network (LAN/Wi-Fi); zero dependence on cloud availability.</li>
-            <li><strong>Secure Remote Internet Access:</strong> Configurable encrypted internet tunnels allow teachers and administrators to work remotely from home.</li>
-            <li><strong>DepEd Standardization:</strong> Designed around Department of Education learner standards, Form 137 (SF10), Form 138 (SF9), and transparency boards.</li>
+            <li><strong>Cross-Platform Availability:</strong> TIS-RMS is officially available as a high-performance Windows desktop application and an intuitive Android mobile/tablet app.</li>
+            <li><strong>Local Network &amp; Remote Internet Access:</strong> The system operates seamlessly over the school's local area network (LAN/Wi-Fi) without requiring internet connectivity, and can also be accessed outside the local network through a secure connection that makes the system accessible over the internet.</li>
+            <li><strong>Secure Authentication:</strong> Sign in with your assigned username and password. User privileges and interface navigation adjust automatically based on your role.</li>
+            <li><strong>Self-Service Password Recovery:</strong> If you forget your password, click <strong>Forgot Password?</strong> to receive a one-time verification code (email OTP) to safely reset your credentials.</li>
           </ul>
+        </div>
+
+        <p class="paragraph">
+          Whether you are working from a school desktop in the faculty room, on an administrative workstation in the registrar's office, or using an Android tablet inside the classroom, TIS-RMS provides a unified and responsive sign-in interface.
+        </p>
+
+        <!-- Platform Mockups -->
+        <div class="mockup-container">
+          <div class="mockup-tabs">
+            <button class="mockup-tab-btn active" data-tab-target="win-login">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-login">Android</button>
+          </div>
+
+          <div class="mockup-pane active" id="win-login">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/login.webp" data-caption="Windows Sign In Screen">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/login.webp" alt="Windows Sign In Screen" loading="lazy">
+              </div>
+              <figcaption>
+                <span>Figure 1A: Windows Sign In Screen</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="mockup-pane" id="and-login" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/login.webp" data-caption="Android Sign In Screen">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/login.webp" alt="Android Sign In Screen" loading="lazy">
+              </div>
+              <figcaption>
+                <span>Figure 1B: Android Sign In Screen</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <h3 class="subheading">Sign In Interface Component</h3>
+        <p class="paragraph">
+          The sign-in interface features clean input fields, password visibility toggle, quick server status indication, and direct link to self-service password recovery:
+        </p>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/login_screen.svg" data-caption="TIS-RMS Cross-Platform Sign In Interface">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/login_screen.svg" alt="TIS-RMS Cross-Platform Sign In Interface" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">TIS-RMS Cross-Platform Sign In Interface</span>
+              <p class='screenshot-sub'>Unified login modal with password visibility toggle and OTP forgot password recovery</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        <h3 class="subheading">Step-by-Step: Signing In</h3>
+        <div class="steps-container">
+          <div class="step-card">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>Launch the Application</h4>
+              <p>Open TIS-RMS on your Windows workstation or Android mobile device. The application connects automatically to the local school server or your secure remote gateway.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>Enter Your Credentials</h4>
+              <p>Type your registered <strong>Username</strong> and <strong>Password</strong>. If logging in for the first time, use the temporary credentials provided by your system administrator.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>Click Sign In</h4>
+              <p>Click or tap the <strong>Sign In</strong> button. Upon successful verification, you will be redirected to the Dashboard populated with your role-specific metrics and tools.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h4>Forgot Password (Self-Service Recovery)</h4>
+              <p>If you cannot remember your password, click <strong>Forgot Password?</strong> on the login screen. Enter your registered email address to receive a secure One-Time PIN (OTP) to reset your password without waiting for an administrator.</p>
+            </div>
+          </div>
         </div>
 
         
         <nav class="page-navigation" aria-label="Page navigation">
           
-          
-    <a href="roles.html" class="page-nav-link next">
-      <span class="page-nav-label">Next &rarr;</span>
+    <a href="roles.html" class="page-nav-link prev">
+      <span class="page-nav-label">&larr; Previous</span>
       <span class="page-nav-title">Staff Roles & Access</span>
+    </a>
+          
+    <a href="dashboard.html" class="page-nav-link next">
+      <span class="page-nav-label">Next &rarr;</span>
+      <span class="page-nav-title">Module 1: Dashboard & Overview</span>
     </a>
         </nav>
       </section>

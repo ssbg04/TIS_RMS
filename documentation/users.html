@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Overview - TIS-RMS User Guide</title>
-  <meta name="description" content="Official user guide and comprehensive handbook for Talisay Integrated School records management system on Windows and Android.">
+  <title>Module 7: User Accounts - TIS-RMS User Guide</title>
+  <meta name="description" content="Staff account provisioning for Administrators and Teachers, role-based section scoping, password reset links, and security controls.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
       <div class="sidebar-heading">Getting Started</div>
       <ul class="sidebar-nav">
         <li>
-          <a href="index.html" class="nav-link active">
+          <a href="index.html" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
             System Overview
             <span class="nav-badge">Guide</span>
@@ -139,7 +139,7 @@
           </a>
         </li>
         <li>
-          <a href="users.html" class="nav-link">
+          <a href="users.html" class="nav-link active">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg></span>
             Module 7: User Accounts
             <span class="nav-badge">Admin</span>
@@ -188,44 +188,141 @@
     <!-- Main Content Body -->
     <main class="doc-main">
       
-      <!-- Section 2: Overview Tab -->
-      <section id="overview" class="hero-banner">
-        <span class="hero-tag">Official User Guide &amp; Technical Handbook</span>
-        <h1 class="hero-title">Talisay Integrated School - Records Management System</h1>
-        <p class="hero-subtitle">
-          A dedicated, offline-first records and document management system built for Talisay Integrated School. Manage learner records with official 12-digit LRN tracking, scan SF9 and SF10 forms with automated OCR text recognition, track dynamic JHS &amp; SHS compliance checklists, view DepEd statistical reports, and execute batch print requests &mdash; accessible on Windows desktop computers and Android mobile devices across the local school network or securely over the internet.
-        </p>
-        <div class="hero-badges">
-          <span class="badge-item">Windows Desktop</span>
-          <span class="badge-item">Android App</span>
-          <span class="badge-item">Works Offline &amp; Online</span>
-          <span class="badge-item">Real-Time Sync</span>
-          <span class="badge-item">SF9 &amp; SF10 OCR Scanning</span>
-          <span class="badge-item">DepEd Compliance Reports</span>
-          <span class="badge-item">Batch Print Queue</span>
-          <span class="badge-item">Dynamic Checklists</span>
+      <!-- Section 11: Module 7: User Accounts -->
+      <section id="users" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title">Module 7: User Accounts</h2>
+          <p class="section-subtitle">Staff account provisioning, role assignments, security controls, and password resets.</p>
         </div>
 
-        <div class="module-summary" style="margin-top: 36px; text-align: left;">
+        <div class="module-summary">
           <div class="module-summary-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-            System Highlights &amp; Scope
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+            User Management Highlights (Administrator Access)
           </div>
           <ul class="module-summary-list">
-            <li><strong>Cross-Platform Parity:</strong> Full-featured Windows desktop suite paired with an Android tablet app tailored for classroom mobility.</li>
-            <li><strong>Offline-First Resilience:</strong> Works 100% offline within the school local area network (LAN/Wi-Fi); zero dependence on cloud availability.</li>
-            <li><strong>Secure Remote Internet Access:</strong> Configurable encrypted internet tunnels allow teachers and administrators to work remotely from home.</li>
-            <li><strong>DepEd Standardization:</strong> Designed around Department of Education learner standards, Form 137 (SF10), Form 138 (SF9), and transparency boards.</li>
+            <li><strong>Staff Role Provisioning:</strong> Administrators can create accounts for Administrators and Teachers with automatic temporary credential generation.</li>
+            <li><strong>Search &amp; Status Filtering:</strong> Filter staff accounts by role (Admin vs. Teacher) and account status (Active vs. Deactivated).</li>
+            <li><strong>Account Lifecycle Actions:</strong> Edit user details, toggle account activation, and trigger password reset links to registered email addresses.</li>
+            <li><strong>Scoped Teacher Permissions:</strong> Teachers access only their assigned advisory sections and can edit permitted student details, while formal enrollment standing remains locked to Administrators.</li>
           </ul>
         </div>
+
+        <p class="paragraph">
+          Module 7 allows administrators to control access to TIS-RMS. Administrators configure who can log in, which advisory classes teachers can manage, and maintain robust credential security across all workstations.
+        </p>
+
+        <!-- Platform Mockups -->
+        <div class="mockup-container">
+          <div class="mockup-tabs">
+            <button class="mockup-tab-btn active" data-tab-target="win-usr">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-usr">Android</button>
+          </div>
+
+          <div class="mockup-pane active" id="win-usr">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/users.webp" data-caption="Windows User Management showing staff accounts and role badges">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/users.webp" alt="Windows User Management" loading="lazy">
+              </div>
+              <figcaption>
+                <span>Figure 7A: Windows Staff Accounts Directory</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="mockup-pane" id="and-usr" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/users.webp" data-caption="Android Users View">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/users.webp" alt="Android Users View" loading="lazy">
+              </div>
+              <figcaption>
+                <span>Figure 7B: Android Users View</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <h3 class="subheading">Administrator Account Management Workflow</h3>
+        <p class="paragraph">
+          Administrators maintain full administrative control over all staff accounts:
+        </p>
+        <ul class="bullet-list">
+          <li><strong>Creating Accounts:</strong> Administrators can register new accounts for Administrators and Teachers, assigning them unique usernames, official school email addresses, and phone numbers.</li>
+          <li><strong>Editing Information:</strong> Modify user details, phone numbers, or correct email addresses when staff information changes.</li>
+          <li><strong>Status Controls:</strong> Instantly activate or deactivate accounts. Deactivating an account immediately blocks the user from logging in on any device.</li>
+          <li><strong>Password Resets:</strong> Administrators can send secure password reset links directly to a staff member's registered email address.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/users_list.svg" data-caption="Staff Accounts Directory &amp; Filter">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/users_list.svg" alt="Staff Accounts Directory &amp; Filter" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Staff Accounts Directory &amp; Filter</span>
+              <p class='screenshot-sub'>Master directory of school personnel with search, role badges, and status toggles</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/users_add.svg" data-caption="Create Staff Account Dialog">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/users_add.svg" alt="Create Staff Account Dialog" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Create Staff Account Dialog</span>
+              <p class='screenshot-sub'>Staff registration form for creating Administrator and Teacher credentials</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/users_edit.svg" data-caption="Edit Account Details &amp; Password Reset">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/users_edit.svg" alt="Edit Account Details &amp; Password Reset" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Edit Account Details &amp; Password Reset</span>
+              <p class='screenshot-sub'>Manage user credentials, trigger password resets, and adjust account active status</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        <h3 class="subheading">Teacher Access Scopes &amp; Account Security</h3>
+        <ul class="bullet-list">
+          <li><strong>Section Scope Enforcement:</strong> Teachers can access student records strictly associated with their assigned advisory sections. Advisory assignments are configured in <a href="settings.html#settings-academic">Academic &amp; Class Management</a>.</li>
+          <li><strong>Permitted Student Edits:</strong> Teachers can update allowed learner information (LRN, Name, Sex, Birth Date, and 4Ps) and register new learners for their advisory sections, but cannot alter formal enrollment standings or delete student profiles.</li>
+          <li><strong>Self-Service Recovery:</strong> All users can update their own personal profiles and recover lost passwords via email One-Time PIN (OTP) verification.</li>
+          <li><strong>Audit Trail:</strong> All account events (creation, profile updates, status changes, and password resets) are recorded in the system history.</li>
+        </ul>
 
         
         <nav class="page-navigation" aria-label="Page navigation">
           
+    <a href="reports.html" class="page-nav-link prev">
+      <span class="page-nav-label">&larr; Previous</span>
+      <span class="page-nav-title">Module 6: Reports & Analytics</span>
+    </a>
           
-    <a href="roles.html" class="page-nav-link next">
+    <a href="history.html" class="page-nav-link next">
       <span class="page-nav-label">Next &rarr;</span>
-      <span class="page-nav-title">Staff Roles & Access</span>
+      <span class="page-nav-title">Module 8: Activity History</span>
     </a>
         </nav>
       </section>

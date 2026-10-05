@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Overview - TIS-RMS User Guide</title>
-  <meta name="description" content="Official user guide and comprehensive handbook for Talisay Integrated School records management system on Windows and Android.">
+  <title>Module 8: Activity History - TIS-RMS User Guide</title>
+  <meta name="description" content="Complete system activity logs, user account lifecycle history, active login sessions, IP address tracking, and audit trail.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
       <div class="sidebar-heading">Getting Started</div>
       <ul class="sidebar-nav">
         <li>
-          <a href="index.html" class="nav-link active">
+          <a href="index.html" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
             System Overview
             <span class="nav-badge">Guide</span>
@@ -146,7 +146,7 @@
           </a>
         </li>
         <li>
-          <a href="history.html" class="nav-link">
+          <a href="history.html" class="nav-link active">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg></span>
             Module 8: Activity History
           </a>
@@ -188,44 +188,141 @@
     <!-- Main Content Body -->
     <main class="doc-main">
       
-      <!-- Section 2: Overview Tab -->
-      <section id="overview" class="hero-banner">
-        <span class="hero-tag">Official User Guide &amp; Technical Handbook</span>
-        <h1 class="hero-title">Talisay Integrated School - Records Management System</h1>
-        <p class="hero-subtitle">
-          A dedicated, offline-first records and document management system built for Talisay Integrated School. Manage learner records with official 12-digit LRN tracking, scan SF9 and SF10 forms with automated OCR text recognition, track dynamic JHS &amp; SHS compliance checklists, view DepEd statistical reports, and execute batch print requests &mdash; accessible on Windows desktop computers and Android mobile devices across the local school network or securely over the internet.
-        </p>
-        <div class="hero-badges">
-          <span class="badge-item">Windows Desktop</span>
-          <span class="badge-item">Android App</span>
-          <span class="badge-item">Works Offline &amp; Online</span>
-          <span class="badge-item">Real-Time Sync</span>
-          <span class="badge-item">SF9 &amp; SF10 OCR Scanning</span>
-          <span class="badge-item">DepEd Compliance Reports</span>
-          <span class="badge-item">Batch Print Queue</span>
-          <span class="badge-item">Dynamic Checklists</span>
+      <!-- Section 12: Module 8: Activity History -->
+      <section id="history" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title">Module 8: Activity History</h2>
+          <p class="section-subtitle">Comprehensive system activity logs, account lifecycle audits, and active session monitoring.</p>
         </div>
 
-        <div class="module-summary" style="margin-top: 36px; text-align: left;">
+        <div class="module-summary">
           <div class="module-summary-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-            System Highlights &amp; Scope
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+            Activity History Highlights
           </div>
           <ul class="module-summary-list">
-            <li><strong>Cross-Platform Parity:</strong> Full-featured Windows desktop suite paired with an Android tablet app tailored for classroom mobility.</li>
-            <li><strong>Offline-First Resilience:</strong> Works 100% offline within the school local area network (LAN/Wi-Fi); zero dependence on cloud availability.</li>
-            <li><strong>Secure Remote Internet Access:</strong> Configurable encrypted internet tunnels allow teachers and administrators to work remotely from home.</li>
-            <li><strong>DepEd Standardization:</strong> Designed around Department of Education learner standards, Form 137 (SF10), Form 138 (SF9), and transparency boards.</li>
+            <li><strong>Complete Activity Logs:</strong> Records all system operations (student creation, updates, document uploads, archiving, and deletion) with timestamps and actor details.</li>
+            <li><strong>User Account History:</strong> Tracks the entire lifecycle of staff accounts, showing which administrator created, modified, activated, or deactivated an account.</li>
+            <li><strong>Login &amp; Session History:</strong> Monitors active user sessions with client platform, IP address, login timestamp, and session validity.</li>
+            <li><strong>Granular Search &amp; Date Range Filters:</strong> Filter logs by date range, action type, user name, and user role.</li>
+            <li><strong>Role-Based Access:</strong> Sessions and account history are restricted to Administrators; Teachers can review activity records within their permitted scope.</li>
           </ul>
         </div>
+
+        <p class="paragraph">
+          Module 8 ensures strict data accountability and compliance with government data privacy standards. Every transaction in TIS-RMS creates an immutable log entry that administrators can inspect at any time.
+        </p>
+
+        <!-- Platform Mockups -->
+        <div class="mockup-container">
+          <div class="mockup-tabs">
+            <button class="mockup-tab-btn active" data-tab-target="win-his">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-his">Android</button>
+          </div>
+
+          <div class="mockup-pane active" id="win-his">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/history.webp" data-caption="Windows Activity History with searchable event logs">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/history.webp" alt="Windows Activity History" loading="lazy">
+              </div>
+              <figcaption>
+                <span>Figure 8A: Windows System Activity Audit Trail</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="mockup-pane" id="and-his" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/history.webp" data-caption="Android Activity History">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/history.webp" alt="Android Activity History" loading="lazy">
+              </div>
+              <figcaption>
+                <span>Figure 8B: Android Activity History</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <h3 class="subheading">System Activity Logs</h3>
+        <p class="paragraph">
+          The Activity Logs tab provides a detailed timeline of actions taken across the system:
+        </p>
+        <ul class="bullet-list">
+          <li><strong>Logged Actions:</strong> Records student additions, edits, enrollment promotions, document uploads, file deletions, and archiving actions.</li>
+          <li><strong>Audit Metadata:</strong> Each log entry records the specific action performed, target record (learner name or LRN), acting staff member, and exact timestamp.</li>
+          <li><strong>Detail Inspector:</strong> Administrators can click any entry to open a modal detailing before-and-after values and payload data.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/history_activities.svg" data-caption="System Activity Audit Trail &amp; Detail Inspector">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/history_activities.svg" alt="System Activity Audit Trail &amp; Detail Inspector" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">System Activity Audit Trail &amp; Detail Inspector</span>
+              <p class='screenshot-sub'>Searchable activity ledger detailing user actions, timestamps, affected records, and inspect modal</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        <h3 class="subheading">User Account History &amp; Login Sessions</h3>
+        <ul class="bullet-list">
+          <li><strong>User Account History:</strong> Details account provisioning events including user creation, profile edits, activation/deactivation, and password resets, identifying both the target account and the acting administrator.</li>
+          <li><strong>Login &amp; Session History:</strong> Displays active and historical user sessions, including username, full name, platform (Windows or Android), client IP address, login timestamp, and session status.</li>
+          <li><strong>Search &amp; Pagination:</strong> Both views feature date range pickers, user filters, and responsive pagination to keep large logs manageable.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/history_users.svg" data-caption="User Account Lifecycle History">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/history_users.svg" alt="User Account Lifecycle History" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">User Account Lifecycle History</span>
+              <p class='screenshot-sub'>Account modification audit log showing provisioning events, role adjustments, and admin actors</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/history_sessions.svg" data-caption="Active Login Sessions &amp; IP Address Logs">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/history_sessions.svg" alt="Active Login Sessions &amp; IP Address Logs" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Active Login Sessions &amp; IP Address Logs</span>
+              <p class='screenshot-sub'>Session tracking table displaying client platforms, network IP addresses, login timestamps, and status</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
 
         
         <nav class="page-navigation" aria-label="Page navigation">
           
+    <a href="users.html" class="page-nav-link prev">
+      <span class="page-nav-label">&larr; Previous</span>
+      <span class="page-nav-title">Module 7: User Accounts</span>
+    </a>
           
-    <a href="roles.html" class="page-nav-link next">
+    <a href="settings.html" class="page-nav-link next">
       <span class="page-nav-label">Next &rarr;</span>
-      <span class="page-nav-title">Staff Roles & Access</span>
+      <span class="page-nav-title">Module 9: School Settings</span>
     </a>
         </nav>
       </section>

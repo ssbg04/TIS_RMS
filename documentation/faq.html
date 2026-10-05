@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Overview - TIS-RMS User Guide</title>
-  <meta name="description" content="Official user guide and comprehensive handbook for Talisay Integrated School records management system on Windows and Android.">
+  <title>Frequently Asked Questions - TIS-RMS User Guide</title>
+  <meta name="description" content="Common questions and clear answers regarding offline mode, remote internet access, OCR scanning, permissions, and backups.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
       <div class="sidebar-heading">Getting Started</div>
       <ul class="sidebar-nav">
         <li>
-          <a href="index.html" class="nav-link active">
+          <a href="index.html" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
             System Overview
             <span class="nav-badge">Guide</span>
@@ -169,7 +169,7 @@
           </a>
         </li>
         <li>
-          <a href="faq.html" class="nav-link">
+          <a href="faq.html" class="nav-link active">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
             Frequently Asked Questions
             <span class="nav-badge">FAQs</span>
@@ -188,44 +188,106 @@
     <!-- Main Content Body -->
     <main class="doc-main">
       
-      <!-- Section 2: Overview Tab -->
-      <section id="overview" class="hero-banner">
-        <span class="hero-tag">Official User Guide &amp; Technical Handbook</span>
-        <h1 class="hero-title">Talisay Integrated School - Records Management System</h1>
-        <p class="hero-subtitle">
-          A dedicated, offline-first records and document management system built for Talisay Integrated School. Manage learner records with official 12-digit LRN tracking, scan SF9 and SF10 forms with automated OCR text recognition, track dynamic JHS &amp; SHS compliance checklists, view DepEd statistical reports, and execute batch print requests &mdash; accessible on Windows desktop computers and Android mobile devices across the local school network or securely over the internet.
-        </p>
-        <div class="hero-badges">
-          <span class="badge-item">Windows Desktop</span>
-          <span class="badge-item">Android App</span>
-          <span class="badge-item">Works Offline &amp; Online</span>
-          <span class="badge-item">Real-Time Sync</span>
-          <span class="badge-item">SF9 &amp; SF10 OCR Scanning</span>
-          <span class="badge-item">DepEd Compliance Reports</span>
-          <span class="badge-item">Batch Print Queue</span>
-          <span class="badge-item">Dynamic Checklists</span>
+      <!-- Section 15: Frequently Asked Questions -->
+      <section id="faq" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title">Frequently Asked Questions</h2>
+          <p class="section-subtitle">Answers to common questions about using TIS-RMS.</p>
         </div>
 
-        <div class="module-summary" style="margin-top: 36px; text-align: left;">
-          <div class="module-summary-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-            System Highlights &amp; Scope
+        <div class="faq-list">
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Can TIS-RMS be used without an internet connection?</span>
+              <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Yes, absolutely. TIS-RMS is engineered offline-first. It operates over your school's local area network (LAN/Wi-Fi). All records, scanned documents, and student folders are stored on your local school server without requiring an active internet connection.</p>
+            </div>
           </div>
-          <ul class="module-summary-list">
-            <li><strong>Cross-Platform Parity:</strong> Full-featured Windows desktop suite paired with an Android tablet app tailored for classroom mobility.</li>
-            <li><strong>Offline-First Resilience:</strong> Works 100% offline within the school local area network (LAN/Wi-Fi); zero dependence on cloud availability.</li>
-            <li><strong>Secure Remote Internet Access:</strong> Configurable encrypted internet tunnels allow teachers and administrators to work remotely from home.</li>
-            <li><strong>DepEd Standardization:</strong> Designed around Department of Education learner standards, Form 137 (SF10), Form 138 (SF9), and transparency boards.</li>
-          </ul>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Can teachers access TIS-RMS from home or outside the school network?</span>
+              <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Yes. TIS-RMS supports secure encrypted tunnel connections that allow authorized staff to securely access the system over the internet from outside the school campus when configured by the system administrator.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Does scanning an SF9 or SF10 with OCR automatically save the file?</span>
+              <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>No. OCR (Optical Character Recognition) is strictly designed to extract printed text (such as Learner Reference Number, Full Name, Birth Date, and Sex) to autofill form fields and eliminate typing errors. To store the physical image or PDF in the student's virtual folder, use the document upload feature.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Can teachers register new students?</span>
+              <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Yes. Teachers can register new students into their assigned advisory sections. Formal enrollment standing adjustments (such as graduating, transferring, or dropping students) remain restricted to Administrators to maintain official registrar standards.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>What happens when an administrator disables a document requirement?</span>
+              <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>When a document requirement is disabled in School Settings, it is cleanly removed from active student checklists so it no longer penalizes compliance rates. Importantly, any documents previously uploaded under that requirement remain safely preserved in the database and are never deleted.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>How does the student pickup email notification work?</span>
+              <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>In the Batch Print module, after printing certified documents, staff can enter a pickup date and office instructions in the pickup alert form. Clicking Send Notification transmits a formatted email to the student or guardian informing them that their physical documents are ready at the registrar's office.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>How does automatic archiving and graduation work?</span>
+              <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Automatic Archiving evaluates students with no active enrollment after the configured grace period and moves their records to the historical archive repository. Automatic Graduation evaluates Grade 10 completers and Grade 12 graduating candidates based on the active school year calendar, and can be triggered automatically or run manually by an Administrator.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>How do I reset my password if I forget it?</span>
+              <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="faq-answer">
+              <p>Click "Forgot Password?" on the sign-in screen. Enter your registered email address. The system will email you a secure One-Time PIN (OTP). Enter the OTP on screen to verify your identity and immediately set a new password.</p>
+            </div>
+          </div>
         </div>
 
         
         <nav class="page-navigation" aria-label="Page navigation">
           
+    <a href="shortcuts.html" class="page-nav-link prev">
+      <span class="page-nav-label">&larr; Previous</span>
+      <span class="page-nav-title">Keyboard Shortcuts</span>
+    </a>
           
-    <a href="roles.html" class="page-nav-link next">
+    <a href="troubleshooting.html" class="page-nav-link next">
       <span class="page-nav-label">Next &rarr;</span>
-      <span class="page-nav-title">Staff Roles & Access</span>
+      <span class="page-nav-title">Help & Troubleshooting</span>
     </a>
         </nav>
       </section>

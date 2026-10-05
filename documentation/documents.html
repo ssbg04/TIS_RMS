@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Overview - TIS-RMS User Guide</title>
-  <meta name="description" content="Official user guide and comprehensive handbook for Talisay Integrated School records management system on Windows and Android.">
+  <title>Module 3: Documents & Student Folders - TIS-RMS User Guide</title>
+  <meta name="description" content="Virtual learner document folders, camera scanning on Android, dynamic checklists, PDF previews, and batch print list integration.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
       <div class="sidebar-heading">Getting Started</div>
       <ul class="sidebar-nav">
         <li>
-          <a href="index.html" class="nav-link active">
+          <a href="index.html" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
             System Overview
             <span class="nav-badge">Guide</span>
@@ -114,7 +114,7 @@
           </a>
         </li>
         <li>
-          <a href="documents.html" class="nav-link">
+          <a href="documents.html" class="nav-link active">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
             Module 3: Documents
           </a>
@@ -188,44 +188,184 @@
     <!-- Main Content Body -->
     <main class="doc-main">
       
-      <!-- Section 2: Overview Tab -->
-      <section id="overview" class="hero-banner">
-        <span class="hero-tag">Official User Guide &amp; Technical Handbook</span>
-        <h1 class="hero-title">Talisay Integrated School - Records Management System</h1>
-        <p class="hero-subtitle">
-          A dedicated, offline-first records and document management system built for Talisay Integrated School. Manage learner records with official 12-digit LRN tracking, scan SF9 and SF10 forms with automated OCR text recognition, track dynamic JHS &amp; SHS compliance checklists, view DepEd statistical reports, and execute batch print requests &mdash; accessible on Windows desktop computers and Android mobile devices across the local school network or securely over the internet.
-        </p>
-        <div class="hero-badges">
-          <span class="badge-item">Windows Desktop</span>
-          <span class="badge-item">Android App</span>
-          <span class="badge-item">Works Offline &amp; Online</span>
-          <span class="badge-item">Real-Time Sync</span>
-          <span class="badge-item">SF9 &amp; SF10 OCR Scanning</span>
-          <span class="badge-item">DepEd Compliance Reports</span>
-          <span class="badge-item">Batch Print Queue</span>
-          <span class="badge-item">Dynamic Checklists</span>
+      <!-- Section 7: Module 3: Documents & Student Folders -->
+      <section id="documents" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title">Module 3: Documents &amp; Student Folders</h2>
+          <p class="section-subtitle">Virtual learner document folders, camera scanning on Android, dynamic checklists, and built-in previews.</p>
         </div>
 
-        <div class="module-summary" style="margin-top: 36px; text-align: left;">
+        <div class="module-summary">
           <div class="module-summary-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-            System Highlights &amp; Scope
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            Documents Module Highlights
           </div>
           <ul class="module-summary-list">
-            <li><strong>Cross-Platform Parity:</strong> Full-featured Windows desktop suite paired with an Android tablet app tailored for classroom mobility.</li>
-            <li><strong>Offline-First Resilience:</strong> Works 100% offline within the school local area network (LAN/Wi-Fi); zero dependence on cloud availability.</li>
-            <li><strong>Secure Remote Internet Access:</strong> Configurable encrypted internet tunnels allow teachers and administrators to work remotely from home.</li>
-            <li><strong>DepEd Standardization:</strong> Designed around Department of Education learner standards, Form 137 (SF10), Form 138 (SF9), and transparency boards.</li>
+            <li><strong>Folder &amp; All Documents Views:</strong> Browse records organized into individual student folders or view all uploaded files in a searchable school-wide list.</li>
+            <li><strong>Smart Context-Aware Uploads:</strong> Uploading from inside a folder automatically tags the student's LRN. Outside a folder, the system clearly notes that the document is unassociated.</li>
+            <li><strong>Collapsible Requirement Checklist:</strong> View completed vs. pending documents right in the upload dialog to avoid missing files.</li>
+            <li><strong>Mobile Scanner &amp; File Preview:</strong> On Android, scan documents using the camera scanner. Preview PDFs and view images directly in the built-in viewer.</li>
+            <li><strong>Print List Integration:</strong> Add documents directly to the batch print list with one click.</li>
           </ul>
         </div>
+
+        <p class="paragraph">
+          The Documents module replaces physical filing cabinets with structured digital envelopes. Document requirements are synchronized live from the backend &mdash; visit the <a href="settings.html#settings-requirements">Document Requirements Guide</a> to learn how administrators configure requirements.
+        </p>
+
+        <!-- Platform Mockups -->
+        <div class="mockup-container">
+          <div class="mockup-tabs">
+            <button class="mockup-tab-btn active" data-tab-target="win-doc">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-doc">Android</button>
+          </div>
+
+          <div class="mockup-pane active" id="win-doc">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/documents.webp" data-caption="Windows Documents Explorer showing school year folders and student files">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/documents.webp" alt="Windows Documents Explorer" loading="lazy">
+              </div>
+              <figcaption>
+                <span>Figure 4A: Windows Documents Explorer &amp; Virtual Folder Hierarchy</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="mockup-pane" id="and-doc" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/documents.webp" data-caption="Android Documents View with easy document preview">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/documents.webp" alt="Android Documents View" loading="lazy">
+              </div>
+              <figcaption>
+                <span>Figure 4B: Android Documents View &amp; Mobile Scanner</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <h3 class="subheading">Admin &amp; Teacher Side: Folder &amp; Document Navigation</h3>
+        <p class="paragraph">
+          Both Administrators and Teachers can search and navigate documents and student folders:
+        </p>
+        <ul class="bullet-list">
+          <li><strong>Search:</strong> Quickly search documents and virtual folders by <strong>student name</strong> or <strong>LRN</strong>.</li>
+          <li><strong>Folder Tab:</strong> Displays student digital folders with completion chips, and supports filtering by <strong>Grade Level</strong> and <strong>Section</strong>.</li>
+          <li><strong>All Documents Tab:</strong> Displays all uploaded documents across the school or advisory classes, with filtering by <strong>document requirements</strong> retrieved from the backend.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/documents_folders.svg" data-caption="Student Virtual Folders Grid &amp; Filtering">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/documents_folders.svg" alt="Student Virtual Folders Grid &amp; Filtering" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Student Virtual Folders Grid &amp; Filtering</span>
+              <p class='screenshot-sub'>Virtual document envelopes organized by Grade Level and Section with real-time completion chips</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/documents_all.svg" data-caption="All Documents Repository &amp; Category Filters">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/documents_all.svg" alt="All Documents Repository &amp; Category Filters" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">All Documents Repository &amp; Category Filters</span>
+              <p class='screenshot-sub'>Master list of uploaded files filterable by DepEd requirement types (SF9, SF10, PSA, etc.)</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        <h3 class="subheading">Document Upload Workflow</h3>
+        <p class="paragraph">
+          Users can upload documents from files or via Android camera document scanner:
+        </p>
+        <ul class="bullet-list">
+          <li><strong>Context Detection:</strong> When uploading outside a student folder, the system shows a note indicating that the file is not currently associated with a student. When uploading from inside a folder, the system automatically detects and links the student's LRN.</li>
+          <li><strong>Collapsible Requirements List:</strong> The upload dialog features an interactive collapsible list displaying mandatory and completed documents.</li>
+          <li><strong>Platform Flexibility:</strong> On Android, staff can use the built-in document scanner with automatic border cropping and contrast enhancement. On both Windows and Android, files can be chosen directly from disk.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/documents_upload.svg" data-caption="Document Upload Modal &amp; Dynamic Checklist">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/documents_upload.svg" alt="Document Upload Modal &amp; Dynamic Checklist" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Document Upload Modal &amp; Dynamic Checklist</span>
+              <p class='screenshot-sub'>Upload dialog featuring collapsible requirement status, LRN auto-tagging, and camera scanner support</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        <h3 class="subheading">In-App Preview, Print Queue &amp; Actions</h3>
+        <ul class="bullet-list">
+          <li><strong>Document Preview:</strong> Displays thumbnails and built-in previews for supported PDF and image files without requiring external software.</li>
+          <li><strong>Add to Print List:</strong> Add selected documents directly to the batch print queue with a single click. For details on managing the print queue, visit the <a href="batchprint.html">Batch Print Records</a> module.</li>
+          <li><strong>Document Actions &amp; Multi-Select:</strong> Actions include preview, download, add to print list, archive, and delete. Multiple documents can be selected for batch operations.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/documents_preview.svg" data-caption="Built-In Document Preview &amp; File Viewer">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/documents_preview.svg" alt="Built-In Document Preview &amp; File Viewer" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Built-In Document Preview &amp; File Viewer</span>
+              <p class='screenshot-sub'>Native PDF reader and high-resolution image viewer with zoom, rotation, and print actions</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/documents_actions.svg" data-caption="Document Actions Menu &amp; Multi-Select Batch Operations">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/documents_actions.svg" alt="Document Actions Menu &amp; Multi-Select Batch Operations" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Document Actions Menu &amp; Multi-Select Batch Operations</span>
+              <p class='screenshot-sub'>Right-click or multi-select menu for batch downloading, printing, archiving, and deletion</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
 
         
         <nav class="page-navigation" aria-label="Page navigation">
           
+    <a href="students.html" class="page-nav-link prev">
+      <span class="page-nav-label">&larr; Previous</span>
+      <span class="page-nav-title">Module 2: Student Information</span>
+    </a>
           
-    <a href="roles.html" class="page-nav-link next">
+    <a href="archives.html" class="page-nav-link next">
       <span class="page-nav-label">Next &rarr;</span>
-      <span class="page-nav-title">Staff Roles & Access</span>
+      <span class="page-nav-title">Module 4: Student Archives</span>
     </a>
         </nav>
       </section>

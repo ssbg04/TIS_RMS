@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Overview - TIS-RMS User Guide</title>
-  <meta name="description" content="Official user guide and comprehensive handbook for Talisay Integrated School records management system on Windows and Android.">
+  <title>Staff Roles & Access - TIS-RMS User Guide</title>
+  <meta name="description" content="Detailed guide to Administrator and Teacher permissions, class scoping, and learner registration access in TIS-RMS.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -77,14 +77,14 @@
       <div class="sidebar-heading">Getting Started</div>
       <ul class="sidebar-nav">
         <li>
-          <a href="index.html" class="nav-link active">
+          <a href="index.html" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
             System Overview
             <span class="nav-badge">Guide</span>
           </a>
         </li>
         <li>
-          <a href="roles.html" class="nav-link">
+          <a href="roles.html" class="nav-link active">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
             Staff Roles &amp; Access
             <span class="nav-badge">Roles</span>
@@ -188,44 +188,133 @@
     <!-- Main Content Body -->
     <main class="doc-main">
       
-      <!-- Section 2: Overview Tab -->
-      <section id="overview" class="hero-banner">
-        <span class="hero-tag">Official User Guide &amp; Technical Handbook</span>
-        <h1 class="hero-title">Talisay Integrated School - Records Management System</h1>
-        <p class="hero-subtitle">
-          A dedicated, offline-first records and document management system built for Talisay Integrated School. Manage learner records with official 12-digit LRN tracking, scan SF9 and SF10 forms with automated OCR text recognition, track dynamic JHS &amp; SHS compliance checklists, view DepEd statistical reports, and execute batch print requests &mdash; accessible on Windows desktop computers and Android mobile devices across the local school network or securely over the internet.
-        </p>
-        <div class="hero-badges">
-          <span class="badge-item">Windows Desktop</span>
-          <span class="badge-item">Android App</span>
-          <span class="badge-item">Works Offline &amp; Online</span>
-          <span class="badge-item">Real-Time Sync</span>
-          <span class="badge-item">SF9 &amp; SF10 OCR Scanning</span>
-          <span class="badge-item">DepEd Compliance Reports</span>
-          <span class="badge-item">Batch Print Queue</span>
-          <span class="badge-item">Dynamic Checklists</span>
+      <!-- Section 3: Staff Roles & Access -->
+      <section id="roles" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title">Staff Roles &amp; Access</h2>
+          <p class="section-subtitle">Dedicated access controls for School Administrators and Classroom Teachers.</p>
         </div>
 
-        <div class="module-summary" style="margin-top: 36px; text-align: left;">
+        <div class="module-summary">
           <div class="module-summary-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-            System Highlights &amp; Scope
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            Roles &amp; Permissions Overview
           </div>
           <ul class="module-summary-list">
-            <li><strong>Cross-Platform Parity:</strong> Full-featured Windows desktop suite paired with an Android tablet app tailored for classroom mobility.</li>
-            <li><strong>Offline-First Resilience:</strong> Works 100% offline within the school local area network (LAN/Wi-Fi); zero dependence on cloud availability.</li>
-            <li><strong>Secure Remote Internet Access:</strong> Configurable encrypted internet tunnels allow teachers and administrators to work remotely from home.</li>
-            <li><strong>DepEd Standardization:</strong> Designed around Department of Education learner standards, Form 137 (SF10), Form 138 (SF9), and transparency boards.</li>
+            <li><strong>Administrator (Registrar):</strong> Full school-wide oversight across all grade levels and sections. Registers new learners, edits all student fields, modifies formal enrollment standing, manages school settings and document requirements, creates staff accounts, audits all system logs, and exports DepEd reports.</li>
+            <li><strong>Teacher / Adviser:</strong> Focused access scoped to assigned advisory sections. Teachers can register new students, view assigned section rosters and virtual folders, edit permitted learner details (LRN, Name, Sex, Birth Date, 4Ps), upload scanned documents, and submit batch print requests.</li>
+            <li><strong>Data Accountability &amp; Security:</strong> The system enforces role-based access control (RBAC) across both client interfaces and the backend API, logging every modification with timestamps and user identifiers.</li>
           </ul>
+        </div>
+
+        <p class="paragraph">
+          TIS-RMS separates responsibilities into two distinct user roles to ensure smooth daily operation while safeguarding the integrity of official learner records:
+        </p>
+
+        <div class="table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Feature / Action</th>
+                <th>Administrator</th>
+                <th>Teacher / Adviser</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>View Dashboard</strong></td>
+                <td><span class="badge success">School-Wide</span></td>
+                <td><span class="badge info">Assigned Sections</span></td>
+                <td>Teachers see counts and attention lists for their assigned advisory sections</td>
+              </tr>
+              <tr>
+                <td><strong>Register New Students</strong></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td>Both roles can register new learners into the system (Manual, OCR, or CSV)</td>
+              </tr>
+              <tr>
+                <td><strong>Edit Student Details</strong></td>
+                <td><span class="badge success">Full Edit</span></td>
+                <td><span class="badge info">Permitted Fields</span></td>
+                <td>Teachers can edit LRN, Name, Sex, Birth Date, and 4Ps status; Admin can edit all fields</td>
+              </tr>
+              <tr>
+                <td><strong>Edit Student Status / Enrollment Standing</strong></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td><span class="badge danger">Restricted</span></td>
+                <td>Admin updates formal standing (Enrolled, Transferred, Dropped, Graduated, Inactive)</td>
+              </tr>
+              <tr>
+                <td><strong>Upload Student Documents (SF9, PSA)</strong></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td>Both roles can upload files directly into student virtual folders</td>
+              </tr>
+              <tr>
+                <td><strong>View Student Folders</strong></td>
+                <td><span class="badge success">All Sections</span></td>
+                <td><span class="badge info">Assigned Sections</span></td>
+                <td>Scoped by teacher's advisory class section assignments</td>
+              </tr>
+              <tr>
+                <td><strong>Archive &amp; Restore Records</strong></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td><span class="badge danger">Restricted</span></td>
+                <td>Admin archives inactive students or restores archived files</td>
+              </tr>
+              <tr>
+                <td><strong>Batch Print Records &amp; Pickup Alerts</strong></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td>Both roles can queue documents, print batches, and email pickup notifications</td>
+              </tr>
+              <tr>
+                <td><strong>Reports &amp; DepEd Transparency Board</strong></td>
+                <td><span class="badge success">Full Access</span></td>
+                <td><span class="badge danger">Restricted</span></td>
+                <td>Admin-only module for compliance metrics, storage usage, and Excel export</td>
+              </tr>
+              <tr>
+                <td><strong>User Account Management</strong></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td><span class="badge danger">Restricted</span></td>
+                <td>Admin creates staff accounts, toggles activation, and resets passwords</td>
+              </tr>
+              <tr>
+                <td><strong>Activity History Auditing</strong></td>
+                <td><span class="badge success">Full (All Logs)</span></td>
+                <td><span class="badge info">Permitted Logs</span></td>
+                <td>Admin audits all logs and login sessions; Teachers view their permitted actions</td>
+              </tr>
+              <tr>
+                <td><strong>Manage Settings &amp; Requirements</strong></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td><span class="badge danger">Restricted</span></td>
+                <td>Admin configures academic setup, document checklist items, and auto-archiving</td>
+              </tr>
+              <tr>
+                <td><strong>Manage Own Profile &amp; Password</strong></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td><span class="badge success">Allowed</span></td>
+                <td>Both roles can update their personal profile info and change passwords</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         
         <nav class="page-navigation" aria-label="Page navigation">
           
+    <a href="index.html" class="page-nav-link prev">
+      <span class="page-nav-label">&larr; Previous</span>
+      <span class="page-nav-title">System Overview</span>
+    </a>
           
-    <a href="roles.html" class="page-nav-link next">
+    <a href="login.html" class="page-nav-link next">
       <span class="page-nav-label">Next &rarr;</span>
-      <span class="page-nav-title">Staff Roles & Access</span>
+      <span class="page-nav-title">Sign In & Getting Started</span>
     </a>
         </nav>
       </section>

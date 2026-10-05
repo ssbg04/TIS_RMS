@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Overview - TIS-RMS User Guide</title>
-  <meta name="description" content="Official user guide and comprehensive handbook for Talisay Integrated School records management system on Windows and Android.">
+  <title>Module 6: Reports & Analytics - TIS-RMS User Guide</title>
+  <meta name="description" content="DepEd transparency board, document compliance metrics, grade-level comparisons, server disk storage analytics, and Excel export.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
       <div class="sidebar-heading">Getting Started</div>
       <ul class="sidebar-nav">
         <li>
-          <a href="index.html" class="nav-link active">
+          <a href="index.html" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
             System Overview
             <span class="nav-badge">Guide</span>
@@ -132,7 +132,7 @@
           </a>
         </li>
         <li>
-          <a href="reports.html" class="nav-link">
+          <a href="reports.html" class="nav-link active">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
             Module 6: Reports &amp; Analytics
             <span class="nav-badge">Admin</span>
@@ -188,44 +188,168 @@
     <!-- Main Content Body -->
     <main class="doc-main">
       
-      <!-- Section 2: Overview Tab -->
-      <section id="overview" class="hero-banner">
-        <span class="hero-tag">Official User Guide &amp; Technical Handbook</span>
-        <h1 class="hero-title">Talisay Integrated School - Records Management System</h1>
-        <p class="hero-subtitle">
-          A dedicated, offline-first records and document management system built for Talisay Integrated School. Manage learner records with official 12-digit LRN tracking, scan SF9 and SF10 forms with automated OCR text recognition, track dynamic JHS &amp; SHS compliance checklists, view DepEd statistical reports, and execute batch print requests &mdash; accessible on Windows desktop computers and Android mobile devices across the local school network or securely over the internet.
-        </p>
-        <div class="hero-badges">
-          <span class="badge-item">Windows Desktop</span>
-          <span class="badge-item">Android App</span>
-          <span class="badge-item">Works Offline &amp; Online</span>
-          <span class="badge-item">Real-Time Sync</span>
-          <span class="badge-item">SF9 &amp; SF10 OCR Scanning</span>
-          <span class="badge-item">DepEd Compliance Reports</span>
-          <span class="badge-item">Batch Print Queue</span>
-          <span class="badge-item">Dynamic Checklists</span>
+      <!-- Section 10: Module 6: Reports & Analytics -->
+      <section id="reports" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title">Module 6: Reports &amp; Analytics</h2>
+          <p class="section-subtitle">School-wide compliance monitoring, DepEd statistical tables, storage analytics, and Excel export.</p>
         </div>
 
-        <div class="module-summary" style="margin-top: 36px; text-align: left;">
+        <div class="module-summary">
           <div class="module-summary-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-            System Highlights &amp; Scope
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            Reports Highlights (Administrator Access)
           </div>
           <ul class="module-summary-list">
-            <li><strong>Cross-Platform Parity:</strong> Full-featured Windows desktop suite paired with an Android tablet app tailored for classroom mobility.</li>
-            <li><strong>Offline-First Resilience:</strong> Works 100% offline within the school local area network (LAN/Wi-Fi); zero dependence on cloud availability.</li>
-            <li><strong>Secure Remote Internet Access:</strong> Configurable encrypted internet tunnels allow teachers and administrators to work remotely from home.</li>
-            <li><strong>DepEd Standardization:</strong> Designed around Department of Education learner standards, Form 137 (SF10), Form 138 (SF9), and transparency boards.</li>
+            <li><strong>Live Backend Refresh:</strong> All statistics, compliance counts, and percentages are fetched live from the backend database to reflect up-to-the-minute records.</li>
+            <li><strong>Document Compliance Breakdown:</strong> Identify non-compliant students and see exact counts of missing requirement types.</li>
+            <li><strong>Grade-Level &amp; Historical Comparisons:</strong> Compare compliance across grade levels and analyze trends between academic years.</li>
+            <li><strong>Storage Analytics:</strong> Monitor hard disk utilization by document categories to plan storage capacity.</li>
+            <li><strong>Excel (.xlsx) Export:</strong> Export formatted DepEd compliance spreadsheets with live previews.</li>
           </ul>
         </div>
+
+        <p class="paragraph">
+          Module 6 gives administrators a bird's-eye view of institutional performance, DepEd compliance metrics, and file system storage. All report data is synchronized in real time with server records.
+        </p>
+
+        <!-- Platform Mockups -->
+        <div class="mockup-container">
+          <div class="mockup-tabs">
+            <button class="mockup-tab-btn active" data-tab-target="win-rep">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-rep">Android</button>
+          </div>
+
+          <div class="mockup-pane active" id="win-rep">
+            <figure class="doc-figure" data-lightbox="assets/images/windows/reports.webp" data-caption="Windows Reports showing compliance statistics and export">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/windows/reports.webp" alt="Windows Reports" loading="lazy">
+              </div>
+              <figcaption>
+                <span>Figure 6A: Windows Reports &amp; DepEd Transparency Board</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="mockup-pane" id="and-rep" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/android/reports.webp" data-caption="Android Reports View">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/android/reports.webp" alt="Android Reports" loading="lazy">
+              </div>
+              <figcaption>
+                <span>Figure 6B: Android Reports View</span>
+                <span class="zoom-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg> Click to enlarge</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <h3 class="subheading">Student Statistics &amp; Document Compliance</h3>
+        <p class="paragraph">
+          Administrators can monitor learner enrollment status and document completion across cohorts:
+        </p>
+        <ul class="bullet-list">
+          <li><strong>Student Statistics:</strong> Real-time counts for Active / Enrolled, Dropped, Transferred, and Graduated learners.</li>
+          <li><strong>Document Compliance:</strong> Displays overall compliance rates, flags students with missing requirements, and provides an itemized breakdown of missing documents by requirement type.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/reports_compliance.svg" data-caption="Document Compliance Dashboard &amp; Missing Requirements">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/reports_compliance.svg" alt="Document Compliance Dashboard &amp; Missing Requirements" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Document Compliance Dashboard &amp; Missing Requirements</span>
+              <p class='screenshot-sub'>Compliance metrics showing overall completion percentages and category-by-category missing counts</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        <h3 class="subheading">Grade-Level Compliance, Trends &amp; Storage Analytics</h3>
+        <ul class="bullet-list">
+          <li><strong>Grade-Level Compliance:</strong> Pinpoints grade cohorts with higher numbers of incomplete portfolios.</li>
+          <li><strong>Document Status Analytics:</strong> Dynamic visual charts summarizing submission progress.</li>
+          <li><strong>Academic Year Comparison:</strong> Evaluates historical changes in student population and document completion across school years.</li>
+          <li><strong>Storage Analytics:</strong> Details disk storage consumption across categories (SF9, SF10, PSA, 137, etc.) to ensure server resources remain optimal.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/reports_analytics.svg" data-caption="Visual Analytics, Grade Compliance &amp; Storage Metrics">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/reports_analytics.svg" alt="Visual Analytics, Grade Compliance &amp; Storage Metrics" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Visual Analytics, Grade Compliance &amp; Storage Metrics</span>
+              <p class='screenshot-sub'>Interactive charts illustrating grade-level submission rates, multi-year comparisons, and disk space usage</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        <h3 class="subheading">Student Compliance Table &amp; Excel Export</h3>
+        <p class="paragraph">
+          The compliance table allows granular inspection of individual learner statuses:
+        </p>
+        <ul class="bullet-list">
+          <li><strong>Search &amp; Sort:</strong> Search by name or LRN, and sort by missing document count to quickly isolate students needing intervention.</li>
+          <li><strong>Report Filters:</strong> Filter the table by academic year, grade level, section, or enrollment status.</li>
+          <li><strong>Excel Export (.xlsx):</strong> Click <strong>Export to Excel</strong> to generate a complete spreadsheet containing student statistics, missing document tallies, and full student compliance rosters. The system displays an interactive in-app preview before saving.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/reports_deped.svg" data-caption="DepEd Record Analytics &amp; Transparency Board">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/reports_deped.svg" alt="DepEd Record Analytics &amp; Transparency Board" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">DepEd Record Analytics &amp; Transparency Board</span>
+              <p class='screenshot-sub'>Searchable learner compliance table with grade, section, status, and missing document counts</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/reports_export.svg" data-caption="Excel Export Modal with Report Preview">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/reports_export.svg" alt="Excel Export Modal with Report Preview" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Excel Export Modal with Report Preview</span>
+              <p class='screenshot-sub'>In-app preview of generated DepEd compliance spreadsheet prior to downloading as an .xlsx file</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
 
         
         <nav class="page-navigation" aria-label="Page navigation">
           
+    <a href="batchprint.html" class="page-nav-link prev">
+      <span class="page-nav-label">&larr; Previous</span>
+      <span class="page-nav-title">Module 5: Batch Print Records</span>
+    </a>
           
-    <a href="roles.html" class="page-nav-link next">
+    <a href="users.html" class="page-nav-link next">
       <span class="page-nav-label">Next &rarr;</span>
-      <span class="page-nav-title">Staff Roles & Access</span>
+      <span class="page-nav-title">Module 7: User Accounts</span>
     </a>
         </nav>
       </section>

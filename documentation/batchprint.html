@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Overview - TIS-RMS User Guide</title>
-  <meta name="description" content="Official user guide and comprehensive handbook for Talisay Integrated School records management system on Windows and Android.">
+  <title>Module 5: Batch Print Records - TIS-RMS User Guide</title>
+  <meta name="description" content="Multi-document print queue management, Excel-to-PDF conversion, print history audit, and automated student/guardian pickup alerts.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
       <div class="sidebar-heading">Getting Started</div>
       <ul class="sidebar-nav">
         <li>
-          <a href="index.html" class="nav-link active">
+          <a href="index.html" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
             System Overview
             <span class="nav-badge">Guide</span>
@@ -126,7 +126,7 @@
           </a>
         </li>
         <li>
-          <a href="batchprint.html" class="nav-link">
+          <a href="batchprint.html" class="nav-link active">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></span>
             Module 5: Batch Print
           </a>
@@ -188,44 +188,117 @@
     <!-- Main Content Body -->
     <main class="doc-main">
       
-      <!-- Section 2: Overview Tab -->
-      <section id="overview" class="hero-banner">
-        <span class="hero-tag">Official User Guide &amp; Technical Handbook</span>
-        <h1 class="hero-title">Talisay Integrated School - Records Management System</h1>
-        <p class="hero-subtitle">
-          A dedicated, offline-first records and document management system built for Talisay Integrated School. Manage learner records with official 12-digit LRN tracking, scan SF9 and SF10 forms with automated OCR text recognition, track dynamic JHS &amp; SHS compliance checklists, view DepEd statistical reports, and execute batch print requests &mdash; accessible on Windows desktop computers and Android mobile devices across the local school network or securely over the internet.
-        </p>
-        <div class="hero-badges">
-          <span class="badge-item">Windows Desktop</span>
-          <span class="badge-item">Android App</span>
-          <span class="badge-item">Works Offline &amp; Online</span>
-          <span class="badge-item">Real-Time Sync</span>
-          <span class="badge-item">SF9 &amp; SF10 OCR Scanning</span>
-          <span class="badge-item">DepEd Compliance Reports</span>
-          <span class="badge-item">Batch Print Queue</span>
-          <span class="badge-item">Dynamic Checklists</span>
+      <!-- Section 9: Module 5: Batch Print Records -->
+      <section id="batchprint" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title">Module 5: Batch Print Records</h2>
+          <p class="section-subtitle">Multi-document queue management, format conversion, and automated email pickup notifications.</p>
         </div>
 
-        <div class="module-summary" style="margin-top: 36px; text-align: left;">
+        <div class="module-summary">
           <div class="module-summary-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-            System Highlights &amp; Scope
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            Batch Print Highlights
           </div>
           <ul class="module-summary-list">
-            <li><strong>Cross-Platform Parity:</strong> Full-featured Windows desktop suite paired with an Android tablet app tailored for classroom mobility.</li>
-            <li><strong>Offline-First Resilience:</strong> Works 100% offline within the school local area network (LAN/Wi-Fi); zero dependence on cloud availability.</li>
-            <li><strong>Secure Remote Internet Access:</strong> Configurable encrypted internet tunnels allow teachers and administrators to work remotely from home.</li>
-            <li><strong>DepEd Standardization:</strong> Designed around Department of Education learner standards, Form 137 (SF10), Form 138 (SF9), and transparency boards.</li>
+            <li><strong>Print List Queue:</strong> Review queued documents, remove items individually, or clear the entire queue before sending jobs to the printer.</li>
+            <li><strong>Student Pickup Notification:</strong> Automatically notify learners or parents by email with pickup date, designated office counter, and special instructions.</li>
+            <li><strong>Print History Audit:</strong> Maintain a searchable historical record of all completed print batches.</li>
+            <li><strong>Batch Printing with Format Conversion:</strong> Print multiple files across students in one pass; Excel files automatically convert to PDF with user confirmation.</li>
           </ul>
         </div>
+
+        <p class="paragraph">
+          The Batch Print module streamlines document fulfillment for transcript requests, graduation packages, and DepEd compliance portfolios. Staff can queue records directly from the document explorer or preview modal.
+        </p>
+
+        <h3 class="subheading">Admin &amp; Teacher Side: Managing the Print Queue</h3>
+        <p class="paragraph">
+          Both Administrators and Teachers can utilize the print list modal to manage print jobs:
+        </p>
+        <ul class="bullet-list">
+          <li><strong>Review &amp; Edit Queue:</strong> Opens a modal displaying all documents currently staged for printing. Staff can inspect file thumbnails, delete individual entries, or clear the entire queue.</li>
+          <li><strong>Direct Queue Ingestion:</strong> Documents can be added to the print queue instantly from document previews, folder views, or table action menus.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/print_queue.svg" data-caption="Batch Print Queue Modal &amp; Document Review">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/print_queue.svg" alt="Batch Print Queue Modal &amp; Document Review" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Batch Print Queue Modal &amp; Document Review</span>
+              <p class='screenshot-sub'>Print queue manager showing queued files, page counts, clear queue options, and batch print triggers</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        <h3 class="subheading">Student &amp; Guardian Pickup Notification</h3>
+        <p class="paragraph">
+          When requested documents are printed and ready for collection, staff can send an automated notification directly from the print modal:
+        </p>
+        <ul class="bullet-list">
+          <li><strong>Student/Guardian Email:</strong> Enter or confirm the registered recipient email address.</li>
+          <li><strong>Pickup Date:</strong> Specify when the physical documents will be available for pickup at the school office.</li>
+          <li><strong>Office Notes or Instructions:</strong> Include special requirements such as valid IDs, authorization letters, or office counter locations.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/print_email.svg" data-caption="Student/Guardian Email Pickup Notification Form">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/print_email.svg" alt="Student/Guardian Email Pickup Notification Form" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Student/Guardian Email Pickup Notification Form</span>
+              <p class='screenshot-sub'>Integrated email alert form specifying pickup date, office instructions, and document readiness</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        <h3 class="subheading">Print History &amp; Batch Conversion</h3>
+        <ul class="bullet-list">
+          <li><strong>Print History:</strong> Keeps an accessible audit log of past print jobs, showing filenames, requester, and timestamps.</li>
+          <li><strong>Batch Printing &amp; File Conversion:</strong> Send multiple learner records to the printer in a single coordinated print operation. When Excel-based records are queued, the system automatically converts them to PDF and displays a confirmation dialog.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/print_history.svg" data-caption="Print History Audit Log">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/print_history.svg" alt="Print History Audit Log" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Print History Audit Log</span>
+              <p class='screenshot-sub'>Chronological record of past print batches with requester names, document counts, and timestamps</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
 
         
         <nav class="page-navigation" aria-label="Page navigation">
           
+    <a href="archives.html" class="page-nav-link prev">
+      <span class="page-nav-label">&larr; Previous</span>
+      <span class="page-nav-title">Module 4: Student Archives</span>
+    </a>
           
-    <a href="roles.html" class="page-nav-link next">
+    <a href="reports.html" class="page-nav-link next">
       <span class="page-nav-label">Next &rarr;</span>
-      <span class="page-nav-title">Staff Roles & Access</span>
+      <span class="page-nav-title">Module 6: Reports & Analytics</span>
     </a>
         </nav>
       </section>

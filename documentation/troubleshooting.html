@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Overview - TIS-RMS User Guide</title>
-  <meta name="description" content="Official user guide and comprehensive handbook for Talisay Integrated School records management system on Windows and Android.">
+  <title>Help & Troubleshooting - TIS-RMS User Guide</title>
+  <meta name="description" content="Troubleshooting guides for local network server connections, Android camera scanning, password resets, and WebSocket sync.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
       <div class="sidebar-heading">Getting Started</div>
       <ul class="sidebar-nav">
         <li>
-          <a href="index.html" class="nav-link active">
+          <a href="index.html" class="nav-link">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
             System Overview
             <span class="nav-badge">Guide</span>
@@ -176,7 +176,7 @@
           </a>
         </li>
         <li>
-          <a href="troubleshooting.html" class="nav-link">
+          <a href="troubleshooting.html" class="nav-link active">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span>
             Help &amp; Troubleshooting
           </a>
@@ -188,44 +188,78 @@
     <!-- Main Content Body -->
     <main class="doc-main">
       
-      <!-- Section 2: Overview Tab -->
-      <section id="overview" class="hero-banner">
-        <span class="hero-tag">Official User Guide &amp; Technical Handbook</span>
-        <h1 class="hero-title">Talisay Integrated School - Records Management System</h1>
-        <p class="hero-subtitle">
-          A dedicated, offline-first records and document management system built for Talisay Integrated School. Manage learner records with official 12-digit LRN tracking, scan SF9 and SF10 forms with automated OCR text recognition, track dynamic JHS &amp; SHS compliance checklists, view DepEd statistical reports, and execute batch print requests &mdash; accessible on Windows desktop computers and Android mobile devices across the local school network or securely over the internet.
-        </p>
-        <div class="hero-badges">
-          <span class="badge-item">Windows Desktop</span>
-          <span class="badge-item">Android App</span>
-          <span class="badge-item">Works Offline &amp; Online</span>
-          <span class="badge-item">Real-Time Sync</span>
-          <span class="badge-item">SF9 &amp; SF10 OCR Scanning</span>
-          <span class="badge-item">DepEd Compliance Reports</span>
-          <span class="badge-item">Batch Print Queue</span>
-          <span class="badge-item">Dynamic Checklists</span>
+      <!-- Section 16: Help & Troubleshooting -->
+      <section id="troubleshooting" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title">Help &amp; Troubleshooting</h2>
+          <p class="section-subtitle">Solutions to common technical issues and connectivity checks.</p>
         </div>
 
-        <div class="module-summary" style="margin-top: 36px; text-align: left;">
-          <div class="module-summary-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-            System Highlights &amp; Scope
+        <div class="troubleshoot-grid">
+          <div class="troubleshoot-card">
+            <div class="troubleshoot-header">
+              <span class="troubleshoot-tag">Connectivity</span>
+              <h4>Cannot Connect to School Server</h4>
+            </div>
+            <p>If the app displays a "Server Offline" or "Network Error" banner upon launch:</p>
+            <ul>
+              <li>Confirm your computer or tablet is connected to the official school Wi-Fi or LAN cable.</li>
+              <li>Check that the host server computer is powered on and the server program is active.</li>
+              <li>If working from home, verify that your secure internet tunnel client is connected.</li>
+            </ul>
           </div>
-          <ul class="module-summary-list">
-            <li><strong>Cross-Platform Parity:</strong> Full-featured Windows desktop suite paired with an Android tablet app tailored for classroom mobility.</li>
-            <li><strong>Offline-First Resilience:</strong> Works 100% offline within the school local area network (LAN/Wi-Fi); zero dependence on cloud availability.</li>
-            <li><strong>Secure Remote Internet Access:</strong> Configurable encrypted internet tunnels allow teachers and administrators to work remotely from home.</li>
-            <li><strong>DepEd Standardization:</strong> Designed around Department of Education learner standards, Form 137 (SF10), Form 138 (SF9), and transparency boards.</li>
-          </ul>
+
+          <div class="troubleshoot-card">
+            <div class="troubleshoot-header">
+              <span class="troubleshoot-tag">Document Scanner</span>
+              <h4>Camera Scanner Blurry or Not Cropping</h4>
+            </div>
+            <p>If document scanning on your Android tablet produces unreadable files:</p>
+            <ul>
+              <li>Place the DepEd form flat on a contrasting dark background.</li>
+              <li>Ensure adequate, uniform lighting without overhead shadows or glare.</li>
+              <li>Hold the tablet steady until the auto-shutter captures and crops the edges.</li>
+            </ul>
+          </div>
+
+          <div class="troubleshoot-card">
+            <div class="troubleshoot-header">
+              <span class="troubleshoot-tag">Authentication</span>
+              <h4>OTP Code Not Received</h4>
+            </div>
+            <p>If you requested a password recovery OTP but have not received it:</p>
+            <ul>
+              <li>Check your Spam or Junk email folder for the automated verification email.</li>
+              <li>Verify with the system administrator that your account is registered with the correct email address.</li>
+              <li>Administrators can also directly initiate a password reset link from the User Accounts module.</li>
+            </ul>
+          </div>
+
+          <div class="troubleshoot-card">
+            <div class="troubleshoot-header">
+              <span class="troubleshoot-tag">Sync &amp; Performance</span>
+              <h4>Changes Not Updating Instantly</h4>
+            </div>
+            <p>If numbers or uploads do not reflect immediately on your screen:</p>
+            <ul>
+              <li>Check the live connection indicator icon in the top header.</li>
+              <li>Press <kbd>F5</kbd> on Windows or pull-to-refresh on Android to resynchronize data with the backend.</li>
+              <li>Ensure no firewall software is blocking local WebSocket connections.</li>
+            </ul>
+          </div>
         </div>
 
         
         <nav class="page-navigation" aria-label="Page navigation">
           
+    <a href="faq.html" class="page-nav-link prev">
+      <span class="page-nav-label">&larr; Previous</span>
+      <span class="page-nav-title">Frequently Asked Questions</span>
+    </a>
           
-    <a href="roles.html" class="page-nav-link next">
+    <a href="index.html" class="page-nav-link next">
       <span class="page-nav-label">Next &rarr;</span>
-      <span class="page-nav-title">Staff Roles & Access</span>
+      <span class="page-nav-title">Back to Overview</span>
     </a>
         </nav>
       </section>
