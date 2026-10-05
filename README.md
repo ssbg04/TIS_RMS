@@ -4,7 +4,7 @@ Records Management System
 
 A records management system for managing student records, documents, and school forms.
 
-"Landing Page" (https://web.tis-rms.cc.cd) · "Documentation" (https://docs.tis-rms.cc.cd)
+[Landing Page](https://web.tis-rms.cc.cd) · [Documentation](https://docs.tis-rms.cc.cd)
 
 </div>---
 
@@ -87,7 +87,7 @@ Documentation
 
 For installation guides, system documentation, configuration, and usage instructions, visit the official documentation:
 
-"docs.tis-rms.cc.cd" (https://docs.tis-rms.cc.cd)
+[docs.tis-rms.cc.cd](https://docs.tis-rms.cc.cd)
 
 ---
 
@@ -103,7 +103,7 @@ License
 
 TIS RMS is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
 
-See the "LICENSE" (LICENSE) file for the full license text.
+See the [LICENSE](LICENSE) file for the full license text.
 
 Project
 
