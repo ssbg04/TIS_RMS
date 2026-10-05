@@ -239,6 +239,9 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenW = MediaQuery.of(context).size.width;
+    final isMobile = screenW < 600;
+
     final yearsAsync = ref.watch(academicYearsListProvider);
     final gradesAsync = ref.watch(gradeLevelsListProvider);
     final sectionsAsync = ref.watch(sectionsListProvider);
@@ -249,11 +252,14 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 20,
+        vertical: isMobile ? 12 : 24,
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: 640,
-          maxHeight: MediaQuery.of(context).size.height * 0.90,
+          maxHeight: MediaQuery.of(context).size.height * (isMobile ? 0.94 : 0.90),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
@@ -262,7 +268,10 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 14 : 20,
+                  vertical: isMobile ? 12 : 14,
+                ),
                 decoration: const BoxDecoration(
                   color: AppColors.primaryGreen,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -271,39 +280,44 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
                   children: [
                     const Icon(Icons.school_rounded, color: Colors.white, size: 22),
                     const SizedBox(width: 10),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Bulk CSV Enrollment',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 17,
+                          fontSize: isMobile ? 15 : 17,
                           fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.20),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.admin_panel_settings_outlined, color: Colors.white, size: 14),
-                          SizedBox(width: 4),
-                          Text(
-                            'Admin Only',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                          const Icon(Icons.admin_panel_settings_outlined, color: Colors.white, size: 14),
+                          if (!isMobile) ...[
+                            const SizedBox(width: 4),
+                            const Text(
+                              'Admin Only',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 4),
                     IconButton(
                       icon: const Icon(Icons.close, color: Colors.white, size: 20),
                       visualDensity: VisualDensity.compact,
@@ -317,7 +331,7 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
               // Scrollable Body
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(isMobile ? 14 : 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -325,7 +339,7 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
                       Text(
                         'Enroll multiple existing students at once by entering their LRNs or uploading a CSV file. The system verifies student records live with the backend before completing enrollment.',
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: isMobile ? 11.5 : 12.5,
                           color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           height: 1.4,
                         ),
@@ -344,140 +358,301 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
                       ),
                       const SizedBox(height: 8),
 
-                      // Academic Year & Grade Level
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              decoration: const InputDecoration(
-                                labelText: 'Academic Year',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              ),
-                              initialValue: _selectedAcademicYearId,
-                              items: yearsAsync.maybeWhen(
-                                data: (years) => years
-                                    .map((y) => DropdownMenuItem(
-                                          value: y.id,
-                                          child: Text(y.yearRange, style: const TextStyle(fontSize: 13)),
-                                        ))
-                                    .toList(),
-                                orElse: () => [],
-                              ),
-                              onChanged: (val) => setState(() => _selectedAcademicYearId = val),
-                            ),
+                      // Academic Year & Grade Level (Responsive layout)
+                      if (isMobile) ...[
+                        DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(
+                            labelText: 'Academic Year',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              decoration: const InputDecoration(
-                                labelText: 'Grade Level',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              ),
-                              initialValue: _selectedGradeLevel,
-                              items: gradesAsync.maybeWhen(
-                                data: (grades) => grades
-                                    .map((g) => DropdownMenuItem(
-                                          value: g.level,
-                                          child: Text(g.name, style: const TextStyle(fontSize: 13)),
-                                        ))
-                                    .toList(),
-                                orElse: () => [],
-                              ),
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedGradeLevel = val;
-                                  _selectedSectionId = null;
-                                });
-                              },
-                            ),
+                          initialValue: _selectedAcademicYearId,
+                          isExpanded: true,
+                          items: yearsAsync.maybeWhen(
+                            data: (years) => years
+                                .map((y) => DropdownMenuItem(
+                                      value: y.id,
+                                      child: Text(y.yearRange, style: const TextStyle(fontSize: 13)),
+                                    ))
+                                .toList(),
+                            orElse: () => [],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Section & Track/Strand
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              decoration: const InputDecoration(
-                                labelText: 'Section',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              ),
-                              initialValue: _selectedSectionId,
-                              items: sectionsAsync.maybeWhen(
-                                data: (sections) {
-                                  if (_selectedGradeLevel != null) {
-                                    sections = sections
-                                        .where((s) => s.gradeLevel == _selectedGradeLevel)
-                                        .toList();
-                                  }
-                                  return sections
-                                      .map((s) => DropdownMenuItem(
-                                            value: s.id,
-                                            child: Text(s.name, style: const TextStyle(fontSize: 13)),
+                          onChanged: (val) => setState(() => _selectedAcademicYearId = val),
+                        ),
+                        const SizedBox(height: 10),
+                        DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(
+                            labelText: 'Grade Level',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                          initialValue: _selectedGradeLevel,
+                          isExpanded: true,
+                          items: gradesAsync.maybeWhen(
+                            data: (grades) => grades
+                                .map((g) => DropdownMenuItem(
+                                      value: g.level,
+                                      child: Text(g.name, style: const TextStyle(fontSize: 13)),
+                                    ))
+                                .toList(),
+                            orElse: () => [],
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedGradeLevel = val;
+                              _selectedSectionId = null;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(
+                            labelText: 'Section',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                          initialValue: _selectedSectionId,
+                          isExpanded: true,
+                          items: sectionsAsync.maybeWhen(
+                            data: (sections) {
+                              if (_selectedGradeLevel != null) {
+                                sections = sections
+                                    .where((s) => s.gradeLevel == _selectedGradeLevel)
+                                    .toList();
+                              }
+                              return sections
+                                  .map((s) => DropdownMenuItem(
+                                        value: s.id,
+                                        child: Text(s.name, style: const TextStyle(fontSize: 13)),
+                                      ))
+                                  .toList();
+                            },
+                            orElse: () => [],
+                          ),
+                          onChanged: (val) => setState(() => _selectedSectionId = val),
+                        ),
+                        const SizedBox(height: 10),
+                        TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Track / Strand (Optional)',
+                            hintText: 'e.g. STEM, TVL',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                          onChanged: (val) => _trackStrand = val,
+                        ),
+                      ] else ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<int>(
+                                decoration: const InputDecoration(
+                                  labelText: 'Academic Year',
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                ),
+                                initialValue: _selectedAcademicYearId,
+                                isExpanded: true,
+                                items: yearsAsync.maybeWhen(
+                                  data: (years) => years
+                                      .map((y) => DropdownMenuItem(
+                                            value: y.id,
+                                            child: Text(y.yearRange, style: const TextStyle(fontSize: 13)),
                                           ))
-                                      .toList();
+                                      .toList(),
+                                  orElse: () => [],
+                                ),
+                                onChanged: (val) => setState(() => _selectedAcademicYearId = val),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: DropdownButtonFormField<int>(
+                                decoration: const InputDecoration(
+                                  labelText: 'Grade Level',
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                ),
+                                initialValue: _selectedGradeLevel,
+                                isExpanded: true,
+                                items: gradesAsync.maybeWhen(
+                                  data: (grades) => grades
+                                      .map((g) => DropdownMenuItem(
+                                            value: g.level,
+                                            child: Text(g.name, style: const TextStyle(fontSize: 13)),
+                                          ))
+                                      .toList(),
+                                  orElse: () => [],
+                                ),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _selectedGradeLevel = val;
+                                    _selectedSectionId = null;
+                                  });
                                 },
-                                orElse: () => [],
                               ),
-                              onChanged: (val) => setState(() => _selectedSectionId = val),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'Track / Strand (Optional)',
-                                hintText: 'e.g. STEM, TVL',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<int>(
+                                decoration: const InputDecoration(
+                                  labelText: 'Section',
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                ),
+                                initialValue: _selectedSectionId,
+                                isExpanded: true,
+                                items: sectionsAsync.maybeWhen(
+                                  data: (sections) {
+                                    if (_selectedGradeLevel != null) {
+                                      sections = sections
+                                          .where((s) => s.gradeLevel == _selectedGradeLevel)
+                                          .toList();
+                                    }
+                                    return sections
+                                        .map((s) => DropdownMenuItem(
+                                              value: s.id,
+                                              child: Text(s.name, style: const TextStyle(fontSize: 13)),
+                                            ))
+                                        .toList();
+                                  },
+                                  orElse: () => [],
+                                ),
+                                onChanged: (val) => setState(() => _selectedSectionId = val),
                               ),
-                              onChanged: (val) => _trackStrand = val,
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                decoration: const InputDecoration(
+                                  labelText: 'Track / Strand (Optional)',
+                                  hintText: 'e.g. STEM, TVL',
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                ),
+                                onChanged: (val) => _trackStrand = val,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 20),
 
                       // Input Method Tabs
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '2. STUDENT LRNS (CSV INPUT)',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                            ),
+                      if (isMobile) ...[
+                        Text(
+                          '2. STUDENT LRNS (CSV INPUT)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           ),
-                          // Toggle pill
-                          Container(
-                            decoration: BoxDecoration(
-                              color: isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            padding: const EdgeInsets.all(2),
-                            child: Row(
-                              children: [
-                                InkWell(
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.all(3),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
                                   onTap: () => setState(() => _inputTab = 0),
-                                  borderRadius: BorderRadius.circular(18),
+                                  borderRadius: BorderRadius.circular(10),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
                                     decoration: BoxDecoration(
                                       color: _inputTab == 0
                                           ? AppColors.primaryGreen
                                           : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(18),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
+                                    alignment: Alignment.center,
                                     child: Text(
                                       'Type / Paste CSV',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: _inputTab == 0
+                                            ? Colors.white
+                                            : (isDark ? Colors.white70 : Colors.black87),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => setState(() => _inputTab = 1),
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: _inputTab == 1
+                                          ? AppColors.primaryGreen
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'Upload CSV File',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: _inputTab == 1
+                                            ? Colors.white
+                                            : (isDark ? Colors.white70 : Colors.black87),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '2. STUDENT LRNS (CSV INPUT)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
+                            ),
+                            // Toggle pill
+                            Container(
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.all(2),
+                              child: Row(
+                                children: [
+                                  InkWell(
+                                    onTap: () => setState(() => _inputTab = 0),
+                                    borderRadius: BorderRadius.circular(18),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: _inputTab == 0
+                                            ? AppColors.primaryGreen
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
+                                      child: Text(
+                                        'Type / Paste CSV',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
@@ -516,7 +691,8 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                    ],
+                    const SizedBox(height: 10),
 
                       // Sample CSV Reference & Actions
                       Container(
@@ -531,10 +707,14 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(Icons.info_outline_rounded,
                                         size: 16, color: AppColors.primaryGreen),
@@ -551,6 +731,7 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
                                 ),
                                 Wrap(
                                   spacing: 6,
+                                  runSpacing: 6,
                                   children: [
                                     OutlinedButton.icon(
                                       onPressed: _loadSampleData,
@@ -728,8 +909,11 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              Wrap(
+                                alignment: WrapAlignment.spaceBetween,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 8,
+                                runSpacing: 6,
                                 children: [
                                   Text(
                                     'Live Backend Verification:',
@@ -740,6 +924,7 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
                                     ),
                                   ),
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -845,7 +1030,10 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
 
               // Modal Footer
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 14 : 20,
+                  vertical: isMobile ? 10 : 12,
+                ),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
                   border: Border(
@@ -854,45 +1042,95 @@ class _BulkEnrollmentModalState extends ConsumerState<BulkEnrollmentModal> {
                     ),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                      ),
-                      child: const Text('Cancel'),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: (_isSubmitting ||
-                              validCount == 0 ||
-                              _selectedAcademicYearId == null ||
-                              _selectedGradeLevel == null ||
-                              _selectedSectionId == null)
-                          ? null
-                          : _submitEnrollment,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      ),
-                      child: _isSubmitting
-                          ? const AppButtonLoader(
-                              color: Colors.white,
-                              size: 16,
-                              strokeWidth: 2,
-                            )
-                          : Text(
-                              validCount > 0
-                                  ? 'Enroll $validCount Student(s)'
-                                  : 'Enroll Students',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                child: isMobile
+                    ? Row(
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: const Text('Cancel'),
                             ),
-                    ),
-                  ],
-                ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              onPressed: (_isSubmitting ||
+                                      validCount == 0 ||
+                                      _selectedAcademicYearId == null ||
+                                      _selectedGradeLevel == null ||
+                                      _selectedSectionId == null)
+                                  ? null
+                                  : _submitEnrollment,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryGreen,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: _isSubmitting
+                                  ? const AppButtonLoader(
+                                      color: Colors.white,
+                                      size: 16,
+                                      strokeWidth: 2,
+                                    )
+                                  : Text(
+                                      validCount > 0
+                                          ? 'Enroll $validCount Student(s)'
+                                          : 'Enroll Students',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: (_isSubmitting ||
+                                    validCount == 0 ||
+                                    _selectedAcademicYearId == null ||
+                                    _selectedGradeLevel == null ||
+                                    _selectedSectionId == null)
+                                ? null
+                                : _submitEnrollment,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            ),
+                            child: _isSubmitting
+                                ? const AppButtonLoader(
+                                    color: Colors.white,
+                                    size: 16,
+                                    strokeWidth: 2,
+                                  )
+                                : Text(
+                                    validCount > 0
+                                        ? 'Enroll $validCount Student(s)'
+                                        : 'Enroll Students',
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                          ),
+                        ],
+                      ),
               ),
             ],
           ),

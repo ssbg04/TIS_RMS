@@ -1041,12 +1041,17 @@ Files backup/restore - mirror mode or zip -->
 - [x] add keyboard shortcut Ctrl + F for search (implemented CallbackShortcuts and FocusNode in AuditTrailScreen to invoke search dialog on Ctrl+F) -->
 
 
-# STUDENT SCREEN
+<!-- # STUDENT SCREEN
 - [x] student profile modal enrollment tab, (Admin Only: Administrators can add and edit enrollments, with support for CSV bulk enrollment for 1 student to enroll multiple records across school years with live progression verification with backend. Features interactive editable CSV text area with sample format reference, Fill Example, and real-time backend verification)
   - Admin Only: Administrators can add and edit enrollments, with support for CSV bulk enrollment and live verification with the backend.
-  - csv input add sample format then they can type on it 
+  - csv input add sample format then they can type on it  -->
   
+# STUDENT SCREEN
+- [x] csv bulk enrollment make the UI responsive for android app
 
+# SETTINGS SCREEN
+- [x] make the download update downloads in app doesnt redirect to others apps github or chrome, and ask to download via default installer of android, for windows download it then open the installer and close the windows app when the installer is open
+- check all the screens and 
 
 ---
 

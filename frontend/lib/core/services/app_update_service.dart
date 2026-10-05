@@ -1,9 +1,13 @@
 import 'dart:ffi' show Abi;
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, File, Directory, Process, ProcessStartMode, exit;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:window_manager/window_manager.dart';
 
 /// Structured information about an available app update.
 class AppUpdateInfo {
@@ -294,5 +298,124 @@ class AppUpdateService {
     }
 
     return false;
+  }
+
+  /// Downloads the update installer file directly in-app with progress reporting.
+  /// Does not redirect to GitHub or Chrome.
+  /// Returns the absolute path to the downloaded file.
+  static Future<String> downloadUpdateFile({
+    required String downloadUrl,
+    required String fileName,
+    required void Function(int received, int total) onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(minutes: 15),
+        headers: {
+          'Accept': '*/*',
+          'User-Agent': 'TIS_RMS_Client',
+        },
+        followRedirects: true,
+        maxRedirects: 8,
+      ),
+    );
+
+    Directory targetDir;
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        final externalCache = await getExternalCacheDirectories();
+        if (externalCache != null && externalCache.isNotEmpty) {
+          targetDir = externalCache.first;
+        } else {
+          targetDir = await getTemporaryDirectory();
+        }
+      } catch (_) {
+        targetDir = await getTemporaryDirectory();
+      }
+    } else {
+      targetDir = await getTemporaryDirectory();
+    }
+
+    final updatesDir = Directory('${targetDir.path}/updates');
+    if (!await updatesDir.exists()) {
+      await updatesDir.create(recursive: true);
+    }
+
+    final sanitizedName = fileName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    final savePath = '${updatesDir.path}/$sanitizedName';
+
+    // Delete incomplete/old update file if present
+    final existingFile = File(savePath);
+    if (await existingFile.exists()) {
+      try {
+        await existingFile.delete();
+      } catch (_) {}
+    }
+
+    await dio.download(
+      downloadUrl,
+      savePath,
+      onReceiveProgress: onProgress,
+      cancelToken: cancelToken,
+      deleteOnError: true,
+    );
+
+    return savePath;
+  }
+
+  /// Installs or launches the downloaded installer.
+  /// On Android: Prompts the user to install via default Android package installer.
+  /// On Windows: Launches the installer executable detached and closes the Windows app.
+  static Future<void> installDownloadedUpdate(String filePath) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      throw Exception('Downloaded installer file does not exist at $filePath');
+    }
+
+    if (!kIsWeb && Platform.isAndroid) {
+      // Check REQUEST_INSTALL_PACKAGES permission on Android
+      try {
+        final status = await Permission.requestInstallPackages.status;
+        if (status.isDenied) {
+          await Permission.requestInstallPackages.request();
+        }
+      } catch (e) {
+        debugPrint('[AppUpdateService] Permission request warning: $e');
+      }
+
+      // Launch Android's default package installer
+      final result = await OpenFilex.open(
+        filePath,
+        type: 'application/vnd.android.package-archive',
+      );
+      debugPrint('[AppUpdateService] OpenFilex result: ${result.type} - ${result.message}');
+
+      if (result.type == ResultType.permissionDenied) {
+        throw Exception(
+          'Installation permission denied. Please allow "Install unknown apps" for TIS RMS in Android Settings.',
+        );
+      } else if (result.type == ResultType.fileNotFound) {
+        throw Exception('The update installer file could not be found.');
+      } else if (result.type == ResultType.error) {
+        throw Exception(result.message);
+      }
+    } else if (!kIsWeb && Platform.isWindows) {
+      // Windows: launch installer detached, then cleanly close and exit the app
+      await Process.start(filePath, [], mode: ProcessStartMode.detached);
+
+      // Brief pause to allow the installer window process to initialize
+      await Future.delayed(const Duration(milliseconds: 600));
+
+      try {
+        await windowManager.destroy();
+      } catch (_) {}
+
+      exit(0);
+    } else {
+      // Generic fallback
+      await OpenFilex.open(filePath);
+    }
   }
 }

@@ -502,10 +502,14 @@ class _StudentCsvEnrollmentModalState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 8,
                             children: [
                               Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const Icon(
                                     Icons.info_outline_rounded,
@@ -527,6 +531,7 @@ class _StudentCsvEnrollmentModalState
                               ),
                               Wrap(
                                 spacing: 6,
+                                runSpacing: 6,
                                 children: [
                                   OutlinedButton.icon(
                                     onPressed: _loadSampleData,
@@ -732,8 +737,11 @@ class _StudentCsvEnrollmentModalState
                     const SizedBox(height: 14),
 
                     // Verification Trigger Bar
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         Text(
                           'Backend Progression Verification:',
@@ -906,7 +914,10 @@ class _StudentCsvEnrollmentModalState
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Row(
+                                            Wrap(
+                                              spacing: 6,
+                                              runSpacing: 4,
+                                              crossAxisAlignment: WrapCrossAlignment.center,
                                               children: [
                                                 Text(
                                                   'S.Y. ${item['schoolYear'] ?? 'N/A'}',
@@ -915,7 +926,6 @@ class _StudentCsvEnrollmentModalState
                                                     fontSize: 13,
                                                   ),
                                                 ),
-                                                const SizedBox(width: 8),
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(
                                                     horizontal: 6,
@@ -934,7 +944,6 @@ class _StudentCsvEnrollmentModalState
                                                     ),
                                                   ),
                                                 ),
-                                                const SizedBox(width: 8),
                                                 Text(
                                                   'Section: ${item['sectionName'] ?? 'N/A'}',
                                                   style: TextStyle(
@@ -945,8 +954,7 @@ class _StudentCsvEnrollmentModalState
                                                   ),
                                                 ),
                                                 if (item['trackStrand'] != null &&
-                                                    item['trackStrand'].toString().isNotEmpty) ...[
-                                                  const SizedBox(width: 8),
+                                                    item['trackStrand'].toString().isNotEmpty)
                                                   Text(
                                                     '(${item['trackStrand']})',
                                                     style: const TextStyle(
@@ -954,7 +962,6 @@ class _StudentCsvEnrollmentModalState
                                                       color: Colors.grey,
                                                     ),
                                                   ),
-                                                ],
                                               ],
                                             ),
                                             if (error != null) ...[
@@ -1029,59 +1036,125 @@ class _StudentCsvEnrollmentModalState
                   ),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    validCount > 0
-                        ? '$validCount valid enrollment(s) to import'
-                        : '0 valid enrollments',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.textSecondary,
+              child: isMobile
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          validCount > 0
+                              ? '$validCount valid enrollment(s) to import'
+                              : '0 valid enrollments',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 1,
+                              child: OutlinedButton(
+                                onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                child: const Text('Cancel'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton.icon(
+                                onPressed: (_isSubmitting || validCount == 0)
+                                    ? null
+                                    : _submitEnrollments,
+                                icon: _isSubmitting
+                                    ? const AppButtonLoader(
+                                        color: Colors.white,
+                                        size: 14,
+                                        strokeWidth: 2,
+                                      )
+                                    : const Icon(Icons.playlist_add_check, size: 18),
+                                label: Text(
+                                  _isSubmitting
+                                      ? 'Importing...'
+                                      : 'Import ($validCount)',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryGreen,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          validCount > 0
+                              ? '$validCount valid enrollment(s) to import'
+                              : '0 valid enrollments',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            OutlinedButton(
+                              onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                              child: const Text('Cancel'),
+                            ),
+                            const SizedBox(width: 10),
+                            ElevatedButton.icon(
+                              onPressed: (_isSubmitting || validCount == 0)
+                                  ? null
+                                  : _submitEnrollments,
+                              icon: _isSubmitting
+                                  ? const AppButtonLoader(
+                                      color: Colors.white,
+                                      size: 14,
+                                      strokeWidth: 2,
+                                    )
+                                  : const Icon(Icons.playlist_add_check, size: 18),
+                              label: Text(
+                                _isSubmitting
+                                    ? 'Importing...'
+                                    : 'Import Enrollments ($validCount)',
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryGreen,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
-                  Row(
-                    children: [
-                      OutlinedButton(
-                        onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-                        child: const Text('Cancel'),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton.icon(
-                        onPressed: (_isSubmitting || validCount == 0)
-                            ? null
-                            : _submitEnrollments,
-                        icon: _isSubmitting
-                            ? const AppButtonLoader(
-                                color: Colors.white,
-                                size: 14,
-                                strokeWidth: 2,
-                              )
-                            : const Icon(Icons.playlist_add_check, size: 18),
-                        label: Text(
-                          _isSubmitting
-                              ? 'Importing...'
-                              : 'Import Enrollments ($validCount)',
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryGreen,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
             ),
           ],
         ),
