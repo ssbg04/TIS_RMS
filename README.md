@@ -33,55 +33,73 @@ Two components communicating over a local network:
 
 Getting Started
 
-Prerequisites: Node.js v18+, Flutter SDK (stable), Visual Studio 2022 with C++ workload.
+**Prerequisites:** Node.js v18+, Flutter SDK (stable), Visual Studio 2022 with C++ workload.
 
-«Tesseract OCR and Ghostscript are bundled — no extra installation needed.»
+> Tesseract OCR and Ghostscript are bundled — no extra installation needed.»
 
 Backend
 
+```bash
 cd backend
 npm install
 copy .example.env .env
 npm run dev
+```
 
 Configure the required environment variables in ".env" before starting the backend.
 
 For production:
 
+```bash
 npm start
+```
 
 Frontend
 
+```bash
 cd frontend
 flutter pub get
+```
 
 Run on Windows:
 
+```bash
 flutter run -d windows
+```
 
 Build for Windows:
 
+```bash
 flutter build windows
+```
 
 Run on Android:
 
+```bash
 flutter run -d android
+```
 
 Build an Android APK:
 
+```bash
 flutter build apk
+```
 
 Windows Installer
 
 To build the Windows installer, compile:
 
+```text
 frontend/TIS_RMS_Client.iss
+```
 
 using Inno Setup.
 
 Alternatively:
 
+```powershell
 .\build_release.ps1
+```
 
 ---
 
@@ -97,7 +115,7 @@ Website
 
 Visit the TIS RMS landing page:
 
-"web.tis-rms.cc.cd" (https://web.tis-rms.cc.cd)
+[web.tis-rms.cc.cd](https://web.tis-rms.cc.cd)
 
 ---
 
