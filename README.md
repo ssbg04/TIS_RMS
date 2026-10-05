@@ -6,7 +6,9 @@ A records management system for managing student records, documents, and school 
 
 [Landing Page](https://web.tis-rms.cc.cd) · [Documentation](https://docs.tis-rms.cc.cd)
 
-</div>---
+</div>
+
+---
 
 Features
 
