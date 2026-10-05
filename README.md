@@ -76,7 +76,11 @@ To build a Windows installer, compile `frontend/TIS_RMS_Client.iss` with **Inno 
 
 ---
 
-## 📜 License
+## License
+
+TIS_RMS is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+
+See the [LICENSE](LICENSE) file for the full license text.
 
 Developed by **BSIT3DSB** — PLSP.
 
