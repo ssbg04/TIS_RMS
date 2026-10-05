@@ -4,31 +4,21 @@
 
 ### Records Management System
 
-**A full-stack, offline-capable platform for managing student records, documents, and OCR-powered data extraction in Philippine educational institutions.**
-
-<br/>
-
-![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
-![Windows](https://img.shields.io/badge/Windows-Desktop-0078D6?style=for-the-badge&logo=windows&logoColor=white)
-![Android](https://img.shields.io/badge/Android-Mobile-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![Version](https://img.shields.io/github/v/tag/ssbg04/TIS_RMS?style=for-the-badge&label=version&color=4CAF50)
+A records management system for managing student records, documents, and school forms.
 
 </div>
 
 ---
 
-## ✨ Features
+## Features
 
-- 📂 **Document Management** — Upload, preview, and organize student documents (PDFs & images)
-- 🎓 **Student Records** — Track enrollment status, LRN, grade level, strand, and document completion
-- 🔍 **OCR Extraction** — Extract data from scanned documents via bundled Tesseract OCR (fully offline)
-- 📊 **Reports** — Generate DepEd School Form 10 (SF10) for JHS & SHS using bundled Excel templates
-- 🔔 **Push Notifications** — Real-time alerts via Firebase Cloud Messaging
-- 🔐 **Authentication** — JWT-based sessions with bcrypt password hashing
-- 🛠️ **Windows Service** — Backend can run as a persistent Windows Service via NSSM
+- **Document Management** — Upload, preview, and organize student documents.
+- **Student Records** — Manage enrollment information, LRN, grade level, strand, and document status.
+- **OCR Extraction** — Extract information from scanned documents using Tesseract OCR.
+- **Reports** — Generate DepEd School Form 10 (SF10) for JHS and SHS.
+- **Push Notifications** — Deliver notifications through Firebase Cloud Messaging.
+- **Authentication** — JWT-based authentication with bcrypt password hashing.
+- **Windows Service** — Run the backend as a persistent Windows service.
 
 ---
 
