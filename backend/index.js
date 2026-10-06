@@ -47,6 +47,15 @@ initSchema();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Graceful JSON parse error handler — ensure backend always responds with JSON, never HTML
+app.use((err, req, res, next) => {
+    if (err instanceof SyntaxError && (err.status === 400 || err.statusCode === 400)) {
+        return res.status(400).json({ message: 'Invalid JSON payload in request body' });
+    }
+    next(err);
+});
+
 app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -71,6 +80,19 @@ app.use('/api/templates', templateRoutes);
 app.get(['/', '/api'], (req, res) => {
     res.set('X-TIS-RMS', 'true');
     res.json({ message: 'TIS RMS API is running' });
+});
+
+// Catch-all 404 for unhandled /api/* endpoints — return JSON, never HTML
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ message: `API endpoint not found: ${req.method} ${req.originalUrl}` });
+});
+
+// Global JSON error handler
+app.use((err, req, res, next) => {
+    console.error('[Unhandled Server Error]', err);
+    res.status(err.status || err.statusCode || 500).json({
+        message: err.message || 'Internal server error',
+    });
 });
 
 server.listen(PORT, '0.0.0.0', () => {

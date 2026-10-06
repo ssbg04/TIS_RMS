@@ -10,7 +10,7 @@
 #define OutputBaseFilename "TIS_RMS_Client_Setup_v" + MyAppVersion
 #endif
 #define MyAppPublisher "Talisay Integrated School"
-#define MyAppURL "https://tis-rms.cc.cd"
+#define MyAppURL "https://web.tis-rms.cc.cd"
 #define MyAppExeName "frontend.exe"
 #define MyAppIcon "windows\runner\resources\app_icon.ico"
 

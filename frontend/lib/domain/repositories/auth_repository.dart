@@ -27,7 +27,18 @@ class AuthRepository {
         },
       );
 
-      final token = response.data['token'] as String;
+      if (response.data is! Map) {
+        throw Exception(
+          'Server at ${ApiConstants.baseUrl} returned an unexpected response format. Please verify the server URL.',
+        );
+      }
+
+      final data = response.data as Map;
+      final token = data['token'] as String?;
+      if (token == null || token.isEmpty) {
+        throw Exception('Server did not return an authentication token.');
+      }
+
       // Write to FlutterSecureStorage — consistent with all other repositories
       await _storage.write(key: _tokenKey, value: token);
       await _storage.write(
@@ -37,7 +48,11 @@ class AuthRepository {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenKey, token);
 
-      final userData = response.data['user'];
+      final userData = data['user'] as Map?;
+      if (userData == null) {
+        throw Exception('Server did not return user details.');
+      }
+
       return UserModel(
         id: userData['id'],
         username: userData['username'],
@@ -46,32 +61,67 @@ class AuthRepository {
         role: userData['role'],
       );
     } on DioException catch (e) {
-      final errorMessage =
-          e.response?.data['message'] ?? 'Failed to connect to the server.';
+      final errorMessage = ApiConstants.extractErrorMessage(
+        e,
+        'Failed to connect to the server at ${ApiConstants.baseUrl}.',
+      );
       throw Exception(errorMessage);
+    } catch (e) {
+      if (e is FormatException) {
+        throw Exception(
+          'Server at ${ApiConstants.baseUrl} returned non-JSON response. Please verify the server URL.',
+        );
+      }
+      throw Exception(ApiConstants.extractErrorMessage(e));
     }
   }
 
   /// Auto-login: returns user if a valid Remember Me token is stored, otherwise null.
   Future<UserModel?> tryAutoLogin() async {
-    String? rememberMe = await _storage.read(key: _rememberMeKey);
+    String? rememberMe;
+    try {
+      rememberMe = await _storage
+          .read(key: _rememberMeKey)
+          .timeout(const Duration(seconds: 2), onTimeout: () => null);
+    } catch (_) {}
+
     if (rememberMe != 'true') {
-      final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool('rememberMe') == true) {
-        rememberMe = 'true';
-      }
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (prefs.getBool('rememberMe') == true) {
+          rememberMe = 'true';
+        }
+      } catch (_) {}
     }
     if (rememberMe != 'true') return null;
 
-    final token = await _storage.read(key: _tokenKey);
-    if (token == null) return null;
+    String? token;
+    try {
+      token = await _storage
+          .read(key: _tokenKey)
+          .timeout(const Duration(seconds: 2), onTimeout: () => null);
+    } catch (_) {}
+
+    if (token == null || token.isEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        token = prefs.getString(_tokenKey);
+      } catch (_) {}
+    }
+    if (token == null || token.isEmpty) return null;
 
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenKey, token);
 
-      final options = Options(headers: {'Authorization': 'Bearer $token'});
-      final response = await _dio.get('/auth/profile', options: options);
+      final options = Options(
+        headers: {'Authorization': 'Bearer $token'},
+        sendTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 5),
+      );
+      final response = await _dio
+          .get('/auth/profile', options: options)
+          .timeout(const Duration(seconds: 6));
       return UserModel.fromJson(response.data);
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
@@ -80,11 +130,24 @@ class AuthRepository {
       }
       // For network errors (no internet on startup), return null without wiping token
       return null;
+    } catch (_) {
+      return null;
     }
   }
 
   Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
+    try {
+      final token = await _storage
+          .read(key: _tokenKey)
+          .timeout(const Duration(seconds: 2), onTimeout: () => null);
+      if (token != null && token.isNotEmpty) return token;
+    } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_tokenKey);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> logout() async {
@@ -107,7 +170,7 @@ class AuthRepository {
       return UserModel.fromJson(response.data);
     } on DioException catch (e) {
       final errorMessage =
-          e.response?.data['message'] ?? 'Failed to fetch profile.';
+          ApiConstants.extractErrorMessage(e, 'Failed to fetch profile.');
       throw Exception(errorMessage);
     }
   }
@@ -136,7 +199,7 @@ class AuthRepository {
       );
     } on DioException catch (e) {
       final errorMessage =
-          e.response?.data['message'] ?? 'Failed to update profile.';
+          ApiConstants.extractErrorMessage(e, 'Failed to update profile.');
       throw Exception(errorMessage);
     }
   }
@@ -159,7 +222,7 @@ class AuthRepository {
       );
     } on DioException catch (e) {
       final errorMessage =
-          e.response?.data['message'] ?? 'Failed to change password.';
+          ApiConstants.extractErrorMessage(e, 'Failed to change password.');
       throw Exception(errorMessage);
     }
   }
@@ -181,7 +244,7 @@ class AuthRepository {
       );
     } on DioException catch (e) {
       final errorMessage =
-          e.response?.data['message'] ?? 'Failed to submit request.';
+          ApiConstants.extractErrorMessage(e, 'Failed to submit request.');
       throw Exception(errorMessage);
     }
   }
@@ -213,7 +276,7 @@ class AuthRepository {
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       final errorMessage =
-          e.response?.data['message'] ?? 'Failed to lookup account.';
+          ApiConstants.extractErrorMessage(e, 'Failed to lookup account.');
       throw Exception(errorMessage);
     }
   }
@@ -229,7 +292,7 @@ class AuthRepository {
           'Verification code sent to your email.';
     } on DioException catch (e) {
       final errorMessage =
-          e.response?.data['message'] ?? 'Failed to send email verification code.';
+          ApiConstants.extractErrorMessage(e, 'Failed to send email verification code.');
       throw Exception(errorMessage);
     }
   }
@@ -255,7 +318,7 @@ class AuthRepository {
           'Password reset successfully.';
     } on DioException catch (e) {
       final errorMessage =
-          e.response?.data['message'] ?? 'Failed to reset password.';
+          ApiConstants.extractErrorMessage(e, 'Failed to reset password.');
       throw Exception(errorMessage);
     }
   }
@@ -272,7 +335,7 @@ class AuthRepository {
           'Verification email sent. Please check your inbox.';
     } on DioException catch (e) {
       final errorMessage =
-          e.response?.data['message'] ?? 'Failed to request account deletion.';
+          ApiConstants.extractErrorMessage(e, 'Failed to request account deletion.');
       throw Exception(errorMessage);
     }
   }
@@ -289,7 +352,7 @@ class AuthRepository {
           'Your account has been deactivated.';
     } on DioException catch (e) {
       final errorMessage =
-          e.response?.data['message'] ?? 'Failed to deactivate account.';
+          ApiConstants.extractErrorMessage(e, 'Failed to deactivate account.');
       throw Exception(errorMessage);
     }
   }
@@ -314,7 +377,7 @@ class AuthRepository {
       final response = await _dio.get('/auth/sessions', options: options);
       return List<Map<String, dynamic>>.from(response.data as List);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch sessions.');
+      throw Exception(ApiConstants.extractErrorMessage(e, 'Failed to fetch sessions.'));
     }
   }
 
@@ -324,7 +387,7 @@ class AuthRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/auth/sessions/$sessionId', options: options);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to revoke session.');
+      throw Exception(ApiConstants.extractErrorMessage(e, 'Failed to revoke session.'));
     }
   }
 
@@ -334,7 +397,7 @@ class AuthRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/auth/sessions', options: options);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to revoke sessions.');
+      throw Exception(ApiConstants.extractErrorMessage(e, 'Failed to revoke sessions.'));
     }
   }
 
@@ -364,7 +427,7 @@ class AuthRepository {
       );
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch login logs.');
+      throw Exception(ApiConstants.extractErrorMessage(e, 'Failed to fetch login logs.'));
     }
   }
 }
