@@ -1563,7 +1563,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       data: (folders) {
         if (folders.isEmpty) {
           return _buildEmptyState(
-            'No archived student folders found.\nStudents that have Graduated, Transferred, Dropped, or Inactive will appear here.',
+            'No archived student folders found.\nFolders of students marked as graduated, transferred, dropped, or inactive are archived here.',
           );
         }
 
