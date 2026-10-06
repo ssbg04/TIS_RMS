@@ -12,6 +12,7 @@
 .swiftpm/
 migrate_working_dir/
 
+/assets/documentation/TODO.md
 # IntelliJ related
 *.iml
 *.ipr

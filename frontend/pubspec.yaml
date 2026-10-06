@@ -60,6 +60,8 @@ dependencies:
   audioplayers: ^6.8.1
   package_info_plus: ^8.1.0
   device_info_plus: ^12.4.0
+  webview_windows: ^0.4.0
+  webview_flutter: ^4.14.1
 
 dev_dependencies:
   flutter_test:
@@ -92,6 +94,12 @@ flutter:
     - assets/images/group/
     - assets/images/solo/
     - assets/sounds/
+    - assets/documentation/
+    - assets/documentation/assets/
+    - assets/documentation/assets/images/
+    - assets/documentation/assets/images/android/
+    - assets/documentation/assets/images/screenshots/
+    - assets/documentation/assets/images/windows/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

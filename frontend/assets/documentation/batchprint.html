@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 5: Batch Print Records - TIS-RMS User Guide</title>
+  <meta name="description" content="Multi-document print queue management, Excel-to-PDF conversion, print history audit, and automated student/guardian pickup alerts.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+</head>
+<body id="top">
+
+  <!-- Top Sticky Header -->
+  <header class="doc-header">
+    <div class="header-left">
+      <button id="mobileMenuBtn" class="mobile-menu-btn" title="Open Navigation Menu" aria-label="Open Navigation Menu">
+        <svg class="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        <svg class="close-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+
+      <a href="index.html" class="header-brand">
+        <img src="assets/logo.png" alt="TIS-RMS Logo">
+        <div class="brand-text">
+          <h1>TIS-RMS Guide</h1>
+          <span>Talisay Integrated School</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="header-search" id="headerSearchBox">
+      <div class="search-input-wrap">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="docSearchInput" class="search-input" placeholder="Search guide, modules, features..." autocomplete="off">
+        <span class="search-kbd">Ctrl+F</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="mobileSearchBtn" class="mobile-search-btn" title="Search" aria-label="Search Documentation">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </button>
+
+      <div class="platform-pill-toggle">
+        <button type="button" class="platform-btn active" data-platform-filter="all">All</button>
+        <button type="button" class="platform-btn" data-platform-filter="windows">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.901-1.799"/></svg>
+          <span class="platform-text">Windows</span>
+        </button>
+        <button type="button" class="platform-btn" data-platform-filter="android">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.084 12 8.084s-3.5902.3276-5.1368.8657L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396"/></svg>
+          <span class="platform-text">Android</span>
+        </button>
+      </div>
+
+      <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Theme" aria-label="Toggle Theme">
+        <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <svg class="moon-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      </button>
+
+      <button id="printBtn" class="print-btn" title="Print Documentation" aria-label="Print Documentation">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Sidebar Backdrop Overlay for Mobile -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- Main Layout -->
+  <div class="doc-layout">
+    
+    <!-- Sticky Navigation Sidebar -->
+    <aside class="doc-sidebar" id="docSidebar">
+      <div class="sidebar-heading">Getting Started</div>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="index.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
+            System Overview
+            <span class="nav-badge">Guide</span>
+          </a>
+        </li>
+        <li>
+          <a href="roles.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
+            Staff Roles &amp; Access
+            <span class="nav-badge">Roles</span>
+          </a>
+        </li>
+        <li>
+          <a href="login.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+            Sign In &amp; Getting Started
+            <span class="nav-badge">Sign In</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-heading">Core Modules</div>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="dashboard.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg></span>
+            Module 1: Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="students.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+            Module 2: Students
+          </a>
+        </li>
+        <li>
+          <a href="documents.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
+            Module 3: Documents
+          </a>
+        </li>
+        <li>
+          <a href="archives.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
+            Module 4: Archives
+          </a>
+        </li>
+        <li>
+          <a href="batchprint.html" class="nav-link active">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg></span>
+            Module 5: Batch Print
+          </a>
+        </li>
+        <li>
+          <a href="reports.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
+            Module 6: Reports &amp; Analytics
+            <span class="nav-badge">Admin</span>
+          </a>
+        </li>
+        <li>
+          <a href="users.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg></span>
+            Module 7: User Accounts
+            <span class="nav-badge">Admin</span>
+          </a>
+        </li>
+        <li>
+          <a href="history.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg></span>
+            Module 8: Activity History
+          </a>
+        </li>
+        <li>
+          <a href="settings.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+            Module 9: School Settings
+            <span class="nav-badge">Admin</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-heading">Reference &amp; Support</div>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="shortcuts.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="6" y1="8" x2="6" y2="8"></line><line x1="10" y1="8" x2="10" y2="8"></line><line x1="14" y1="8" x2="14" y2="8"></line><line x1="18" y1="8" x2="18" y2="8"></line><line x1="6" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="18" y2="12"></line><line x1="6" y1="16" x2="18" y2="16"></line></svg></span>
+            Keyboard Shortcuts
+          </a>
+        </li>
+        <li>
+          <a href="faq.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
+            Frequently Asked Questions
+            <span class="nav-badge">FAQs</span>
+          </a>
+        </li>
+        <li>
+          <a href="troubleshooting.html" class="nav-link">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span>
+            Help &amp; Troubleshooting
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+
+    <!-- Main Content Body -->
+    <main class="doc-main">
+      
+      <!-- Section 9: Module 5: Batch Print Records -->
+      <section id="batchprint" class="doc-section">
+        <div class="section-header">
+          <h2 class="section-title">Module 5: Batch Print Records</h2>
+          <p class="section-subtitle">Multi-document queue management, format conversion, and automated email pickup notifications.</p>
+        </div>
+
+        <div class="module-summary">
+          <div class="module-summary-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            Batch Print Highlights
+          </div>
+          <ul class="module-summary-list">
+            <li><strong>Print List Queue:</strong> Review queued documents, remove items individually, or clear the entire queue before sending jobs to the printer.</li>
+            <li><strong>Student Pickup Notification:</strong> Automatically notify learners or parents by email with pickup date, designated office counter, and special instructions.</li>
+            <li><strong>Print History Audit:</strong> Maintain a searchable historical record of all completed print batches.</li>
+            <li><strong>Batch Printing with Format Conversion:</strong> Print multiple files across students in one pass; Excel files automatically convert to PDF with user confirmation.</li>
+          </ul>
+        </div>
+
+        <p class="paragraph">
+          The Batch Print module streamlines document fulfillment for transcript requests, graduation packages, and DepEd compliance portfolios. Staff can queue records directly from the document explorer or preview modal.
+        </p>
+
+        <h3 class="subheading">Admin &amp; Teacher Side: Managing the Print Queue</h3>
+        <p class="paragraph">
+          Both Administrators and Teachers can utilize the print list modal to manage print jobs:
+        </p>
+        <ul class="bullet-list">
+          <li><strong>Review &amp; Edit Queue:</strong> Opens a modal displaying all documents currently staged for printing. Staff can inspect file thumbnails, delete individual entries, or clear the entire queue.</li>
+          <li><strong>Direct Queue Ingestion:</strong> Documents can be added to the print queue instantly from document previews, folder views, or table action menus.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/print_queue.svg" data-caption="Batch Print Queue Modal &amp; Document Review">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/print_queue.svg" alt="Batch Print Queue Modal &amp; Document Review" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Batch Print Queue Modal &amp; Document Review</span>
+              <p class='screenshot-sub'>Print queue manager showing queued files, page counts, clear queue options, and batch print triggers</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        <h3 class="subheading">Student &amp; Guardian Pickup Notification</h3>
+        <p class="paragraph">
+          When requested documents are printed and ready for collection, staff can send an automated notification directly from the print modal:
+        </p>
+        <ul class="bullet-list">
+          <li><strong>Student/Guardian Email:</strong> Enter or confirm the registered recipient email address.</li>
+          <li><strong>Pickup Date:</strong> Specify when the physical documents will be available for pickup at the school office.</li>
+          <li><strong>Office Notes or Instructions:</strong> Include special requirements such as valid IDs, authorization letters, or office counter locations.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/print_email.svg" data-caption="Student/Guardian Email Pickup Notification Form">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/print_email.svg" alt="Student/Guardian Email Pickup Notification Form" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Student/Guardian Email Pickup Notification Form</span>
+              <p class='screenshot-sub'>Integrated email alert form specifying pickup date, office instructions, and document readiness</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        <h3 class="subheading">Print History &amp; Batch Conversion</h3>
+        <ul class="bullet-list">
+          <li><strong>Print History:</strong> Keeps an accessible audit log of past print jobs, showing filenames, requester, and timestamps.</li>
+          <li><strong>Batch Printing &amp; File Conversion:</strong> Send multiple learner records to the printer in a single coordinated print operation. When Excel-based records are queued, the system automatically converts them to PDF and displays a confirmation dialog.</li>
+        </ul>
+
+        
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/print_history.svg" data-caption="Print History Audit Log">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/screenshots/print_history.svg" alt="Print History Audit Log" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Print History Audit Log</span>
+              <p class='screenshot-sub'>Chronological record of past print batches with requester names, document counts, and timestamps</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+
+        
+        <nav class="page-navigation" aria-label="Page navigation">
+          
+    <a href="archives.html" class="page-nav-link prev">
+      <span class="page-nav-label">&larr; Previous</span>
+      <span class="page-nav-title">Module 4: Student Archives</span>
+    </a>
+          
+    <a href="reports.html" class="page-nav-link next">
+      <span class="page-nav-label">Next &rarr;</span>
+      <span class="page-nav-title">Module 6: Reports & Analytics</span>
+    </a>
+        </nav>
+      </section>
+
+
+      <!-- Responsive Document Footer -->
+      <footer class="doc-footer">
+        <div class="footer-left">
+          <img src="assets/logo.png" alt="TIS-RMS Seal" width="32" height="32">
+          <div>
+            <p class="footer-title">Talisay Integrated School — Records Management System</p>
+            <span class="footer-sub">Official User Guide &amp; Technical Handbook &bull; Windows &amp; Android Editions</span>
+          </div>
+        </div>
+        <div class="footer-right">
+          <a href="index.html">Overview</a>
+          <a href="shortcuts.html">Shortcuts</a>
+          <a href="faq.html">FAQ</a>
+          <a href="troubleshooting.html">Diagnostics</a>
+          <a href="#top" class="back-to-top">Back to Top &uarr;</a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Lightbox Modal for Fullscreen Image Zoom -->
+  <div id="lightboxModal" class="lightbox-modal" role="dialog" aria-modal="true" aria-label="Image Zoom">
+    <div class="lightbox-content">
+      <button id="lightboxCloseBtn" class="lightbox-close" aria-label="Close Zoom">&times;</button>
+      <img id="lightboxImg" src="" alt="Enlarged screenshot view">
+      <div id="lightboxCaption" class="lightbox-caption"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- Interactive Documentation Controller -->
+  <script src="app.js"></script>
+</body>
+</html>

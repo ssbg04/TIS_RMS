@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../dialogs/logout_dialog.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../screens/documentation/documentation_screen.dart';
 
 class ProfileDropdownMenu extends ConsumerStatefulWidget {
   final UserModel? user;
@@ -193,7 +194,32 @@ class _ProfileDropdownMenuState extends ConsumerState<ProfileDropdownMenu> {
             ),
           ),
 
-          // 3. Logout Option
+          // 3. User Documentation Option
+          PopupMenuItem<String>(
+            value: 'documentation',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.menu_book_outlined,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.7),
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Documentation',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 4. Logout Option
           PopupMenuItem<String>(
             value: 'logout',
             child: Row(
@@ -217,6 +243,8 @@ class _ProfileDropdownMenuState extends ConsumerState<ProfileDropdownMenu> {
 
       if (selectedValue == 'settings') {
         activeTabNotifier.setTab('Settings');
+      } else if (selectedValue == 'documentation' && context.mounted) {
+        DocumentationScreen.open(context);
       } else if (selectedValue == 'logout' && context.mounted) {
         showLogoutConfirmationDialog(context);
       }

@@ -30,6 +30,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/services/app_update_service.dart';
 import '../capstone_members/capstone_members_screen.dart';
+import '../documentation/documentation_screen.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -2393,6 +2394,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                           foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
                                           side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
                                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                      ),
+                                      ElevatedButton.icon(
+                                        onPressed: () => DocumentationScreen.open(context),
+                                        icon: const Icon(Icons.menu_book_rounded, size: 15),
+                                        label: const Text('User Guide & Docs'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.primaryGreen,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                           textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                         ),

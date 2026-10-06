@@ -1051,6 +1051,7 @@ Files backup/restore - mirror mode or zip -->
 
 # SETTINGS SCREEN
 - [x] make the download update downloads in app doesnt redirect to others apps github or chrome, and ask to download via default installer of android, for windows download it then open the installer and close the windows app when the installer is open
+- [x] in-app documentation viewing (bundled offline HTML user guide, local loopback server, embedded WebView for Windows & Android without redirecting to browser)
 - check all the screens and 
 
 ---

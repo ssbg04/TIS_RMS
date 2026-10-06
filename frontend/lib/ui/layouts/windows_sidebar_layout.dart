@@ -30,6 +30,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
 import '../screens/capstone_members/capstone_members_screen.dart';
+import '../screens/documentation/documentation_screen.dart';
 import '../shared/dialogs/disconnected_dialog.dart';
 
 // Dummy screen for placeholders
@@ -701,6 +702,25 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                           ),
                                         ],
                                       ),
+                                    ),
+                                  ),
+                                  AnimatedOpacity(
+                                    duration: const Duration(milliseconds: 200),
+                                    opacity: _isMinimized ? 0.0 : 1.0,
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.menu_book_outlined,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.6),
+                                      ),
+                                      tooltip: 'User Guide & Documentation',
+                                      onPressed: () {
+                                        if (!_isMinimized) {
+                                          DocumentationScreen.open(context);
+                                        }
+                                      },
                                     ),
                                   ),
                                   AnimatedOpacity(
