@@ -18,6 +18,12 @@ issues/
 .agents/
 Pictures/
 plans/
+backups/
+data/
+
+# Whitelist documentation assets
+!documentation/**
+!frontend/assets/**
 # Environment secrets
 backend/.env
 backend/.env.*
