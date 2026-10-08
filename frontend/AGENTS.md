@@ -1046,13 +1046,13 @@ Files backup/restore - mirror mode or zip -->
   - Admin Only: Administrators can add and edit enrollments, with support for CSV bulk enrollment and live verification with the backend.
   - csv input add sample format then they can type on it  -->
   
-# STUDENT SCREEN
+<!-- # STUDENT SCREEN
 - [x] csv bulk enrollment make the UI responsive for android app
 
 # SETTINGS SCREEN
 - [x] make the download update downloads in app doesnt redirect to others apps github or chrome, and ask to download via default installer of android, for windows download it then open the installer and close the windows app when the installer is open
 - [x] in-app documentation viewing (bundled offline HTML user guide, local loopback server, embedded WebView for Windows & Android without redirecting to browser)
-- check all the screens and 
+- check all the screens and  -->
 
 ---
 

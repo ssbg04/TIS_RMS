@@ -30,7 +30,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   Timer? _quoteTimer;
   int _quoteIndex = 0;
-  String _connectionStatus = 'Connecting to server…';
 
   static const List<String> _entertainingPhrases = [
     'Sharpening digital pencils…',
@@ -107,23 +106,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   Future<bool> _resolveServer({bool isRetry = false}) async {
     try {
-      final found = await ServerDiscoveryService.resolveServerWithFallback(
-        onProgress: (status) {
-          if (mounted) setState(() => _connectionStatus = status);
-        },
-      ).timeout(
+      final found = await ServerDiscoveryService.resolveServerWithFallback()
+          .timeout(
         const Duration(seconds: 10),
         onTimeout: () => null,
       );
 
       if (found != null) {
-        if (mounted) {
-          setState(() {
-            _connectionStatus = found.contains('tis-rms')
-                ? 'Connected to Cloud Tunnel'
-                : 'Connected to Local Server ($found)';
-          });
-        }
         await Future.delayed(const Duration(milliseconds: 300));
         return true;
       }
@@ -428,46 +417,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                             letterSpacing: 0.2,
                           ),
                           textAlign: TextAlign.center,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Real-time network connection status badge
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.15 : 0.08),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: AppColors.primaryGreen.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(
-                              width: 10,
-                              height: 10,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.8,
-                                color: AppColors.primaryGreen,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                _connectionStatus,
-                                style: const TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryGreen,
-                                  letterSpacing: 0.2,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                     ],

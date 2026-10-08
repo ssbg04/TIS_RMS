@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_windows/webview_windows.dart';
@@ -242,6 +244,7 @@ class _WindowsDocView extends StatefulWidget {
 
 class _WindowsDocViewState extends State<_WindowsDocView> {
   final WebviewController _controller = WebviewController();
+  final List<StreamSubscription> _subscriptions = [];
   bool _isInitialized = false;
   bool _hasError = false;
   String _errorMessage = '';
@@ -255,13 +258,46 @@ class _WindowsDocViewState extends State<_WindowsDocView> {
 
   Future<void> _initWebview() async {
     try {
+      // 1. Verify WebView2 Runtime availability before calling initialize to prevent native C++ crash
+      final version = await WebviewController.getWebViewVersion();
+      if (version == null || version.trim().isEmpty) {
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+            _errorMessage =
+                'Microsoft Edge WebView2 Runtime is not installed on this computer.\n\n'
+                'You can view the documentation in your default web browser or install the WebView2 Runtime.';
+          });
+        }
+        return;
+      }
+
+      // 2. Initialize environment with a writable user data path in LocalAppData
+      // (prevents permission denied crashes when running from Program Files)
+      try {
+        final appSupport = await getApplicationSupportDirectory();
+        final webviewDataDir = Directory(
+          '${appSupport.path}${Platform.pathSeparator}tis_rms_webview2',
+        );
+        if (!await webviewDataDir.exists()) {
+          await webviewDataDir.create(recursive: true);
+        }
+        await WebviewController.initializeEnvironment(
+          userDataPath: webviewDataDir.path,
+        );
+      } catch (_) {
+        // Environment may already be initialized; proceed safely
+      }
+
+      // 3. Initialize controller
       await _controller.initialize();
 
-      _controller.title.listen((title) {
+      _subscriptions.add(_controller.title.listen((title) {
         if (mounted) setState(() => _pageTitle = title);
-      });
+      }));
 
-      _controller.url.listen((url) {
+      _subscriptions.add(_controller.url.listen((url) {
+        if (!mounted) return;
         // Intercept external links clicked inside WebView
         if (!url.startsWith('http://127.0.0.1') &&
             !url.startsWith('http://localhost') &&
@@ -269,11 +305,12 @@ class _WindowsDocViewState extends State<_WindowsDocView> {
           _controller.stop();
           launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
         }
-      });
+      }));
 
       await _controller.setBackgroundColor(
         widget.isDark ? const Color(0xFF161D19) : Colors.white,
       );
+      await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
       await _controller.loadUrl(widget.url);
 
       if (mounted) {
@@ -286,8 +323,8 @@ class _WindowsDocViewState extends State<_WindowsDocView> {
         setState(() {
           _hasError = true;
           _errorMessage =
-              'Microsoft Edge WebView2 runtime error: $e.\n'
-              'Please verify WebView2 Runtime is installed.';
+              'Microsoft Edge WebView2 initialization error: $e.\n\n'
+              'You can open the documentation in your web browser instead.';
         });
       }
     }
@@ -295,60 +332,130 @@ class _WindowsDocViewState extends State<_WindowsDocView> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    for (final sub in _subscriptions) {
+      sub.cancel();
+    }
+    _subscriptions.clear();
+
+    if (_isInitialized) {
+      try {
+        _controller.dispose();
+      } catch (e) {
+        debugPrint('[DocumentationScreen] webview dispose error: $e');
+      }
+    }
     super.dispose();
+  }
+
+  Future<void> _openExternal() async {
+    try {
+      await launchUrl(Uri.parse(widget.url), mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open browser: $e')),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_hasError) {
       return Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.warning_amber_rounded, size: 48, color: Colors.orange),
-              const SizedBox(height: 12),
-              Text(
-                'WebView2 Required',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: widget.isDark ? Colors.white : AppColors.textPrimary,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              color: widget.isDark ? AppColors.darkSurfaceCard : Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.menu_book_rounded, size: 44, color: Colors.amber),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Documentation Viewer',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: widget.isDark ? Colors.white : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _errorMessage,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        height: 1.5,
+                        color: widget.isDark ? Colors.white70 : AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: _openExternal,
+                      icon: const Icon(Icons.open_in_browser_rounded),
+                      label: const Text('Open in Web Browser'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(46),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        launchUrl(
+                          Uri.parse('https://developer.microsoft.com/en-us/microsoft-edge/webview2/'),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      },
+                      icon: const Icon(Icons.download_rounded),
+                      label: const Text('Download WebView2 Runtime'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _hasError = false;
+                          _isInitialized = false;
+                        });
+                        _initWebview();
+                      },
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Retry In-App Viewer'),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                _errorMessage,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: widget.isDark ? Colors.white70 : AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () {
-                  launchUrl(
-                    Uri.parse('https://developer.microsoft.com/en-us/microsoft-edge/webview2/'),
-                    mode: LaunchMode.externalApplication,
-                  );
-                },
-                icon: const Icon(Icons.download_rounded),
-                label: const Text('Download WebView2 Runtime'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       );
     }
 
-    if (!_isInitialized) {
+    if (!_isInitialized || !_controller.value.isInitialized) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primaryGreen),
       );

@@ -60,11 +60,15 @@ class DocumentationServerService {
       response.add(bytes);
       await response.close();
     } catch (_) {
-      final response = request.response;
-      response.statusCode = HttpStatus.notFound;
-      response.headers.contentType = ContentType.text;
-      response.write('Document asset not found');
-      await response.close();
+      try {
+        final response = request.response;
+        response.statusCode = HttpStatus.notFound;
+        response.headers.contentType = ContentType.text;
+        response.write('Document asset not found');
+        await response.close();
+      } catch (_) {
+        // Socket already closed by client
+      }
     }
   }
 

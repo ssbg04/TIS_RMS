@@ -1812,34 +1812,95 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 final themeNotifier =
                                     ref.watch(themeModeProvider.notifier);
                                 final currentKey = themeNotifier.currentKey;
+                                final isSystem = currentKey == 'system';
+                                final isDark = Theme.of(context).brightness == Brightness.dark;
 
-                                return Wrap(
-                                  spacing: 12,
-                                  runSpacing: 12,
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildThemeOptionChip(
-                                      label: 'System',
-                                      icon: Icons.brightness_auto_rounded,
-                                      value: 'system',
-                                      currentValue: currentKey,
-                                      onSelect: () => themeNotifier
-                                          .setThemeMode('system'),
+                                    // System Theme Mode Switch Toggle
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.brightness_auto_rounded,
+                                          color: isSystem
+                                              ? AppColors.primaryGreen
+                                              : (isDark ? Colors.white54 : Colors.grey.shade600),
+                                          size: 22,
+                                        ),
+                                        const SizedBox(width: AppSizes.p12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              const Text(
+                                                'System Theme',
+                                                style: TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                'Match device system theme automatically',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: isDark
+                                                      ? AppColors.darkTextSecondary
+                                                      : Colors.grey.shade600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Switch(
+                                          value: isSystem,
+                                          activeThumbColor: AppColors.primaryGreen,
+                                          onChanged: (val) {
+                                            if (val) {
+                                              themeNotifier.setThemeMode('system');
+                                            } else {
+                                              final sysDark = MediaQuery.of(context).platformBrightness == Brightness.dark;
+                                              themeNotifier.setThemeMode(sysDark ? 'dark' : 'light');
+                                            }
+                                          },
+                                        ),
+                                      ],
                                     ),
-                                    _buildThemeOptionChip(
-                                      label: 'Light',
-                                      icon: Icons.light_mode_rounded,
-                                      value: 'light',
-                                      currentValue: currentKey,
-                                      onSelect: () => themeNotifier
-                                          .setThemeMode('light'),
-                                    ),
-                                    _buildThemeOptionChip(
-                                      label: 'Dark',
-                                      icon: Icons.dark_mode_rounded,
-                                      value: 'dark',
-                                      currentValue: currentKey,
-                                      onSelect: () => themeNotifier
-                                          .setThemeMode('dark'),
+                                    const SizedBox(height: AppSizes.p16),
+
+                                    // Light / Dark Theme selector (disabled/inactive when System is toggled on)
+                                    AnimatedOpacity(
+                                      duration: const Duration(milliseconds: 200),
+                                      opacity: isSystem ? 0.38 : 1.0,
+                                      child: IgnorePointer(
+                                        ignoring: isSystem,
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: _buildThemeOptionCard(
+                                                label: 'Light',
+                                                icon: Icons.light_mode_rounded,
+                                                value: 'light',
+                                                currentValue: currentKey,
+                                                isActive: !isSystem,
+                                                onSelect: () => themeNotifier.setThemeMode('light'),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: _buildThemeOptionCard(
+                                                label: 'Dark',
+                                                icon: Icons.dark_mode_rounded,
+                                                value: 'dark',
+                                                currentValue: currentKey,
+                                                isActive: !isSystem,
+                                                onSelect: () => themeNotifier.setThemeMode('dark'),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 );
@@ -2914,35 +2975,59 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildThemeOptionChip({
+  Widget _buildThemeOptionCard({
     required String label,
     required IconData icon,
     required String value,
     required String currentValue,
+    required bool isActive,
     required VoidCallback onSelect,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isSelected = value == currentValue;
-    return ChoiceChip(
-      showCheckmark: false,
-      avatar: Icon(
-        icon,
-        size: 18,
-        color: isSelected ? Colors.white : AppColors.primaryGreen,
-      ),
-      label: Text(
-        label,
-        style: TextStyle(
+    final isSelected = isActive && (value == currentValue);
+
+    return InkWell(
+      onTap: isActive ? onSelect : null,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
           color: isSelected
-              ? Colors.white
-              : Theme.of(context).colorScheme.onSurface,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1)
+              : (isDark ? AppColors.darkSurface2 : AppColors.pageBackground),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primaryGreen
+                : (isDark ? Colors.white12 : Colors.grey.shade300),
+            width: isSelected ? 1.8 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 19,
+              color: isSelected
+                  ? AppColors.primaryGreen
+                  : (isDark ? Colors.white70 : AppColors.textSecondary),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected
+                    ? AppColors.primaryGreen
+                    : (isDark ? Colors.white : AppColors.textPrimary),
+              ),
+            ),
+          ],
         ),
       ),
-      selected: isSelected,
-      selectedColor: AppColors.primaryGreen,
-      backgroundColor: isDark ? AppColors.darkSurface2 : AppColors.pageBackground,
-      onSelected: (_) => onSelect(),
     );
   }
 

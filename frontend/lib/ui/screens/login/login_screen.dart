@@ -683,45 +683,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             isLoading: isLoading,
             onPressed: _handleLogin,
           ),
-          const SizedBox(height: AppSizes.p12),
-          // Server endpoint indicator & switcher
-          Center(
-            child: InkWell(
-              onTap: _showServerConfigDialog,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.dns_outlined,
-                      size: 13,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        'Server: ${ApiConstants.baseUrl}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.settings_outlined,
-                      size: 12,
-                      color: AppColors.primaryGreen,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
