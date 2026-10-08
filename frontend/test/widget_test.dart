@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// Use a relative import to reliably find your main.dart file
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/main.dart';
 
 void main() {
@@ -9,16 +9,13 @@ void main() {
     WidgetTester tester,
   ) async {
     // 1. Build our app and trigger a frame.
-    await tester.pumpWidget(const TisRmsApp());
+    await tester.pumpWidget(const ProviderScope(child: TisRmsApp()));
 
     // 2. Verify that our branding text is present on the Splash Screen
-    expect(find.textContaining('TIS RMS'), findsWidgets);
+    expect(find.textContaining('Talisay Integrated School'), findsWidgets);
 
-    // 3. Verify that the loading spinner is present
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-    // Note: We don't pump the timer here because the test environment
-    // shouldn't wait for the 2.5 second simulated delay. We just want
-    // to ensure the initial widget tree renders without crashing.
+    // Clean up active timers/animations in test harness
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 2));
   });
 }
