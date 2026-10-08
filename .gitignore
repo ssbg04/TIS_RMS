@@ -3,6 +3,7 @@
 .openpost
 /assets
 
+backend/
 backend_build
 installers/
 
