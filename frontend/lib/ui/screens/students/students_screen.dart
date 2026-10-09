@@ -21,7 +21,6 @@ import 'widgets/student_bulk_actions.dart';
 import 'widgets/bulk_enrollment_modal.dart';
 import 'widgets/edit_enrollment_modal.dart';
 import '../../providers/setup_provider.dart';
-import '../../shared/inputs/app_search_bar.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/archives_provider.dart';
@@ -1096,7 +1095,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
-          _showSearchDialog(context);
+          _searchFocusNode.requestFocus();
         },
         const SingleActivator(LogicalKeyboardKey.keyN, control: true): () {
           _openModal();
@@ -1149,7 +1148,19 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           activeCount,
                           isAndroid,
                         ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
+
+                      // ── Search & Filter Bar + Active Filter Chips ──
+                      if (!_showMultiSelect) ...[
+                        _buildSearchAndFilterBar(
+                          context: context,
+                          query: query,
+                          activeCount: activeCount,
+                          isAndroid: isAndroid,
+                          totalStudents: pageAsync.value?.total ?? 0,
+                        ),
+                        const SizedBox(height: 6),
+                      ],
 
                       // ── Data Table / Cards ──
                       Expanded(
@@ -1284,48 +1295,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
 
-  Future<void> _showSearchDialog(BuildContext context) async {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _searchFocusNode.requestFocus();
-      }
-    });
-
-    await showDialog(
-      context: context,
-      barrierColor: Colors.black54,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 24, 16, 0),
-            child: Material(
-              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-              elevation: 4,
-              borderRadius: BorderRadius.circular(12),
-              child: AppSearchBar(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                collapsible: false,
-                hint: 'Search by LRN or name...',
-                maxWidth: 600,
-                onSubmitted: (value) {
-                  Navigator.of(context).pop(); // Close dialog
-                  _onSearchSubmitted(value);
-                },
-              ),
-            ),
-          ),
-        );
-      },
-    );
-
-    if (mounted) {
-      _shortcutFocusNode.requestFocus();
-    }
-  }
-
   // ================================================================
   // TOP HEADER (Segmented Tabs + Actions)
   // ================================================================
@@ -1375,112 +1344,63 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
             const Spacer(),
 
-            // Right: Filter Button for Android in header tabs
-            if (isAndroid) ...[
-              IconButton(
-                onPressed: () => StudentFilterDialog.show(
-                  context,
-                  query: query,
-                  isEnrolledTab: _viewTab == StudentViewTab.enrolled,
-                ),
-                padding: const EdgeInsets.all(8),
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                icon: Badge(
-                  isLabelVisible: activeCount > 0,
-                  label: Text(activeCount.toString()),
-                  child: Icon(
-                    Icons.tune_rounded,
-                    size: 20,
-                    color: activeCount > 0
-                        ? AppColors.primaryGreen
-                        : (isDark ? AppColors.darkTextPrimary : Colors.black87),
+            // Right: Primary action buttons
+            if (widget.userRole != 'teacher') ...[
+              SizedBox(
+                height: 36,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    if (!isDesktop && widget.userRole != 'teacher') {
+                      _showAddStudentOptionsBottomSheet(context);
+                    } else {
+                      _openModal();
+                    }
+                  },
+                  icon: const Icon(Icons.person_add_rounded, size: 16),
+                  label: Text(
+                    isDesktop ? 'Add Student' : 'Add',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isDesktop ? 14 : 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
                   ),
                 ),
               ),
             ],
 
-            // Right: Action buttons (desktop / non-android)
-            if (!isAndroid) ...[
-              // Search IconButton
+            if (widget.userRole == 'admin' || widget.userRole == 'super_admin') ...[
+              const SizedBox(width: 6),
               Tooltip(
-                richMessage: query.search.isNotEmpty
-                    ? const TextSpan(text: 'Clear Search')
-                    : const TextSpan(
-                        text: 'Search Students ',
-                        children: [
-                          TextSpan(
-                            text: '(Ctrl+F)',
-                            style: TextStyle(fontStyle: FontStyle.italic),
-                          ),
-                        ],
-                      ),
-                child: IconButton(
-                  icon: Icon(
-                    query.search.isNotEmpty ? Icons.close : Icons.search,
-                    size: 20,
-                    color: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                  ),
-                  padding: const EdgeInsets.all(8),
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                  onPressed: () {
-                    if (query.search.isNotEmpty) {
-                      _searchController.clear();
-                      ref.read(studentQueryProvider.notifier).setSearch('');
-                    } else {
-                      _showSearchDialog(context);
-                    }
-                  },
-                ),
-              ),
-
-              // Filter IconButton with Badge
-              IconButton(
-                onPressed: () => StudentFilterDialog.show(
-                  context,
-                  query: query,
-                  isEnrolledTab: _viewTab == StudentViewTab.enrolled,
-                ),
-                padding: const EdgeInsets.all(8),
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                icon: Badge(
-                  isLabelVisible: activeCount > 0,
-                  label: Text(activeCount.toString()),
-                  child: Icon(
-                    Icons.tune_rounded,
-                    size: 20,
-                    color: activeCount > 0
-                        ? AppColors.primaryGreen
-                        : (isDark ? AppColors.darkTextPrimary : Colors.black87),
-                  ),
-                ),
-              ),
-
-              // Add Student Button
-              if (widget.userRole != 'teacher') ...[
-                const SizedBox(width: 4),
-                SizedBox(
+                message: 'Bulk Enroll Students (CSV)',
+                child: SizedBox(
                   height: 36,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      if (!isDesktop && widget.userRole != 'teacher') {
-                        _showAddStudentOptionsBottomSheet(context);
-                      } else {
-                        _openModal();
-                      }
-                    },
-                    icon: const Icon(Icons.person_add_rounded, size: 16),
+                  child: OutlinedButton.icon(
+                    onPressed: () => BulkEnrollmentModal.show(context),
+                    icon: const Icon(Icons.school_outlined, size: 16),
                     label: Text(
-                      isDesktop ? 'Add Student' : 'Add',
+                      isDesktop ? 'Bulk Enroll' : 'Enroll',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? Colors.white : AppColors.darkGreen,
+                      side: BorderSide(
+                        color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                      ),
                       padding: EdgeInsets.symmetric(
-                        horizontal: isDesktop ? 14 : 10,
+                        horizontal: isDesktop ? 12 : 8,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.0),
@@ -1488,77 +1408,344 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     ),
                   ),
                 ),
-              ],
+              ),
+            ],
 
-              if (widget.userRole == 'admin' || widget.userRole == 'super_admin') ...[
-                const SizedBox(width: 6),
-                Tooltip(
-                  message: 'Bulk Enroll Students (CSV)',
-                  child: SizedBox(
-                    height: 36,
-                    child: OutlinedButton.icon(
-                      onPressed: () => BulkEnrollmentModal.show(context),
-                      icon: const Icon(Icons.school_outlined, size: 16),
-                      label: Text(
-                        isDesktop ? 'Bulk Enroll' : 'Enroll',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
+            // Bulk Import button (hidden on Windows)
+            if (!isWindows && widget.userRole != 'teacher') ...[
+              const SizedBox(width: 6),
+              Tooltip(
+                message: 'Bulk Import Students (OCR & CSV)',
+                child: SizedBox(
+                  height: 36,
+                  child: OutlinedButton.icon(
+                    onPressed: _openBulkOcrImport,
+                    icon: const Icon(Icons.group_add_outlined, size: 16),
+                    label: Text(
+                      isDesktop ? 'Bulk Import' : 'Import',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? Colors.white : AppColors.darkGreen,
-                        side: BorderSide(
-                          color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isDesktop ? 12 : 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? Colors.white : AppColors.darkGreen,
+                      side: BorderSide(
+                        color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isDesktop ? 12 : 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
                       ),
                     ),
                   ),
                 ),
-              ],
-
-              // Bulk Import button (hidden on Windows)
-              if (!isWindows && widget.userRole != 'teacher') ...[
-                const SizedBox(width: 6),
-                Tooltip(
-                  message: 'Bulk Import Students (OCR & CSV)',
-                  child: SizedBox(
-                    height: 36,
-                    child: OutlinedButton.icon(
-                      onPressed: _openBulkOcrImport,
-                      icon: const Icon(Icons.group_add_outlined, size: 16),
-                      label: Text(
-                        isDesktop ? 'Bulk Import' : 'Import',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? Colors.white : AppColors.darkGreen,
-                        side: BorderSide(
-                          color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isDesktop ? 12 : 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  // ================================================================
+  // SEARCH & FILTER BAR + ACTIVE FILTER CHIPS
+  // ================================================================
+  Widget _buildSearchAndFilterBar({
+    required BuildContext context,
+    required StudentQueryParams query,
+    required int activeCount,
+    required bool isAndroid,
+    required int totalStudents,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMobile = MediaQuery.of(context).size.width < 800 || isAndroid;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : AppSizes.p24,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Search text field
+              Expanded(
+                child: Container(
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                      width: 1.0,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                      isDense: true,
+                      border: InputBorder.none,
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        size: 20,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      ),
+                      hintText: 'Search by LRN or name...',
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              splashRadius: 16,
+                              onPressed: () {
+                                _searchController.clear();
+                                ref.read(studentQueryProvider.notifier).setSearch('');
+                              },
+                            )
+                          : null,
+                    ),
+                    onSubmitted: _onSearchSubmitted,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Filter button
+              InkWell(
+                onTap: () => StudentFilterDialog.show(
+                  context,
+                  query: query,
+                  isEnrolledTab: _viewTab == StudentViewTab.enrolled,
+                ),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  height: 42,
+                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 14),
+                  decoration: BoxDecoration(
+                    color: activeCount > 0
+                        ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1)
+                        : (isDark ? AppColors.darkSurfaceCard : Colors.white),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: activeCount > 0
+                          ? AppColors.primaryGreen
+                          : (isDark ? AppColors.darkBorder : AppColors.borderLight),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.tune_rounded,
+                        size: 18,
+                        color: activeCount > 0
+                            ? AppColors.primaryGreen
+                            : (isDark ? AppColors.darkTextPrimary : Colors.black87),
+                      ),
+                      if (!isMobile) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          'Filter',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: activeCount > 0
+                                ? AppColors.primaryGreen
+                                : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                          ),
+                        ),
+                      ],
+                      if (activeCount > 0) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryGreen,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '$activeCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Active filter chips (if any)
+          _buildActiveFilterChips(
+            context: context,
+            query: query,
+            isDark: isDark,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveFilterChips({
+    required BuildContext context,
+    required StudentQueryParams query,
+    required bool isDark,
+  }) {
+    final chips = <Widget>[];
+
+    if (query.search.isNotEmpty) {
+      chips.add(_buildFilterChip(
+        label: 'Search: "${query.search}"',
+        onDeleted: () {
+          _searchController.clear();
+          ref.read(studentQueryProvider.notifier).setSearch('');
+        },
+        isDark: isDark,
+      ));
+    }
+
+    if (query.gradeLevel.isNotEmpty) {
+      chips.add(_buildFilterChip(
+        label: query.gradeLevel.toLowerCase().startsWith('grade')
+            ? query.gradeLevel
+            : 'Grade ${query.gradeLevel}',
+        onDeleted: () => ref.read(studentQueryProvider.notifier).setGradeLevel(''),
+        isDark: isDark,
+      ));
+    }
+
+    if (query.section.isNotEmpty) {
+      chips.add(_buildFilterChip(
+        label: 'Section: ${query.section}',
+        onDeleted: () => ref.read(studentQueryProvider.notifier).setSection(''),
+        isDark: isDark,
+      ));
+    }
+
+    if (_viewTab == StudentViewTab.all && query.status.isNotEmpty) {
+      chips.add(_buildFilterChip(
+        label: 'Status: ${query.status}',
+        onDeleted: () => ref.read(studentQueryProvider.notifier).setStatus(''),
+        isDark: isDark,
+      ));
+    }
+
+    if (_viewTab == StudentViewTab.all && query.schoolYear.isNotEmpty) {
+      chips.add(_buildFilterChip(
+        label: 'SY: ${query.schoolYear}',
+        onDeleted: () => ref.read(studentQueryProvider.notifier).setSchoolYear(''),
+        isDark: isDark,
+      ));
+    }
+
+    if (query.is4Ps.isNotEmpty) {
+      chips.add(_buildFilterChip(
+        label: '4Ps: ${query.is4Ps == 'true' ? 'Yes' : 'No'}',
+        onDeleted: () => ref.read(studentQueryProvider.notifier).setIs4Ps(''),
+        isDark: isDark,
+      ));
+    }
+
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            ...chips,
+            const SizedBox(width: 4),
+            TextButton(
+              onPressed: () {
+                _searchController.clear();
+                ref.read(studentQueryProvider.notifier).setFilters(
+                  schoolYear: _viewTab == StudentViewTab.enrolled ? null : '',
+                  gradeLevel: '',
+                  section: '',
+                  status: _viewTab == StudentViewTab.enrolled ? null : '',
+                  is4Ps: '',
+                );
+                ref.read(studentQueryProvider.notifier).setSearch('');
+              },
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+              child: const Text(
+                'Clear all',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required VoidCallback onDeleted,
+    required bool isDark,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
+      decoration: BoxDecoration(
+        color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.18 : 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.4 : 0.25),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(width: 4),
+          InkWell(
+            onTap: onDeleted,
+            borderRadius: BorderRadius.circular(10),
+            child: Icon(
+              Icons.close_rounded,
+              size: 14,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1804,6 +1991,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           )
         : cardBg;
 
+    final int completedCount = (s.totalDocumentsCount - s.missingDocumentsCount)
+        .clamp(0, s.totalDocumentsCount);
+    final bool isComplete =
+        s.missingDocumentsCount == 0 && s.totalDocumentsCount > 0;
+
     return RepaintBoundary(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -1833,15 +2025,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 _viewProfile(s);
               }
             },
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+            borderRadius: BorderRadius.circular(10),
             hoverColor: isDark
                 ? AppColors.hoverDark.withValues(alpha: 0.5)
                 : AppColors.hoverLight.withValues(alpha: 0.8),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: (_showMultiSelect && isSelected)
                       ? AppColors.primaryGreen
@@ -1850,9 +2042,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),
@@ -1868,7 +2060,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               if (!_showMultiSelect) {
                                 _showMultiSelect = true;
                                 _selectedStudentIds.add(s.id);
-                                ref.read(studentMultiSelectProvider.notifier).state = true;
+                                ref
+                                    .read(studentMultiSelectProvider.notifier)
+                                    .state = true;
                               } else {
                                 if (_selectedStudentIds.contains(s.id)) {
                                   _selectedStudentIds.remove(s.id);
@@ -1888,34 +2082,33 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       child: (_showMultiSelect && isSelected)
                           ? const CircleAvatar(
                               key: ValueKey('student_checked_d'),
-                              radius: 20,
+                              radius: 17,
                               backgroundColor: AppColors.primaryGreen,
                               child: Icon(
                                 Icons.check_rounded,
                                 color: Colors.white,
-                                size: 20,
+                                size: 17,
                               ),
                             )
                           : CircleAvatar(
                               key: const ValueKey('student_initials_d'),
-                              radius: 20,
-                              backgroundColor: AppColors.primaryGreen.withValues(
-                                alpha: 0.12,
-                              ),
+                              radius: 17,
+                              backgroundColor: AppColors.primaryGreen
+                                  .withValues(alpha: 0.12),
                               child: Text(
                                 '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
                                 style: const TextStyle(
                                   color: AppColors.primaryGreen,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                                  fontSize: 13,
                                 ),
                               ),
                             ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
 
-                  // Name & LRN
+                  // Name & LRN (flex 3)
                   Expanded(
                     flex: 3,
                     child: Column(
@@ -1927,19 +2120,23 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 14.5,
+                            fontSize: 13.5,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
                         Text(
                           'LRN: ${s.lrn.isNotEmpty ? s.lrn : "N/A"}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            fontSize: 11.5,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -1947,7 +2144,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   ),
                   const SizedBox(width: 12),
 
-                  // Grade & Section
+                  // Grade & Section (flex 2)
                   Expanded(
                     flex: 2,
                     child: Row(
@@ -1955,8 +2152,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       children: [
                         Icon(
                           Icons.school_outlined,
-                          size: 16,
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          size: 15,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textSecondary,
                         ),
                         const SizedBox(width: 6),
                         Flexible(
@@ -1965,9 +2164,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 12.5,
                               fontWeight: FontWeight.w500,
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
                             ),
                           ),
                         ),
@@ -1976,84 +2177,139 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   ),
                   const SizedBox(width: 12),
 
-                  // 4Ps & Status
+                  // Document completion counter (flex 2)
                   Expanded(
                     flex: 2,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (s.is4ps) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                            decoration: BoxDecoration(
-                              color: (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
-                                  .withValues(alpha: isDark ? 0.2 : 0.08),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
-                                    .withValues(alpha: isDark ? 0.6 : 0.35),
+                        if (s.totalDocumentsCount > 0)
+                          InkWell(
+                            onTap: () => _showDocumentStatusSheet(context, s),
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isComplete
+                                    ? AppColors.success
+                                        .withValues(alpha: isDark ? 0.2 : 0.1)
+                                    : Colors.orange
+                                        .withValues(alpha: isDark ? 0.2 : 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: isComplete
+                                      ? AppColors.success
+                                          .withValues(alpha: 0.3)
+                                      : Colors.orange
+                                          .withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isComplete
+                                        ? Icons.check_circle_outline_rounded
+                                        : Icons.pending_outlined,
+                                    size: 12,
+                                    color: isComplete
+                                        ? AppColors.success
+                                        : Colors.orange,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    isComplete
+                                        ? '$completedCount/${s.totalDocumentsCount} Complete'
+                                        : '$completedCount/${s.totalDocumentsCount} (${s.missingDocumentsCount} Missing)',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: isComplete
+                                          ? AppColors.success
+                                          : (isDark
+                                              ? Colors.orange.shade300
+                                              : Colors.orange.shade800),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            child: Text(
-                              '4Ps',
-                              style: TextStyle(
-                                color: isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          )
+                        else
+                          Text(
+                            'No Requirements',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textSecondary,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                        ],
-                        _StatusChip(status: s.status),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
 
-                  // Doc Status (Working hover tooltip!)
-                  SizedBox(
-                    width: 135,
-                    child: _DocumentProgressBar(
-                      missingCount: s.missingDocumentsCount,
-                      totalCount: s.totalDocumentsCount,
-                      missingDocuments: s.missingDocuments,
-                      studentStatus: s.status,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Actions: Folder button + More options context menu button
+                  // 4Ps & Status
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _ActionButtons(
-                        onOpenDocuments: () => _openDocumentsFolder(s),
-                      ),
-                      const SizedBox(width: 4),
-                      Builder(
-                        builder: (btnCtx) => IconButton(
-                          icon: Icon(
-                            Icons.more_vert_rounded,
-                            size: 19,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      if (s.is4ps) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
                           ),
-                          tooltip: 'More Actions',
-                          splashRadius: 20,
-                          onPressed: () {
-                            final renderBox = btnCtx.findRenderObject() as RenderBox?;
-                            if (renderBox != null) {
-                              final offset = renderBox.localToGlobal(Offset.zero);
-                              _showStudentContextMenu(
-                                context,
-                                Offset(offset.dx + renderBox.size.width, offset.dy + renderBox.size.height),
-                                s,
-                              );
-                            }
-                          },
+                          decoration: BoxDecoration(
+                            color: (isDark
+                                    ? const Color(0xFF8B8ED8)
+                                    : AppColors.fourPs)
+                                .withValues(alpha: isDark ? 0.2 : 0.08),
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(
+                              color: (isDark
+                                      ? const Color(0xFF8B8ED8)
+                                      : AppColors.fourPs)
+                                  .withValues(alpha: isDark ? 0.6 : 0.35),
+                            ),
+                          ),
+                          child: Text(
+                            '4Ps',
+                            style: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFF8B8ED8)
+                                  : AppColors.fourPs,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 6),
+                      ],
+                      _StatusChip(status: s.status),
                     ],
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Open Profile chevron / more options
+                  Tooltip(
+                    message: 'View Profile',
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                      ),
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
+                      padding: const EdgeInsets.all(4),
+                      constraints:
+                          const BoxConstraints(minWidth: 28, minHeight: 28),
+                      onPressed: () => _viewProfile(s),
+                    ),
                   ),
                 ],
               ),
@@ -2078,6 +2334,14 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           )
         : cardBg;
 
+    final int completedCount = (s.totalDocumentsCount - s.missingDocumentsCount)
+        .clamp(0, s.totalDocumentsCount);
+    final bool isComplete =
+        s.missingDocumentsCount == 0 && s.totalDocumentsCount > 0;
+    final docColor = isComplete
+        ? AppColors.success
+        : (s.totalDocumentsCount > 0 ? Colors.orange : Colors.grey);
+
     return RepaintBoundary(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -2107,21 +2371,28 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 _viewProfile(s);
               }
             },
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+            borderRadius: BorderRadius.circular(10),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: (_showMultiSelect && isSelected)
                       ? AppColors.primaryGreen
                       : (isDark ? AppColors.darkBorder : AppColors.borderLight),
                   width: (_showMultiSelect && isSelected) ? 1.5 : 1.0,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Avatar
                   GestureDetector(
@@ -2149,54 +2420,59 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               if (!_showMultiSelect) {
                                 _showMultiSelect = true;
                                 _selectedStudentIds.add(s.id);
-                                ref.read(studentMultiSelectProvider.notifier).state = true;
+                                ref
+                                    .read(studentMultiSelectProvider.notifier)
+                                    .state = true;
                               }
                             });
                           }
                         : null,
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 240),
+                      duration: const Duration(milliseconds: 200),
                       transitionBuilder: (child, animation) => ScaleTransition(
                         scale: CurvedAnimation(
                           parent: animation,
                           curve: Curves.easeOutBack,
                         ),
-                        child: FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        ),
+                        child: child,
                       ),
                       child: (_showMultiSelect && isSelected)
                           ? const CircleAvatar(
                               key: ValueKey('student_checked_m'),
-                              radius: 20,
+                              radius: 18,
                               backgroundColor: AppColors.primaryGreen,
-                              child: Icon(Icons.check_rounded, color: Colors.white, size: 20),
+                              child: Icon(
+                                Icons.check_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                             )
                           : CircleAvatar(
                               key: const ValueKey('student_initials_m'),
-                              radius: 20,
-                              backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                              radius: 18,
+                              backgroundColor: AppColors.primaryGreen
+                                  .withValues(alpha: 0.12),
                               child: Text(
                                 '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
                                 style: const TextStyle(
                                   color: AppColors.primaryGreen,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                                  fontSize: 13,
                                 ),
                               ),
                             ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
 
-                  // Info column
+                  // Info block
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Row 1: Name + 4Ps + Status
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
                               child: Text(
@@ -2204,99 +2480,110 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                  color: isDark
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.textPrimary,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             if (s.is4ps) ...[
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1.5,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
+                                  color: (isDark
+                                          ? const Color(0xFF8B8ED8)
+                                          : AppColors.fourPs)
                                       .withValues(alpha: isDark ? 0.2 : 0.08),
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(
-                                    color: (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
-                                        .withValues(alpha: isDark ? 0.6 : 0.35),
+                                    color: (isDark
+                                            ? const Color(0xFF8B8ED8)
+                                            : AppColors.fourPs)
+                                        .withValues(
+                                            alpha: isDark ? 0.6 : 0.35),
                                   ),
                                 ),
                                 child: Text(
                                   '4Ps',
                                   style: TextStyle(
-                                    color: isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs,
-                                    fontSize: 10,
+                                    color: isDark
+                                        ? const Color(0xFF8B8ED8)
+                                        : AppColors.fourPs,
+                                    fontSize: 9.5,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6),
                             ],
                             _StatusChip(status: s.status),
                           ],
                         ),
                         const SizedBox(height: 2),
+
+                        // Row 2: LRN • GradeSection
                         Text(
-                          'LRN: ${s.lrn} · ${s.gradeSection}',
+                          'LRN: ${s.lrn.isNotEmpty ? s.lrn : "N/A"} • ${s.gradeSection}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            fontSize: 11.5,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Divider(
-                            height: 1,
-                            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                          ),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => _showDocumentStatusSheet(context, s),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.folder_outlined,
-                                      size: 14,
-                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Flexible(
-                                      child: _DocumentProgressBar(
-                                        missingCount: s.missingDocumentsCount,
-                                        totalCount: s.totalDocumentsCount,
-                                        missingDocuments: s.missingDocuments,
-                                        studentStatus: s.status,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 2),
-                                    Icon(
-                                      Icons.arrow_drop_down_rounded,
-                                      size: 18,
-                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                    ),
-                                  ],
+                        const SizedBox(height: 3),
+
+                        // Row 3: Document completion counter
+                        InkWell(
+                          onTap: () => _showDocumentStatusSheet(context, s),
+                          borderRadius: BorderRadius.circular(4),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isComplete
+                                      ? Icons.check_circle_rounded
+                                      : (s.totalDocumentsCount > 0
+                                          ? Icons.pending_rounded
+                                          : Icons.info_outline_rounded),
+                                  size: 11,
+                                  color: docColor,
                                 ),
-                              ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  s.totalDocumentsCount > 0
+                                      ? '$completedCount/${s.totalDocumentsCount} Docs ${isComplete ? "• Complete" : "• ${s.missingDocumentsCount} Missing"}'
+                                      : 'No Document Requirements',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: docColor,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            _ActionButtons(
-                              onOpenDocuments: () => _openDocumentsFolder(s),
-                            ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(width: 6),
+
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
                   ),
                 ],
               ),
@@ -2759,372 +3046,7 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-// ----------------------------------------------------------------
-// NEW PROGRESS BAR COMPONENT (Replaces _MissingDocsBadge)
-// ----------------------------------------------------------------
-class _DocumentProgressBar extends StatelessWidget {
-  final int missingCount;
-  final int totalCount;
-  final List<String> missingDocuments;
-  final String studentStatus;
 
-  static final RegExp _jhsRegex = RegExp(r'^\[JHS\]\s*', caseSensitive: false);
-  static final RegExp _shsRegex = RegExp(r'^\[SHS\]\s*', caseSensitive: false);
-
-  const _DocumentProgressBar({
-    required this.missingCount,
-    required this.totalCount,
-    required this.missingDocuments,
-    this.studentStatus = 'Enrolled',
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Calculate how many documents are completed
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
-        defaultTargetPlatform == TargetPlatform.android;
-    final int completedCount = (totalCount - missingCount).clamp(0, totalCount);
-
-    // Prevent division by zero if totalCount is 0 (e.g. no requirements)
-    final double progress = totalCount == 0 ? 1.0 : completedCount / totalCount;
-    final bool isComplete = missingCount == 0 && totalCount > 0;
-    final bool isEnrolled = studentStatus == 'Enrolled';
-
-    // Content presentation
-    final Widget content;
-    if (!isEnrolled && totalCount == 0) {
-      // Student has no grade level / no enrollment requirements assigned
-      content = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.pending_actions_outlined,
-            size: 13,
-            color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            'Pending Enrollment',
-            style: TextStyle(
-              fontSize: isMobileOrAndroid ? 11 : 11.5,
-              color: isDark ? AppColors.darkTextMuted : Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      );
-    } else if (!isEnrolled) {
-      // Non-enrolled student with historical/archived document requirements
-      content = Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.archive_outlined,
-                size: 13,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '$completedCount / $totalCount Docs',
-                style: TextStyle(
-                  fontSize: isMobileOrAndroid ? 11.5 : 12,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: (isDark ? Colors.blueGrey : Colors.grey.shade300).withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: Text(
-                  'Archived',
-                  style: TextStyle(
-                    fontSize: 8.5,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: isMobileOrAndroid ? 4 : 6),
-          SizedBox(
-            width: isMobileOrAndroid ? 80 : 100,
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-              color: isComplete
-                  ? (isDark ? Colors.blueGrey.shade300 : Colors.blueGrey)
-                  : Colors.blueGrey.shade400,
-              minHeight: isMobileOrAndroid ? 5 : 6,
-              borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
-            ),
-          ),
-        ],
-      );
-    } else {
-      // Standard active enrolled student progress bar
-      content = Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$completedCount / $totalCount Docs',
-                style: TextStyle(
-                  fontSize: isMobileOrAndroid ? 11.5 : 12,
-                  fontWeight: FontWeight.bold,
-                  color: isComplete
-                      ? AppColors.primaryGreen
-                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-                ),
-              ),
-              if (isComplete) ...[
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.check_circle,
-                  color: AppColors.primaryGreen,
-                  size: 14,
-                ),
-              ],
-            ],
-          ),
-          SizedBox(height: isMobileOrAndroid ? 4 : 6),
-          SizedBox(
-            width: isMobileOrAndroid ? 80 : 100, // Compact on mobile to avoid overflow
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-              color: isComplete
-                  ? AppColors.primaryGreen
-                  : Colors.orange, // Orange indicates pending docs
-              minHeight: isMobileOrAndroid ? 5 : 6,
-              borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
-            ),
-          ),
-        ],
-      );
-    }
-
-    InlineSpan richMessage;
-    if (!isEnrolled) {
-      richMessage = TextSpan(
-        children: [
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: Icon(
-                Icons.archive_outlined,
-                size: 15,
-                color: isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700,
-              ),
-            ),
-          ),
-          TextSpan(
-            text: totalCount == 0
-                ? 'Student is $studentStatus. No active requirements assigned.'
-                : 'Student is $studentStatus. $completedCount of $totalCount required documents archived on file.',
-            style: TextStyle(
-              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      );
-    } else if (!isComplete && missingDocuments.isNotEmpty) {
-      final jhsDocs = missingDocuments
-          .where((d) => d.toUpperCase().startsWith('[JHS]'))
-          .map((d) => d.replaceFirst(_jhsRegex, '').trim())
-          .toList();
-      final shsDocs = missingDocuments
-          .where((d) => d.toUpperCase().startsWith('[SHS]'))
-          .map((d) => d.replaceFirst(_shsRegex, '').trim())
-          .toList();
-      final otherDocs = missingDocuments
-          .where((d) =>
-              !d.toUpperCase().startsWith('[JHS]') &&
-              !d.toUpperCase().startsWith('[SHS]'))
-          .map((d) => d.trim())
-          .toList();
-
-      final spanChildren = <InlineSpan>[
-        TextSpan(
-          text: 'Missing Documents ($missingCount):\n',
-          style: TextStyle(
-            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 12.5,
-          ),
-        ),
-      ];
-
-      if (jhsDocs.isNotEmpty) {
-        spanChildren.add(
-          TextSpan(
-            text: '\nJHS Requirements:\n',
-            style: TextStyle(
-              color: isDark ? const Color(0xFF80CBC4) : const Color(0xFF00796B),
-              fontWeight: FontWeight.bold,
-              fontSize: 11.5,
-            ),
-          ),
-        );
-        for (final doc in jhsDocs) {
-          spanChildren.add(
-            TextSpan(
-              text: '  • $doc\n',
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                fontSize: 12,
-                height: 1.35,
-              ),
-            ),
-          );
-        }
-      }
-
-      if (shsDocs.isNotEmpty) {
-        spanChildren.add(
-          TextSpan(
-            text: '\nSHS Requirements:\n',
-            style: TextStyle(
-              color: isDark ? const Color(0xFFB39DDB) : const Color(0xFF6A1B9A),
-              fontWeight: FontWeight.bold,
-              fontSize: 11.5,
-            ),
-          ),
-        );
-        for (final doc in shsDocs) {
-          spanChildren.add(
-            TextSpan(
-              text: '  • $doc\n',
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                fontSize: 12,
-                height: 1.35,
-              ),
-            ),
-          );
-        }
-      }
-
-      if (otherDocs.isNotEmpty) {
-        if (jhsDocs.isNotEmpty || shsDocs.isNotEmpty) {
-          spanChildren.add(
-            TextSpan(
-              text: '\nOther Requirements:\n',
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-                fontSize: 11.5,
-              ),
-            ),
-          );
-        }
-        for (final doc in otherDocs) {
-          spanChildren.add(
-            TextSpan(
-              text: '  • $doc\n',
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                fontSize: 12,
-                height: 1.35,
-              ),
-            ),
-          );
-        }
-      }
-
-      richMessage = TextSpan(children: spanChildren);
-    } else if (isComplete) {
-      richMessage = TextSpan(
-        children: [
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: Icon(
-                Icons.check_circle_rounded,
-                size: 15,
-                color: isDark ? const Color(0xFF76BA8A) : Colors.green.shade700,
-              ),
-            ),
-          ),
-          TextSpan(
-            text: 'All documents completed',
-            style: TextStyle(
-              color: isDark ? const Color(0xFF76BA8A) : Colors.green.shade700,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      );
-    } else {
-      richMessage = TextSpan(
-        text: 'No documents required',
-        style: TextStyle(
-          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-          fontSize: 12,
-        ),
-      );
-    }
-
-    return Tooltip(
-      richMessage: richMessage,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black45 : Colors.black.withValues(alpha: 0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      preferBelow: false,
-      child: content,
-    );
-  }
-}
-
-class _ActionButtons extends StatelessWidget {
-  final VoidCallback onOpenDocuments;
-
-  const _ActionButtons({required this.onOpenDocuments});
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.folder_open, color: Colors.orange, size: 20),
-      tooltip: 'Open Folder',
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-      splashRadius: 20,
-      onPressed: onOpenDocuments,
-    );
-  }
-}
 
 // ============================================================
 // BULK ENROLLMENT MODAL DIALOG

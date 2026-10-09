@@ -8,11 +8,13 @@ import '../../../providers/student_provider.dart';
 class StudentFilterDialog extends ConsumerStatefulWidget {
   final StudentQueryParams initialQuery;
   final bool isEnrolledTab;
+  final bool isBottomSheet;
 
   const StudentFilterDialog({
     super.key,
     required this.initialQuery,
     this.isEnrolledTab = false,
+    this.isBottomSheet = false,
   });
 
   static Future<void> show(
@@ -20,6 +22,28 @@ class StudentFilterDialog extends ConsumerStatefulWidget {
     required StudentQueryParams query,
     bool isEnrolledTab = false,
   }) {
+    final isMobile = MediaQuery.of(context).size.width < 700 ||
+        Theme.of(context).platform == TargetPlatform.android;
+
+    if (isMobile) {
+      return showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => FractionallySizedBox(
+          heightFactor: 0.88,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: StudentFilterDialog(
+              initialQuery: query,
+              isEnrolledTab: isEnrolledTab,
+              isBottomSheet: true,
+            ),
+          ),
+        ),
+      );
+    }
+
     return showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.35),
@@ -196,7 +220,9 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: widget.isBottomSheet
+            ? const BorderRadius.vertical(top: Radius.circular(20))
+            : BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
         ),
@@ -212,9 +238,28 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (widget.isBottomSheet) ...[
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                width: 38,
+                height: 4.5,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ],
+
           // ── Header ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 16, 0),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              widget.isBottomSheet ? 10 : 18,
+              16,
+              0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

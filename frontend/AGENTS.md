@@ -1061,8 +1061,8 @@ Files backup/restore - mirror mode or zip -->
 - [x] Direct inline document workflows (View, Upload, Verify, Print Queue) from student document tab.
 
 ## Priority 2: Student Search & Filtering
-- [ ] Transition student list to compact rows with direct status badges, LRN, and completion counters.
-- [ ] Implement mobile bottom sheet for filtering (grade, section, status, school year) with active filter chips.
+- [x] Transition student list to compact rows with direct status badges, LRN, and completion counters.
+- [x] Implement mobile bottom sheet for filtering (grade, section, status, school year) with active filter chips.
 
 ## Priority 3: Status-Driven Documents & Requirements Workflow
 - [ ] Integrate document requirements directly into Documents module workflow (All Documents, Requirements, Upload/Import, Print Queue).
