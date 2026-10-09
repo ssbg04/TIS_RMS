@@ -1069,8 +1069,8 @@ Files backup/restore - mirror mode or zip -->
 - [x] Add status system badges (✓ Complete, ⚠ Pending, ! Missing, ○ Archived) across document lists.
 
 ## Priority 4: Action-Oriented Dashboard
-- [ ] Add "Needs Attention" operational card (missing SF9/SF10, documents requiring verification).
-- [ ] Add simplified recent operational activity feed linking directly to student targets.
+- [x] Add "Needs Attention" operational card (missing SF9/SF10, documents requiring verification).
+- [x] Add simplified recent operational activity feed linking directly to student targets.
 
 ## Priority 5: OCR / Import Review Flow
 - [ ] Implement 4-step wizard UI: Select Files → Processing → Review & Match Results → Confirm Commit.

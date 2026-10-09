@@ -23,6 +23,8 @@ import '../settings/teacher_management_screen.dart';
 import 'widgets/notification_dropdown.dart';
 import '../../shared/modals/view_activity_modal.dart';
 import 'widgets/dashboard_kpis.dart';
+import 'widgets/needs_attention_card.dart';
+import 'widgets/recent_activity_feed.dart';
 import '../../shared/widgets/app_error_state.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -380,6 +382,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                         const SizedBox(height: 24),
                         _buildStatGrid(data.stats, user),
+                        const SizedBox(height: 28),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            if (constraints.maxWidth >= 900) {
+                              return const Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(flex: 6, child: NeedsAttentionCard()),
+                                  SizedBox(width: 20),
+                                  Expanded(flex: 5, child: RecentActivityFeed()),
+                                ],
+                              );
+                            } else {
+                              return const Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  NeedsAttentionCard(),
+                                  SizedBox(height: 20),
+                                  RecentActivityFeed(),
+                                ],
+                              );
+                            }
+                          },
+                        ),
                         if (isAdmin || data.stats.hasAssignedSections) ...[
                           const SizedBox(height: 32),
                           const DashboardKpisSection(),
