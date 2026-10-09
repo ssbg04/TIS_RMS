@@ -12,7 +12,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
-  Future<void> initialize() async {
+  Future<void> initialize({bool requestPermission = false}) async {
     if (_initialized) return;
 
     // Skip on Web and Windows (flutter_local_notifications does not support Windows platform interface)
@@ -26,9 +26,9 @@ class NotificationService {
 
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
         );
     const LinuxInitializationSettings initializationSettingsLinux =
         LinuxInitializationSettings(defaultActionName: 'Open notification');
@@ -104,13 +104,28 @@ class NotificationService {
           await androidImplementation?.createNotificationChannel(ch);
         }
 
-        try {
-          await androidImplementation?.requestNotificationsPermission();
-        } catch (_) {}
+        if (requestPermission) {
+          try {
+            await androidImplementation?.requestNotificationsPermission();
+          } catch (_) {}
+        }
       }
     } catch (_) {}
 
     _initialized = true;
+  }
+
+  Future<bool> requestPermission() async {
+    if (kIsWeb || !Platform.isAndroid) return true;
+    try {
+      final androidImplementation = _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      return await androidImplementation?.requestNotificationsPermission() ?? false;
+    } catch (_) {
+      return false;
+    }
   }
 
   final Set<String> _recentlyShown = <String>{};

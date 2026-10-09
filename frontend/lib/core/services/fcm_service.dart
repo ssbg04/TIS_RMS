@@ -51,11 +51,13 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class FcmService {
   static bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
-  static Future<void> initialize() async {
+  static Future<void> initialize({bool requestPermission = false}) async {
     try {
       if (!_isMobile || Firebase.apps.isEmpty) return;
       final messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission(alert: true, badge: true, sound: true);
+      if (requestPermission) {
+        await messaging.requestPermission(alert: true, badge: true, sound: true);
+      }
 
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
@@ -102,6 +104,13 @@ class FcmService {
     } catch (e) {
       debugPrint('[FcmService] Init error: $e');
     }
+  }
+
+  static Future<void> requestPermission() async {
+    try {
+      if (!_isMobile || Firebase.apps.isEmpty) return;
+      await FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true);
+    } catch (_) {}
   }
 
   static Future<void> registerToken() async {

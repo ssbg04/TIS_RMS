@@ -12,9 +12,10 @@ import '../login/login_screen.dart';
 import '../../layouts/windows_sidebar_layout.dart';
 import '../../layouts/android_bottom_nav_layout.dart';
 import '../../providers/auth_provider.dart';
-import '../../../core/services/foreground_sync_service.dart';
 import '../../shared/widgets/abstract_background.dart';
 import '../../shared/widgets/app_button_loader.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../setup/setup_wizard_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -74,7 +75,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _initializeApp({bool isRetry = false}) async {
-    await ForegroundSyncService.requestPermissions();
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
 
@@ -86,6 +86,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final user = await ref.read(authProvider.notifier).tryAutoLogin();
     if (!mounted) return;
 
+    // ── Step 3: Check Setup Wizard (Permissions on Android) ────────────────
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    final wizardCompleted = prefs.getBool('setup_wizard_completed') ?? false;
+
+    final isDesktop = MediaQuery.of(context).size.width >= 800;
+    final targetScreen = user != null
+        ? (isDesktop
+            ? WindowsSidebarLayout(userRole: user.role)
+            : AndroidBottomNavLayout(userRole: user.role))
+        : const LoginScreen();
+
+    if (!kIsWeb && Platform.isAndroid && !wizardCompleted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => SetupWizardScreen(
+            isFirstTime: true,
+            nextScreen: targetScreen,
+          ),
+        ),
+      );
+      return;
+    }
+
+    _navigateToNext(user);
+  }
+
+  void _navigateToNext(dynamic user) {
+    if (!mounted) return;
     if (user != null) {
       final isDesktop = MediaQuery.of(context).size.width >= 800;
       Navigator.of(context).pushReplacement(
