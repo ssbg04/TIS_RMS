@@ -18,7 +18,6 @@ import 'widgets/edit_student_modal.dart';
 import 'widgets/bulk_ocr_import_dialog.dart';
 import 'widgets/student_filter_dialog.dart';
 import 'widgets/student_bulk_actions.dart';
-import 'widgets/bulk_enrollment_modal.dart';
 import 'widgets/edit_enrollment_modal.dart';
 import '../../providers/setup_provider.dart';
 import '../../providers/navigation_provider.dart';
@@ -1109,6 +1108,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         if (ref.read(activeTabProvider) != 'Students') return;
+        if (_searchFocusNode.hasFocus || FocusManager.instance.primaryFocus?.hasFocus == true) {
+          _searchFocusNode.unfocus();
+          FocusManager.instance.primaryFocus?.unfocus();
+          return;
+        }
         if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
           _updateSelection(() {
             _showMultiSelect = false;
@@ -1125,7 +1129,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
           floatingActionButton: null,
-      body: Stack(
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          _searchFocusNode.unfocus();
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
+        child: Stack(
         children: [
           SafeArea(
             child: Column(
@@ -1292,6 +1302,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     ),
     ),
     ),
+    ),
     );
   }
 
@@ -1344,7 +1355,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
             const Spacer(),
 
-            // Right: Primary action buttons
             if (widget.userRole != 'teacher') ...[
               SizedBox(
                 height: 36,
@@ -1378,41 +1388,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               ),
             ],
 
-            if (widget.userRole == 'admin' || widget.userRole == 'super_admin') ...[
-              const SizedBox(width: 6),
-              Tooltip(
-                message: 'Bulk Enroll Students (CSV)',
-                child: SizedBox(
-                  height: 36,
-                  child: OutlinedButton.icon(
-                    onPressed: () => BulkEnrollmentModal.show(context),
-                    icon: const Icon(Icons.school_outlined, size: 16),
-                    label: Text(
-                      isDesktop ? 'Bulk Enroll' : 'Enroll',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark ? Colors.white : AppColors.darkGreen,
-                      side: BorderSide(
-                        color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isDesktop ? 12 : 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-
-            // Bulk Import button (hidden on Windows)
-            if (!isWindows && widget.userRole != 'teacher') ...[
+            // Bulk Import button (hidden on Windows, desktop only)
+            if (isDesktop && !isWindows && widget.userRole != 'teacher') ...[
               const SizedBox(width: 6),
               Tooltip(
                 message: 'Bulk Import Students (OCR & CSV)',
@@ -1421,9 +1398,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   child: OutlinedButton.icon(
                     onPressed: _openBulkOcrImport,
                     icon: const Icon(Icons.group_add_outlined, size: 16),
-                    label: Text(
-                      isDesktop ? 'Bulk Import' : 'Import',
-                      style: const TextStyle(
+                    label: const Text(
+                      'Bulk Import',
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1433,9 +1410,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       side: BorderSide(
                         color: isDark ? AppColors.darkBorder : AppColors.borderLight,
                       ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isDesktop ? 12 : 8,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.0),
                       ),
@@ -1487,6 +1462,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   child: TextField(
                     controller: _searchController,
                     focusNode: _searchFocusNode,
+                    onTapOutside: (_) => _searchFocusNode.unfocus(),
                     style: TextStyle(
                       fontSize: 13.5,
                       color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
@@ -1512,6 +1488,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               splashRadius: 16,
                               onPressed: () {
                                 _searchController.clear();
+                                _searchFocusNode.unfocus();
                                 ref.read(studentQueryProvider.notifier).setSearch('');
                               },
                             )
@@ -2184,57 +2161,84 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (s.totalDocumentsCount > 0)
-                          InkWell(
-                            onTap: () => _showDocumentStatusSheet(context, s),
-                            borderRadius: BorderRadius.circular(6),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isComplete
-                                    ? AppColors.success
-                                        .withValues(alpha: isDark ? 0.2 : 0.1)
-                                    : Colors.orange
-                                        .withValues(alpha: isDark ? 0.2 : 0.1),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
+                          Tooltip(
+                            message: _buildMissingDocsTooltip(s),
+                            waitDuration: const Duration(milliseconds: 250),
+                            showDuration: const Duration(seconds: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF2C2C2E)
+                                  : const Color(0xFF1E293B),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            textStyle: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              height: 1.4,
+                            ),
+                            child: InkWell(
+                              onTap: () => _showDocumentStatusSheet(context, s),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
                                   color: isComplete
                                       ? AppColors.success
-                                          .withValues(alpha: 0.3)
+                                          .withValues(alpha: isDark ? 0.2 : 0.1)
                                       : Colors.orange
-                                          .withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    isComplete
-                                        ? Icons.check_circle_outline_rounded
-                                        : Icons.pending_outlined,
-                                    size: 12,
+                                          .withValues(alpha: isDark ? 0.2 : 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
                                     color: isComplete
                                         ? AppColors.success
-                                        : Colors.orange,
+                                            .withValues(alpha: 0.3)
+                                        : Colors.orange
+                                            .withValues(alpha: 0.3),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    isComplete
-                                        ? '$completedCount/${s.totalDocumentsCount} Complete'
-                                        : '$completedCount/${s.totalDocumentsCount} (${s.missingDocumentsCount} Missing)',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isComplete
+                                          ? Icons.check_circle_outline_rounded
+                                          : Icons.pending_outlined,
+                                      size: 12,
                                       color: isComplete
                                           ? AppColors.success
-                                          : (isDark
-                                              ? Colors.orange.shade300
-                                              : Colors.orange.shade800),
+                                          : Colors.orange,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      isComplete
+                                          ? '$completedCount/${s.totalDocumentsCount} Complete'
+                                          : '$completedCount/${s.totalDocumentsCount} (${s.missingDocumentsCount} Missing)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: isComplete
+                                            ? AppColors.success
+                                            : (isDark
+                                                ? Colors.orange.shade300
+                                                : Colors.orange.shade800),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           )
@@ -2542,34 +2546,61 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         const SizedBox(height: 3),
 
                         // Row 3: Document completion counter
-                        InkWell(
-                          onTap: () => _showDocumentStatusSheet(context, s),
-                          borderRadius: BorderRadius.circular(4),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isComplete
-                                      ? Icons.check_circle_rounded
-                                      : (s.totalDocumentsCount > 0
-                                          ? Icons.pending_rounded
-                                          : Icons.info_outline_rounded),
-                                  size: 11,
-                                  color: docColor,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  s.totalDocumentsCount > 0
-                                      ? '$completedCount/${s.totalDocumentsCount} Docs ${isComplete ? "• Complete" : "• ${s.missingDocumentsCount} Missing"}'
-                                      : 'No Document Requirements',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
+                        Tooltip(
+                          message: _buildMissingDocsTooltip(s),
+                          waitDuration: const Duration(milliseconds: 250),
+                          showDuration: const Duration(seconds: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF2C2C2E)
+                                : const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          textStyle: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                          child: InkWell(
+                            onTap: () => _showDocumentStatusSheet(context, s),
+                            borderRadius: BorderRadius.circular(4),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isComplete
+                                        ? Icons.check_circle_rounded
+                                        : (s.totalDocumentsCount > 0
+                                            ? Icons.pending_rounded
+                                            : Icons.info_outline_rounded),
+                                    size: 11,
                                     color: docColor,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    s.totalDocumentsCount > 0
+                                        ? '$completedCount/${s.totalDocumentsCount} Docs ${isComplete ? "• Complete" : "• ${s.missingDocumentsCount} Missing"}'
+                                        : 'No Document Requirements',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: docColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -2592,6 +2623,25 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         ),
       ),
     );
+  }
+
+  String _buildMissingDocsTooltip(StudentModel s) {
+    if (s.totalDocumentsCount == 0) {
+      return 'No document requirements for this student';
+    }
+    if (s.missingDocumentsCount == 0) {
+      return 'All requirements submitted (${s.totalDocumentsCount}/${s.totalDocumentsCount})';
+    }
+    final buffer = StringBuffer('Missing Requirements (${s.missingDocumentsCount}):\n');
+    if (s.missingDocuments.isNotEmpty) {
+      for (final doc in s.missingDocuments) {
+        final cleanDoc = doc.replaceFirst(RegExp(r'^\[(JHS|SHS)\]\s*', caseSensitive: false), '');
+        buffer.writeln('• $cleanDoc');
+      }
+    } else {
+      buffer.writeln('• ${s.missingDocumentsCount} document(s) pending');
+    }
+    return buffer.toString().trimRight();
   }
 
   void _showDocumentStatusSheet(BuildContext context, StudentModel s) {

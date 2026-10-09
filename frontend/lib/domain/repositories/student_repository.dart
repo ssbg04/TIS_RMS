@@ -449,53 +449,7 @@ class StudentRepository {
     }
   }
 
-  // ----------------------------------------------------------------
-  // Bulk Enroll Students
-  // ----------------------------------------------------------------
-  Future<void> bulkEnrollStudents({
-    required List<int> studentIds,
-    required int academicYearId,
-    required int gradeLevel,
-    required int sectionId,
-    String? trackStrand,
-  }) async {
-    try {
-      final options = await _getAuthOptions();
-      await _dio.post(
-        '/students/bulk-enroll',
-        data: {
-          'studentIds': studentIds,
-          'academicYearId': academicYearId,
-          'gradeLevel': gradeLevel,
-          'sectionId': sectionId,
-          'trackStrand': trackStrand,
-        },
-        options: options,
-      );
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to bulk enroll students.';
-      throw Exception(msg);
-    }
-  }
 
-  // ----------------------------------------------------------------
-  // Verify LRNs
-  // ----------------------------------------------------------------
-  Future<List<Map<String, dynamic>>> verifyLrns(List<String> lrns) async {
-    try {
-      final options = await _getAuthOptions();
-      final response = await _dio.post(
-        '/students/verify-lrns',
-        data: {'lrns': lrns},
-        options: options,
-      );
-      final List<dynamic> verified = response.data['verified'] ?? [];
-      return verified.map((v) => v as Map<String, dynamic>).toList();
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to verify LRNs.';
-      throw Exception(msg);
-    }
-  }
 
   // ----------------------------------------------------------------
   // Bulk Create Students from OCR Import

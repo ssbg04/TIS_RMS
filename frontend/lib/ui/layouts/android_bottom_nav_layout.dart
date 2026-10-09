@@ -34,7 +34,6 @@ import '../shared/widgets/notification_icon_button.dart';
 import '../screens/students/widgets/student_bulk_actions.dart';
 import '../screens/documents/widgets/print_queue_modal.dart';
 import '../screens/documents/widgets/upload_ocr_modal.dart';
-import '../screens/students/widgets/add_student_modal.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -465,6 +464,13 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
+        // If any text input has focus, unfocus it first before navigating
+        final primaryFocus = FocusManager.instance.primaryFocus;
+        if (primaryFocus != null && primaryFocus.hasFocus) {
+          primaryFocus.unfocus();
+          return;
+        }
+
         if (activeTab != 'Dashboard') {
           if (activeTab == 'Documents' ||
               activeTab == 'Students' ||
@@ -734,63 +740,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                               },
                             ),
                           ],
-                          if (activeTab == 'Students') ...[
-                            // 1. Search Icon (consistent with Dashboard)
-                            Consumer(
-                              builder: (context, ref, _) {
-                                return Tooltip(
-                                  message: 'Search Students',
-                                  child: IconButton(
-                                    icon: const Icon(Icons.search, size: 22),
-                                    onPressed: () => _showStudentSearchDialog(context, ref),
-                                  ),
-                                );
-                              },
-                            ),
-                            // 3. Add Student Icon (High-Attraction Elevated Primary CTA)
-                            if (widget.userRole != 'teacher')
-                              Tooltip(
-                                message: 'Add Student',
-                                child: Container(
-                                  width: 36,
-                                  height: 36,
-                                  margin: const EdgeInsets.only(left: 4, right: 8),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFF00B074),
-                                        AppColors.primaryGreen,
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppColors.primaryGreen.withValues(alpha: 0.4),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(10),
-                                      onTap: () => AddStudentModal.show(context),
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.person_add_rounded,
-                                          size: 20,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            const SizedBox(width: 4),
-                          ],
+
                           if (activeTab == 'Documents') ...[
                             // 1. Search Icon (left side of Print List icon)
                             Consumer(

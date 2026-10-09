@@ -369,9 +369,8 @@ class _StudentProfileModalBodyState
     extends ConsumerState<StudentProfileModalBody> {
   _StudentProfileTab _selectedTab = _StudentProfileTab.overview;
 
-  Future<void> _handleToggleVerify(DocumentModel doc) async {
-    final newStatus =
-        doc.status.toLowerCase() == 'completed' ? 'Pending' : 'Completed';
+  Future<void> _handleVerifyDocument(DocumentModel doc) async {
+    const newStatus = 'Completed';
     try {
       await ref
           .read(documentRepositoryProvider)
@@ -381,10 +380,10 @@ class _StudentProfileModalBodyState
       ref.invalidate(studentDetailProvider(widget.studentId));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Document status updated to $newStatus'),
+          const SnackBar(
+            content: Text('Document marked as verified'),
             backgroundColor: AppColors.primaryGreen,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -872,36 +871,10 @@ class _StudentProfileModalBodyState
               color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
             ),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Document Workspace',
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Upload, view, verify, and print scholastic documents.',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Wrap(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 450;
+              final buttons = Wrap(
                 spacing: 6,
                 runSpacing: 4,
                 children: [
@@ -941,8 +914,72 @@ class _StudentProfileModalBodyState
                     ),
                   ),
                 ],
-              ),
-            ],
+              );
+
+              if (isCompact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Document Workspace',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Upload, view, verify, and print scholastic documents.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    buttons,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Document Workspace',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Upload, view, verify, and print scholastic documents.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  buttons,
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 16),
@@ -1152,30 +1189,22 @@ class _StudentProfileModalBodyState
     DocumentModel doc,
     bool isDark,
   ) {
+    final bool isMobile = MediaQuery.of(context).size.width < 500;
     final isPending = doc.status.toLowerCase() == 'pending';
-    final isArchived = doc.status.toLowerCase() == 'archived';
-
-    Color statusColor;
-    String statusLabel;
-    IconData statusIcon;
-
-    if (isPending) {
-      statusColor = Colors.orange;
-      statusLabel = 'Pending';
-      statusIcon = Icons.hourglass_empty_rounded;
-    } else if (isArchived) {
-      statusColor = Colors.blueGrey;
-      statusLabel = 'Archived';
-      statusIcon = Icons.archive_outlined;
-    } else {
-      statusColor = AppColors.success;
-      statusLabel = 'Verified';
-      statusIcon = Icons.check_circle_rounded;
-    }
+    final isRejected = doc.status.toLowerCase() == 'rejected';
+    final statusColor = isPending
+        ? AppColors.warning
+        : (isRejected ? AppColors.error : AppColors.success);
+    final statusIcon = isPending
+        ? Icons.hourglass_top_rounded
+        : (isRejected ? Icons.cancel_outlined : Icons.check_circle_rounded);
+    final statusLabel = isPending
+        ? 'Pending'
+        : (isRejected ? 'Rejected' : 'Verified');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(12),
@@ -1191,12 +1220,14 @@ class _StudentProfileModalBodyState
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _buildDocIcon(doc.fileName, isDark),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   children: [
@@ -1204,7 +1235,7 @@ class _StudentProfileModalBodyState
                       child: Text(
                         doc.fileName,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.bold,
                           color: isDark
                               ? AppColors.darkTextPrimary
@@ -1217,22 +1248,22 @@ class _StudentProfileModalBodyState
                     const SizedBox(width: 6),
                     Container(
                       padding:
-                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                       decoration: BoxDecoration(
                         color: statusColor.withValues(alpha: isDark ? 0.2 : 0.1),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(4),
                         border:
                             Border.all(color: statusColor.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(statusIcon, size: 10, color: statusColor),
+                          Icon(statusIcon, size: 9, color: statusColor),
                           const SizedBox(width: 3),
                           Text(
                             statusLabel,
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 9.5,
                               fontWeight: FontWeight.bold,
                               color: statusColor,
                             ),
@@ -1242,40 +1273,54 @@ class _StudentProfileModalBodyState
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Row(
                   children: [
                     if (doc.documentType != null &&
                         doc.documentType!.isNotEmpty) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.darkSurface2
-                              : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          doc.documentType!,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
+                      Flexible(
+                        flex: 2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
                             color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.textSecondary,
+                                ? AppColors.darkSurface2
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            doc.documentType!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                     ],
-                    Text(
-                      '${doc.size ?? ''} • ${_formatDate(doc.createdAt)}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : Colors.grey.shade600,
+                    Flexible(
+                      flex: 3,
+                      child: Text(
+                        doc.size != null && doc.size!.isNotEmpty
+                            ? (isMobile
+                                ? doc.size!
+                                : '${doc.size!} • ${_formatDate(doc.createdAt)}')
+                            : _formatDate(doc.createdAt),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : Colors.grey.shade600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -1283,55 +1328,53 @@ class _StudentProfileModalBodyState
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          // Actions: View, Verify, Print
+          const SizedBox(width: 4),
+          // Actions: View, Verify (if pending only), Print
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Tooltip(
                 message: 'Preview',
                 child: IconButton(
-                  icon: const Icon(Icons.visibility_outlined, size: 18),
+                  icon: const Icon(Icons.visibility_outlined, size: 17),
                   color: AppColors.primaryGreen,
                   visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(2),
                   constraints:
-                      const BoxConstraints(minWidth: 32, minHeight: 32),
+                      const BoxConstraints(minWidth: 26, minHeight: 26),
                   onPressed: () => showDocumentPreview(
                     context: context,
                     document: doc,
                   ),
                 ),
               ),
-              if (widget.userRole.toLowerCase() != 'teacher')
+              if (widget.userRole.toLowerCase() != 'teacher' && isPending)
                 Tooltip(
-                  message: isPending ? 'Mark as Verified' : 'Mark as Pending',
+                  message: 'Mark as Verified',
                   child: IconButton(
-                    icon: Icon(
-                      isPending
-                          ? Icons.check_circle_outline_rounded
-                          : Icons.pending_outlined,
-                      size: 18,
-                      color: isPending ? AppColors.success : Colors.orange,
+                    icon: const Icon(
+                      Icons.check_circle_outline_rounded,
+                      size: 17,
+                      color: AppColors.success,
                     ),
                     visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(2),
                     constraints:
-                        const BoxConstraints(minWidth: 32, minHeight: 32),
-                    onPressed: () => _handleToggleVerify(doc),
+                        const BoxConstraints(minWidth: 26, minHeight: 26),
+                    onPressed: () => _handleVerifyDocument(doc),
                   ),
                 ),
               Tooltip(
                 message: 'Add to Print Queue',
                 child: IconButton(
-                  icon: const Icon(Icons.print_outlined, size: 18),
+                  icon: const Icon(Icons.print_outlined, size: 17),
                   color: isDark
                       ? AppColors.darkTextSecondary
                       : AppColors.textSecondary,
                   visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(2),
                   constraints:
-                      const BoxConstraints(minWidth: 32, minHeight: 32),
+                      const BoxConstraints(minWidth: 26, minHeight: 26),
                   onPressed: () => _handleAddToPrintQueue(doc),
                 ),
               ),
@@ -2485,6 +2528,158 @@ class _StudentProfileModalBodyState
         break;
     }
 
+    final isMobile = MediaQuery.of(context).size.width < 500;
+
+    final typeBadge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: r.isMandatory
+            ? (isDark
+                ? Colors.indigo.withValues(alpha: 0.25)
+                : Colors.indigo.shade50)
+            : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: r.isMandatory
+              ? (isDark ? Colors.indigo.shade300 : Colors.indigo.shade200)
+              : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+          width: 0.8,
+        ),
+      ),
+      child: Text(
+        r.isMandatory ? 'Mandatory' : 'Optional',
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+          color: r.isMandatory
+              ? (isDark ? Colors.indigo.shade200 : Colors.indigo.shade800)
+              : (isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+        ),
+      ),
+    );
+
+    final statusBadge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: isDark ? 0.2 : 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (state == 'archived') ...[
+            Icon(Icons.archive_outlined, size: 10, color: statusColor),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            statusLabel,
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.bold,
+              color: statusColor,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final uploadBtn = ((state == 'missing_mandatory' || state == 'missing_optional') &&
+            onUpload != null)
+        ? InkWell(
+            onTap: onUpload,
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen
+                    .withValues(alpha: isDark ? 0.25 : 0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: AppColors.primaryGreen
+                      .withValues(alpha: isDark ? 0.5 : 0.35),
+                  width: 0.8,
+                ),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.upload_file_rounded,
+                      size: 11, color: AppColors.primaryGreen),
+                  SizedBox(width: 3),
+                  Text(
+                    'Upload',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        : null;
+
+    if (isMobile) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: iconColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    r.name,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                statusBadge,
+              ],
+            ),
+            if (r.description != null && r.description!.trim().isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                r.description!.trim(),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                typeBadge,
+                ?uploadBtn,
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -2530,100 +2725,12 @@ class _StudentProfileModalBodyState
             ),
           ),
           const SizedBox(width: 8),
-          // Type badge: Mandatory vs Optional
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: r.isMandatory
-                  ? (isDark
-                      ? Colors.indigo.withValues(alpha: 0.25)
-                      : Colors.indigo.shade50)
-                  : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: r.isMandatory
-                    ? (isDark ? Colors.indigo.shade300 : Colors.indigo.shade200)
-                    : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
-                width: 0.8,
-              ),
-            ),
-            child: Text(
-              r.isMandatory ? 'Mandatory' : 'Optional',
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: r.isMandatory
-                    ? (isDark
-                        ? Colors.indigo.shade200
-                        : Colors.indigo.shade800)
-                    : (isDark ? Colors.grey.shade300 : Colors.grey.shade700),
-              ),
-            ),
-          ),
+          typeBadge,
           const SizedBox(width: 6),
-          // Status badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: isDark ? 0.2 : 0.1),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (state == 'archived') ...[
-                  Icon(Icons.archive_outlined, size: 10, color: statusColor),
-                  const SizedBox(width: 3),
-                ],
-                Text(
-                  statusLabel,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Inline Upload action if missing
-          if ((state == 'missing_mandatory' || state == 'missing_optional') &&
-              onUpload != null) ...[
+          statusBadge,
+          if (uploadBtn != null) ...[
             const SizedBox(width: 6),
-            InkWell(
-              onTap: onUpload,
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryGreen
-                      .withValues(alpha: isDark ? 0.25 : 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: AppColors.primaryGreen
-                        .withValues(alpha: isDark ? 0.5 : 0.35),
-                    width: 0.8,
-                  ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.upload_file_rounded,
-                        size: 11, color: AppColors.primaryGreen),
-                    SizedBox(width: 3),
-                    Text(
-                      'Upload',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryGreen,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            uploadBtn,
           ],
         ],
       ),
