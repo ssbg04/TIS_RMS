@@ -408,6 +408,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
+
   Widget _buildViewModeToggle() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

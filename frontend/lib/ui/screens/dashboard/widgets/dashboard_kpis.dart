@@ -124,7 +124,7 @@ class _KpisContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(
-          title: 'Analytics & KPIs',
+          title: 'Current SY Overview',
           icon: Icons.insights_rounded,
           activeYear: kpis.activeAcademicYear,
         ),
@@ -250,7 +250,6 @@ class _KpisContent extends StatelessWidget {
             ],
           ),
 
-        const SizedBox(height: 32),
       ],
     );
   }
@@ -2406,55 +2405,23 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rawYear = activeYear?.trim() ?? '';
+    final cleanYear = rawYear.replaceAll(RegExp(r'^(s\.?y\.?\s*)', caseSensitive: false), '').trim();
+    final displayText = cleanYear.isNotEmpty ? '$title ($cleanYear)' : title;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(icon, size: 22, color: AppColors.primaryGreen),
         const SizedBox(width: 8),
         Text(
-          title,
+          displayText,
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        if (activeYear != null && activeYear!.trim().isNotEmpty) ...[
-          const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.18 : 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.4 : 0.25),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.calendar_month_rounded,
-                  size: 13,
-                  color: isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  activeYear!.toLowerCase().contains('s.y.') || activeYear!.toLowerCase().contains('a.y.')
-                      ? activeYear!
-                      : 'S.Y. $activeYear',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? const Color(0xFF81C784) : const Color(0xFF1B5E20),
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }

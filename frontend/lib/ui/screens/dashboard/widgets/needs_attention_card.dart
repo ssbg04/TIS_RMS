@@ -3,13 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../providers/dashboard_provider.dart';
 import '../../../providers/student_provider.dart';
-import '../../../providers/document_provider.dart';
 import '../../../providers/navigation_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../documents/widgets/student_profile_modal.dart';
 import '../../documents/widgets/upload_ocr_modal.dart';
 import '../../../../domain/entities/student_model.dart';
-import '../../../../domain/entities/dashboard_models.dart';
 
 /// "Needs Attention" operational card for Dashboard (Priority 4).
 /// Shows missing SF9, missing SF10, documents requiring verification,
@@ -55,16 +53,7 @@ class NeedsAttentionCard extends ConsumerWidget {
                 .length ??
             0);
 
-    // 3. Documents to verify (Pending status)
-    final pendingCount = kpis?.statusDistribution
-            .firstWhere(
-              (e) => e.status.toLowerCase() == 'pending',
-              orElse: () => const StatusDistributionEntry(status: 'Pending', count: 0),
-            )
-            .count ??
-        0;
-
-    final totalAlerts = sf9Count + sf10Count + pendingCount;
+    final totalAlerts = sf9Count + sf10Count;
 
     // Top students needing immediate attention (most missing docs)
     final urgentStudents = enrolledStudents
@@ -236,23 +225,6 @@ class NeedsAttentionCard extends ConsumerWidget {
                       userRole: userRole,
                       isDark: isDark,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Pending verification alert
-                  _buildAlertRow(
-                    context: context,
-                    icon: Icons.verified_outlined,
-                    iconColor: const Color(0xFF1565C0),
-                    label: '$pendingCount documents to verify',
-                    sublabel: 'Uploaded records awaiting administrative review & verification',
-                    actionLabel: 'Review',
-                    isDark: isDark,
-                    onAction: () {
-                      ref.read(documentQueryProvider.notifier).setStatus('Pending');
-                      ref.invalidate(documentPageProvider);
-                      ref.read(activeTabProvider.notifier).setTab('Documents');
-                    },
                   ),
                 ],
               ),

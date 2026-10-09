@@ -23,6 +23,7 @@ import '../../shared/modals/custom_modal.dart';
 import '../../../core/services/sound_service.dart';
 import '../../../core/services/haptic_service.dart';
 import 'package:data_table_2/data_table_2.dart';
+import '../settings/teacher_management_screen.dart';
 
 class UsersScreen extends ConsumerStatefulWidget {
   const UsersScreen({super.key});
@@ -381,6 +382,45 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
               ),
 
               const SizedBox(width: 4),
+
+              // Academic & Class Management Button (Admins only)
+              Consumer(
+                builder: (context, ref, _) {
+                  final currentUser = ref.watch(authProvider).value;
+                  if (currentUser?.role != 'admin') return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: SizedBox(
+                      height: 36,
+                      child: OutlinedButton.icon(
+                        onPressed: () => TeacherManagementModal.open(context),
+                        icon: const Icon(Icons.school_outlined, size: 16),
+                        label: Text(
+                          isDesktop ? 'Academic & Classes' : 'Classes',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+                          side: BorderSide(
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.primaryGreen.withValues(alpha: 0.5),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isDesktop ? 12 : 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
 
               // Add User Button
               SizedBox(

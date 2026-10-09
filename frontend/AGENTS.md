@@ -1077,22 +1077,22 @@ Files backup/restore - mirror mode or zip -->
 - [x] Allow manual student disambiguation on ambiguous or missing matches before database insertion.
 
 ## Priority 6: Task-Specific Reports
-- [ ] Refactor Reports into categorized tasks (Student Masterlists, Document Completion, School Forms SF9/SF10).
-- [ ] Progressive filter modal (Report Type → Grade/Section → School Year → Format: PDF/Excel).
+- [x] Refactor Reports into categorized tasks (Student Masterlists, Document Completion, School Forms SF9/SF10).
+- [x] Progressive filter modal (Report Type → Grade/Section → School Year → Format: PDF/Excel).
 
 ## Priority 7: Human-Readable Activity History
-- [ ] Reformat audit trail entries to plain English (User + Action + Target Student) with progressive disclosure for technical logs.
+- [x] Reformat audit trail entries to plain English (User + Action + Target Student) with progressive disclosure for technical logs.
 
 ## Priority 8: Navigation Drawer & Hierarchy
-- [ ] Standardize drawer section labels: MAIN (Dashboard, Students, Documents, Archives) & ADMINISTRATION (Reports, Users, Activity History, Settings).
-
+- [x] Standardize drawer section labels: MAIN (Dashboard, Students, Documents, Archives) & ADMINISTRATION (Reports, Users, Activity History, Settings).
+   
 ## Priority 9: Feedback & State Standardization
-- [ ] Implement skeleton loaders for list and folder views.
-- [ ] Replace generic empty screens with actionable empty states (reason + clear CTA).
-- [ ] Add lightweight persistent server connection status pill (Connected / Offline).
+- [x] Implement skeleton loaders for list and folder views.
+- [x] Replace generic empty screens with actionable empty states (reason + clear CTA).
+- [x] Add lightweight persistent server connection status pill (Connected / Offline).
 
 ## Priority 10: Adaptive Tablet / Desktop Navigation
-- [ ] Implement adaptive Navigation Rail for tablet viewports and maintain persistent sidebar on desktop.
+- [x] Implement adaptive Navigation Rail for tablet viewports and maintain persistent sidebar on desktop.
 
 ---
 

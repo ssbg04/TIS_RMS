@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../shared/cards/stat_card.dart';
@@ -36,6 +37,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _setupBannerMinimized = false;
+  bool _setupBannerDismissed = false;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final FocusNode _shortcutFocusNode = FocusNode();
@@ -78,6 +80,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     _searchFocusNode.addListener(() {
       if (mounted) setState(() {});
+    });
+
+    SharedPreferences.getInstance().then((prefs) {
+      if (mounted) {
+        setState(() {
+          _setupBannerDismissed = prefs.getBool('setup_banner_dismissed') ?? false;
+        });
+      }
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -369,7 +379,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        if (isAdmin) ...[
+                        if (isAdmin && data.stats.totalStudents == 0 && !_setupBannerDismissed) ...[
                           _buildSetupGuidanceBanner(context),
                           const SizedBox(height: 24),
                         ],
@@ -495,6 +505,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  Future<void> _dismissSetupBanner() async {
+    setState(() => _setupBannerDismissed = true);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('setup_banner_dismissed', true);
+  }
+
   // ── ADMIN SETUP GUIDANCE BANNER ───────────────────────────────────────────
   Widget _buildSetupGuidanceBanner(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
@@ -567,12 +583,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             () =>
                                 _setupBannerMinimized = !_setupBannerMinimized,
                           ),
+                          tooltip: _setupBannerMinimized ? 'Expand' : 'Collapse',
                           icon: Icon(
                             _setupBannerMinimized
                                 ? Icons.keyboard_arrow_down
                                 : Icons.keyboard_arrow_up,
                             size: 18,
                             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: _dismissSetupBanner,
+                          tooltip: 'Dismiss',
+                          icon: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -658,21 +687,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ],
                       ),
                     ),
-                    // Minimize toggle button (never dismiss)
-                    IconButton(
-                      onPressed: () => setState(
-                        () =>
-                            _setupBannerMinimized = !_setupBannerMinimized,
-                      ),
-                      icon: Icon(
-                        _setupBannerMinimized
-                            ? Icons.keyboard_arrow_down
-                            : Icons.keyboard_arrow_up,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () => setState(
+                            () =>
+                                _setupBannerMinimized = !_setupBannerMinimized,
+                          ),
+                          tooltip: _setupBannerMinimized ? 'Expand' : 'Collapse',
+                          icon: Icon(
+                            _setupBannerMinimized
+                                ? Icons.keyboard_arrow_down
+                                : Icons.keyboard_arrow_up,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 10),
+                        IconButton(
+                          onPressed: _dismissSetupBanner,
+                          tooltip: 'Dismiss',
+                          icon: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
                   ],
                 ),

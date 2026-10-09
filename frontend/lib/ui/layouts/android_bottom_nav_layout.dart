@@ -9,6 +9,7 @@ import '../screens/documents/documents_screen.dart';
 import '../screens/archives/archives_screen.dart';
 import '../screens/reports/reports_screen.dart';
 import '../screens/users/users_screen.dart';
+import '../screens/settings/teacher_management_screen.dart';
 import '../screens/audit_trail/audit_trail_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
@@ -34,6 +35,7 @@ import '../shared/widgets/notification_icon_button.dart';
 import '../screens/students/widgets/student_bulk_actions.dart';
 import '../screens/documents/widgets/print_queue_modal.dart';
 import '../screens/documents/widgets/upload_ocr_modal.dart';
+import '../shared/widgets/server_connection_pill.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -332,7 +334,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         'roles': ['admin'],
       },
       {
-        'label': 'History',
+        'label': 'Activity History',
         'icon': Icons.manage_history_outlined,
         'activeIcon': Icons.manage_history_rounded,
         'screen': AuditTrailScreen(userRole: widget.userRole),
@@ -401,6 +403,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         ref.invalidate(usersProvider);
         break;
       case 'History':
+      case 'Activity History':
         ref.invalidate(activityQueryProvider);
         ref.invalidate(recentActivitiesPageProvider);
         ref.invalidate(userHistoryQueryProvider);
@@ -696,12 +699,19 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                             ),
                           ),
                         ),
-                        title: Text(
-                          activeTab,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                        title: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              activeTab,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const ServerConnectionPill(compact: true),
+                          ],
                         ),
                         elevation: 0,
                         surfaceTintColor: Colors.transparent,
@@ -894,7 +904,17 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                 );
                               },
                             ),
-                            // 2. Add User Button (High-Attraction Elevated Primary CTA)
+                            // 2. Academic & Class Management (Admin shortcut)
+                            if (widget.userRole == 'admin')
+                              Tooltip(
+                                message: 'Academic & Class Management',
+                                child: IconButton(
+                                  icon: const Icon(Icons.school_outlined, size: 22),
+                                  onPressed: () =>
+                                      TeacherManagementModal.open(context),
+                                ),
+                              ),
+                            // 3. Add User Button (High-Attraction Elevated Primary CTA)
                             Tooltip(
                               message: 'Add User',
                               child: Container(
@@ -1018,7 +1038,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                   ),
                                   alignment: Alignment.centerLeft,
                                   child: Text(
-                                    'MENU',
+                                    'MAIN',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -1057,7 +1077,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                 ),
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  'SYSTEM',
+                                  'ADMINISTRATION',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -1084,6 +1104,13 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                             ],
                           ),
                       ],
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: ServerConnectionPill(compact: false),
                     ),
                   ),
                   const Divider(),

@@ -28,6 +28,8 @@ import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
+import '../../shared/widgets/app_empty_state.dart';
+import '../../shared/widgets/app_skeleton_loader.dart';
 
 class StudentsScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -1165,9 +1167,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                 ),
                                 child: pageAsync.when(
                                   skipLoadingOnReload: true,
-                                  loading: () => const Center(
-                                    child: CircularProgressIndicator(
-                                      color: AppColors.primaryGreen,
+                                  loading: () => const SingleChildScrollView(
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 8),
+                                      child: CardSkeletonLoader(count: 6),
                                     ),
                                   ),
                                   error: (err, _) =>
@@ -2945,23 +2948,26 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       ),
     );
   }
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.people_outline, size: 64, color: isDark ? AppColors.darkTextMuted : Colors.grey.shade300),
-          const SizedBox(height: 16),
-          Text(
-            'No students found.',
-            style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Try adjusting your search or filters.',
-            style: TextStyle(color: isDark ? AppColors.darkTextMuted : AppColors.textMuted, fontSize: 13),
-          ),
-        ],
-      ),
+    final query = ref.watch(studentQueryProvider);
+    final hasActiveFilter = query.search.isNotEmpty ||
+        query.gradeLevel.isNotEmpty ||
+        query.section.isNotEmpty ||
+        query.status.isNotEmpty ||
+        query.schoolYear.isNotEmpty;
+
+    return AppEmptyState(
+      icon: Icons.person_search_rounded,
+      title: hasActiveFilter ? 'No Matching Students' : 'No Students Found',
+      subtitle: hasActiveFilter
+          ? 'No student records match your selected filters. Try clearing filters or refining your search.'
+          : 'No student records have been created yet.',
+      actionLabel: hasActiveFilter ? 'Clear Filters' : null,
+      onAction: hasActiveFilter
+          ? () {
+              ref.read(studentQueryProvider.notifier).reset();
+              _searchController.clear();
+            }
+          : null,
     );
   }
 

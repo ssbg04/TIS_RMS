@@ -376,14 +376,29 @@ class _TeacherAdvisersTabState extends ConsumerState<_TeacherAdvisersTab> {
   }
 }
 
-class _TeacherCard extends ConsumerWidget {
+class _TeacherCard extends StatefulWidget {
   final SystemUser teacher;
   final List<SectionModel> assignedSections;
   const _TeacherCard({required this.teacher, required this.assignedSections});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  State<_TeacherCard> createState() => _TeacherCardState();
+}
+
+class _TeacherCardState extends State<_TeacherCard> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sections = widget.assignedSections;
+    const maxVisible = 2;
+    final hasOverflow = sections.length > maxVisible;
+    final displayed = (_isExpanded || !hasOverflow)
+        ? sections
+        : sections.take(maxVisible).toList();
+    final overflowCount = sections.length - maxVisible;
+
     return Container(
       margin: const EdgeInsets.only(bottom: AppSizes.p8),
       child: Material(
@@ -393,7 +408,7 @@ class _TeacherCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
           onTap: () => showDialog(
             context: context,
-            builder: (_) => TeacherDetailModal(teacher: teacher),
+            builder: (_) => TeacherDetailModal(teacher: widget.teacher),
           ),
           child: Container(
             padding: const EdgeInsets.all(AppSizes.p12),
@@ -408,7 +423,7 @@ class _TeacherCard extends ConsumerWidget {
                   radius: 20,
                   backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.12),
                   child: Text(
-                    teacher.firstName.isNotEmpty ? teacher.firstName[0].toUpperCase() : 'T',
+                    widget.teacher.firstName.isNotEmpty ? widget.teacher.firstName[0].toUpperCase() : 'T',
                     style: const TextStyle(
                       color: AppColors.primaryGreen,
                       fontWeight: FontWeight.bold,
@@ -425,7 +440,7 @@ class _TeacherCard extends ConsumerWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              '${teacher.lastName}, ${teacher.firstName}',
+                              '${widget.teacher.lastName}, ${widget.teacher.firstName}',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -434,7 +449,7 @@ class _TeacherCard extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            '@${teacher.username}',
+                            '@${widget.teacher.username}',
                             style: TextStyle(
                               fontSize: 12,
                               color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
@@ -444,30 +459,56 @@ class _TeacherCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 6),
                       // Assigned Sections Chips
-                      if (assignedSections.isNotEmpty)
+                      if (sections.isNotEmpty)
                         Wrap(
                           spacing: 6,
                           runSpacing: 4,
-                          children: assignedSections.map((s) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.18 : 0.08),
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            ...displayed.map((s) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.18 : 0.08),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.35 : 0.2),
+                                  ),
+                                ),
+                                child: Text(
+                                  'G${s.gradeLevel} - ${s.name}${s.academicYearRange != null ? ' (${s.academicYearRange})' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+                                  ),
+                                ),
+                              );
+                            }),
+                            if (hasOverflow)
+                              InkWell(
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.35 : 0.2),
+                                onTap: () => setState(() => _isExpanded = !_isExpanded),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _isExpanded ? 'Show less' : '+$overflowCount more',
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              child: Text(
-                                'G${s.gradeLevel} - ${s.name}${s.academicYearRange != null ? ' (${s.academicYearRange})' : ''}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                          ],
                         )
                       else
                         Container(
@@ -499,7 +540,7 @@ class _TeacherCard extends ConsumerWidget {
                   ),
                   onPressed: () => showDialog(
                     context: context,
-                    builder: (_) => TeacherSectionsModal(teacher: teacher),
+                    builder: (_) => TeacherSectionsModal(teacher: widget.teacher),
                   ),
                   icon: const Icon(Icons.edit_note, size: 16),
                   label: const Text('Sections', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),

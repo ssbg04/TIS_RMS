@@ -25,6 +25,7 @@ import '../shared/dialogs/logout_dialog.dart';
 import '../shared/widgets/abstract_background.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/connected_users_provider.dart';
+import '../shared/widgets/server_connection_pill.dart';
 
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -44,8 +45,13 @@ class PlaceholderScreen extends StatelessWidget {
 
 class WindowsSidebarLayout extends ConsumerStatefulWidget {
   final String userRole;
+  final bool initialMinimized;
 
-  const WindowsSidebarLayout({super.key, required this.userRole});
+  const WindowsSidebarLayout({
+    super.key,
+    required this.userRole,
+    this.initialMinimized = false,
+  });
 
   @override
   ConsumerState<WindowsSidebarLayout> createState() =>
@@ -56,12 +62,13 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
   final Set<int> _visitedIndices = {};
   Timer? _holdTimer;
   Timer? _tabLoadingTimer;
-  bool _isMinimized = false;
+  late bool _isMinimized;
   bool _isTabLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _isMinimized = widget.initialMinimized;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(heartbeatServiceProvider).onConnectionLost = () {
         if (mounted) {
@@ -110,6 +117,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         ref.invalidate(usersProvider);
         break;
       case 'History':
+      case 'Activity History':
         ref.invalidate(activityQueryProvider);
         ref.invalidate(recentActivitiesPageProvider);
         ref.invalidate(userHistoryQueryProvider);
@@ -280,7 +288,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
   Widget build(BuildContext context) {
     final allTabs = [
       {
-        'category': 'OVERVIEW',
+        'category': 'MAIN',
         'label': 'Dashboard',
         'icon': Icons.dashboard_outlined,
         'activeIcon': Icons.dashboard,
@@ -288,7 +296,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         'roles': ['admin', 'teacher'],
       },
       {
-        'category': 'OVERVIEW',
+        'category': 'MAIN',
         'label': 'Students',
         'icon': Icons.people_outline,
         'activeIcon': Icons.people,
@@ -296,7 +304,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         'roles': ['admin', 'teacher'],
       },
       {
-        'category': 'OVERVIEW',
+        'category': 'MAIN',
         'label': 'Documents',
         'icon': Icons.folder_outlined,
         'activeIcon': Icons.folder,
@@ -304,7 +312,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         'roles': ['admin', 'teacher'],
       },
       {
-        'category': 'OVERVIEW',
+        'category': 'MAIN',
         'label': 'Archives',
         'icon': Icons.archive_outlined,
         'activeIcon': Icons.archive,
@@ -312,7 +320,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         'roles': ['admin'],
       },
       {
-        'category': 'ACCOUNT',
+        'category': 'ADMINISTRATION',
         'label': 'Reports',
         'icon': Icons.bar_chart,
         'activeIcon': Icons.bar_chart,
@@ -320,7 +328,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         'roles': ['admin'],
       },
       {
-        'category': 'ACCOUNT',
+        'category': 'ADMINISTRATION',
         'label': 'Users',
         'icon': Icons.manage_accounts_outlined,
         'activeIcon': Icons.manage_accounts,
@@ -328,15 +336,15 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         'roles': ['admin'],
       },
       {
-        'category': 'ACCOUNT',
-        'label': 'History',
+        'category': 'ADMINISTRATION',
+        'label': 'Activity History',
         'icon': Icons.manage_history_outlined,
         'activeIcon': Icons.manage_history_rounded,
         'screen': AuditTrailScreen(userRole: widget.userRole),
         'roles': ['admin'],
       },
       {
-        'category': 'ACCOUNT',
+        'category': 'ADMINISTRATION',
         'label': 'Settings',
         'icon': Icons.settings_outlined,
         'activeIcon': Icons.settings,
@@ -357,9 +365,9 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
     _visitedIndices.add(currentIndex);
 
     final overviewTabs = tabs
-        .where((t) => t['category'] == 'OVERVIEW')
+        .where((t) => t['category'] == 'MAIN')
         .toList();
-    final accountTabs = tabs.where((t) => t['category'] == 'ACCOUNT').toList();
+    final accountTabs = tabs.where((t) => t['category'] == 'ADMINISTRATION').toList();
 
     return PopScope(
       canPop: false,
@@ -610,6 +618,17 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+
+                        // Persistent Server Connection Status Pill
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: _isMinimized ? 12 : 20,
+                            vertical: 8,
+                          ),
+                          child: Center(
+                            child: ServerConnectionPill(compact: _isMinimized),
                           ),
                         ),
 

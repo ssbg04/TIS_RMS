@@ -15,6 +15,8 @@ import '../../../domain/entities/setup_models.dart';
 import '../../shared/dialogs/document_properties_dialog.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
+import '../../shared/widgets/app_empty_state.dart';
+import '../../shared/widgets/app_skeleton_loader.dart';
 import '../../providers/navigation_provider.dart';
 
 import '../../shared/dialogs/success_dialog.dart';
@@ -860,11 +862,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                             children: [
                               Expanded(
                                 child: docState.when(
-                                  loading: () => const Center(
-                                    child: CircularProgressIndicator(
-                                      color: AppColors.primaryGreen,
-                                    ),
-                                  ),
+                                  loading: () => const FolderSkeletonLoader(count: 6),
                                   error: (e, _) =>
                                       _buildErrorState(e.toString()),
                                   data: (pageData) => pageData.documents.isEmpty
@@ -1837,9 +1835,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         children: [
           Expanded(
             child: docState.when(
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryGreen),
-              ),
+              loading: () => const FolderSkeletonLoader(count: 6),
               error: (e, _) => _buildErrorState(e.toString()),
               data: (pageData) {
                 final hasNoSections =
@@ -1874,9 +1870,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     }
 
     return foldersAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: AppColors.primaryGreen),
-      ),
+      loading: () => const FolderSkeletonLoader(count: 8),
       error: (e, _) => _buildErrorState(e.toString()),
       data: (folders) {
         if (folders.isEmpty) {
@@ -1932,30 +1926,20 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             );
           }
 
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.folder_off_outlined,
-                  size: 64,
-                  color: isDark ? AppColors.darkTextMuted : Colors.grey.shade300,
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Text(
-                    'No Student Folders',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          final hasActiveFilter = query.search.isNotEmpty ||
+              query.status.isNotEmpty ||
+              query.documentType.isNotEmpty ||
+              query.gradeLevel.isNotEmpty ||
+              query.schoolYear.isNotEmpty;
+
+          return AppEmptyState(
+            icon: Icons.folder_off_outlined,
+            title: hasActiveFilter ? 'No Matching Folders' : 'No Student Folders',
+            subtitle: hasActiveFilter
+                ? 'No student folders match the current search or filters.'
+                : 'No student folders are currently available in this section.',
+            actionLabel: hasActiveFilter ? 'Clear Filters' : null,
+            onAction: hasActiveFilter ? _clearFilters : null,
           );
         }
 
@@ -2600,41 +2584,18 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         ),
       );
     }
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder_off_outlined,
-            size: 72,
-            color: isDark ? AppColors.darkTextMuted : Colors.grey.shade300,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No documents found',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Upload a document or adjust your filters',
-            style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-          ),
-          if (_selectedDocumentType != 'All Types' ||
-              _selectedGradeLevel != 'All Grades' ||
-              _searchController.text.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            TextButton.icon(
-              onPressed: _clearFilters,
-              icon: const Icon(Icons.clear_all),
-              label: const Text('Clear Filters'),
-            ),
-          ],
-        ],
-      ),
+    final hasActiveFilter = _selectedDocumentType != 'All Types' ||
+        _selectedGradeLevel != 'All Grades' ||
+        _searchController.text.isNotEmpty;
+
+    return AppEmptyState(
+      icon: Icons.folder_open_rounded,
+      title: hasActiveFilter ? 'No Matching Documents' : 'No Documents Found',
+      subtitle: hasActiveFilter
+          ? 'No documents match the current filter criteria. Clear filters to see all student documents.'
+          : 'Upload a document or create student records to get started.',
+      actionLabel: hasActiveFilter ? 'Clear Filters' : null,
+      onAction: hasActiveFilter ? _clearFilters : null,
     );
   }
 

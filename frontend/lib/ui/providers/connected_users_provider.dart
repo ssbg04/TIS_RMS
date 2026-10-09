@@ -11,8 +11,15 @@ final connectedUsersRepositoryProvider = Provider<ConnectedUsersRepository>(
   (ref) => ConnectedUsersRepository(),
 );
 
+enum ServerConnectionStatus { connected, reconnecting, offline }
+
+final serverConnectionStatusProvider = StateProvider<ServerConnectionStatus>(
+  (ref) => ServerConnectionStatus.connected,
+);
+
 class HeartbeatService {
   final ConnectedUsersRepository _repository;
+  final Ref? _ref;
   Timer? _timer;
   UserModel? _currentUser;
   int _consecutiveFailures = 0;
@@ -21,7 +28,7 @@ class HeartbeatService {
   /// Optional callback invoked when the server is verified unreachable via both LAN & Tunnel.
   void Function()? onConnectionLost;
 
-  HeartbeatService(this._repository);
+  HeartbeatService(this._repository, [this._ref]);
 
   String get _platformName {
     if (Platform.isWindows) return 'windows';
@@ -40,6 +47,8 @@ class HeartbeatService {
     });
   }
 
+  Future<void> checkNow() => _sendHeartbeat();
+
   Future<void> _sendHeartbeat() async {
     final user = _currentUser;
     if (user == null) return;
@@ -52,6 +61,8 @@ class HeartbeatService {
     if (success) {
       _consecutiveFailures = 0;
       _isRecovering = false;
+      _ref?.read(serverConnectionStatusProvider.notifier).state =
+          ServerConnectionStatus.connected;
     } else {
       _consecutiveFailures++;
       debugPrint('[HeartbeatService] Consecutive failure count: $_consecutiveFailures');
@@ -59,17 +70,26 @@ class HeartbeatService {
       // If heartbeats fail 2 times in a row, attempt background LAN -> Tunnel recovery
       if (_consecutiveFailures >= 2 && !_isRecovering) {
         _isRecovering = true;
+        _ref?.read(serverConnectionStatusProvider.notifier).state =
+            ServerConnectionStatus.reconnecting;
         debugPrint('[HeartbeatService] Attempting automatic LAN -> Tunnel recovery…');
         final recoveredUrl = await ServerDiscoveryService.resolveServerWithFallback();
         if (recoveredUrl != null) {
           debugPrint('[HeartbeatService] Successfully recovered connection to: $recoveredUrl');
           _consecutiveFailures = 0;
           _isRecovering = false;
+          _ref?.read(serverConnectionStatusProvider.notifier).state =
+              ServerConnectionStatus.connected;
         } else {
           debugPrint('[HeartbeatService] All connection attempts (LAN & Tunnel) failed.');
           _isRecovering = false;
+          _ref?.read(serverConnectionStatusProvider.notifier).state =
+              ServerConnectionStatus.offline;
           onConnectionLost?.call();
         }
+      } else if (_consecutiveFailures >= 1) {
+        _ref?.read(serverConnectionStatusProvider.notifier).state =
+            ServerConnectionStatus.reconnecting;
       }
     }
   }
@@ -87,7 +107,7 @@ class HeartbeatService {
 
 final heartbeatServiceProvider = Provider<HeartbeatService>((ref) {
   final repository = ref.read(connectedUsersRepositoryProvider);
-  final service = HeartbeatService(repository);
+  final service = HeartbeatService(repository, ref);
   ref.onDispose(() => service.stop());
   return service;
 });

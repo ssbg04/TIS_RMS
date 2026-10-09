@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart' as pht;
 import '../../providers/navigation_provider.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../../domain/entities/dashboard_models.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/login_sessions_provider.dart';
 import '../../shared/modals/view_activity_modal.dart';
@@ -48,7 +49,8 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (ref.read(activeTabProvider) == 'History') {
+      final currentTab = ref.read(activeTabProvider);
+      if (currentTab == 'History' || currentTab == 'Activity History') {
         _shortcutFocusNode.requestFocus();
       }
 
@@ -57,7 +59,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
         next,
       ) {
         if (!mounted) return;
-        if (next == 'History') {
+        if (next == 'History' || next == 'Activity History') {
           Future.delayed(const Duration(milliseconds: 120), () {
             if (mounted) {
               _shortcutFocusNode.requestFocus();
@@ -148,6 +150,86 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
       return 'Reset user password';
     }
     return '$action user';
+  }
+
+  Map<String, String> _formatHumanReadableActivity(RecentActivity item) {
+    final actor = item.performedBy ?? item.username ?? 'System';
+    final act = item.action.toUpperCase();
+    final type = item.entityType.toLowerCase();
+    String desc = item.description.trim();
+
+    String plainAction = '';
+    String target = '';
+
+    if (desc.startsWith('BULK OCR CREATE student')) {
+      plainAction = 'enrolled student via Bulk OCR';
+      target = desc.substring(24).trim();
+    } else if (desc.startsWith('DELETE student:')) {
+      plainAction = 'deleted student record';
+      target = desc.substring(15).trim();
+    } else if (desc.startsWith('Created student')) {
+      plainAction = 'created student record';
+      target = desc.substring(15).trim();
+    } else if (desc.startsWith('Updated student')) {
+      plainAction = 'updated student record';
+      target = desc.substring(15).trim();
+    } else if (desc.startsWith('Enrolled student:')) {
+      plainAction = 'enrolled student';
+      target = desc.substring(17).trim();
+    } else if (desc.startsWith('UPDATE enrollment')) {
+      plainAction = 'updated enrollment details';
+      target = desc.replaceAll(RegExp(r'UPDATE enrollment \d+ student'), 'Student').trim();
+    } else if (desc.startsWith('Password reset completed')) {
+      plainAction = 'completed password reset';
+      target = desc.contains('for') ? desc.split('for').last.trim() : '';
+    } else if (desc.contains('permanently self-deleted')) {
+      plainAction = 'deleted account permanently';
+      target = actor;
+    } else if (act == 'CREATE' && type == 'student') {
+      plainAction = 'created new student';
+      target = desc.isNotEmpty ? desc : 'Student #${item.entityId ?? ''}';
+    } else if (act == 'UPDATE' && type == 'student') {
+      plainAction = 'updated student record';
+      target = desc.isNotEmpty ? desc : 'Student #${item.entityId ?? ''}';
+    } else if (act == 'DELETE' && type == 'student') {
+      plainAction = 'deleted student record';
+      target = desc.isNotEmpty ? desc : 'Student #${item.entityId ?? ''}';
+    } else if (type == 'document') {
+      if (act.contains('UPLOAD') || desc.toLowerCase().contains('upload')) {
+        plainAction = 'uploaded document';
+      } else if (act.contains('VERIF') || desc.toLowerCase().contains('verif')) {
+        plainAction = 'verified document';
+      } else if (act.contains('DELETE') || desc.toLowerCase().contains('delet')) {
+        plainAction = 'deleted document';
+      } else {
+        plainAction = 'updated document';
+      }
+      target = desc.isNotEmpty ? desc : 'Document #${item.entityId ?? ''}';
+    } else {
+      plainAction = '${act.toLowerCase()} $type';
+      target = desc;
+    }
+
+    if (target.toLowerCase() == plainAction.toLowerCase() || target.isEmpty) {
+      target = item.entityId != null ? '${type.toUpperCase()} #${item.entityId}' : '';
+    }
+
+    // Capitalize first letter of action for display
+    final capitalizedAction = plainAction.isNotEmpty
+        ? '${plainAction[0].toUpperCase()}${plainAction.substring(1)}'
+        : plainAction;
+
+    final headline = target.isNotEmpty && !target.startsWith(actor)
+        ? '$actor $plainAction for $target'
+        : '$actor $plainAction';
+
+    return {
+      'actor': actor,
+      'action': capitalizedAction,
+      'target': target,
+      'headline': headline,
+      'description': desc.isNotEmpty ? desc : headline,
+    };
   }
 
   void _applySearch(String val) {
@@ -1226,6 +1308,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                   final item = data.activities[index];
                   final actionColor = _getActionColor(item.action);
                   final actionIcon = _getActionIcon(item.action);
+                  final formatted = _formatHumanReadableActivity(item);
 
                   return Material(
                     color: Colors.transparent,
@@ -1234,13 +1317,16 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                       onTap: () {
                         ViewActivityModal.show(
                           context: context,
-                          title: '${item.entityType.toUpperCase()} - ${item.action}',
-                          description: item.description,
+                          title: formatted['headline'] ?? '${item.entityType.toUpperCase()} - ${item.action}',
+                          description: formatted['description'] ?? item.description,
                           date: pht.formatDateTime12H(item.createdAt),
-                          performedBy: item.performedBy ?? item.username ?? 'System',
+                          performedBy: formatted['actor'],
                           action: item.action,
                           actionColor: actionColor,
                           icon: actionIcon,
+                          entityType: item.entityType,
+                          entityId: item.entityId?.toString(),
+                          rawLog: item.description,
                         );
                       },
                       child: Container(
@@ -1344,17 +1430,17 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  // Description
+                                  // Plain English Narrative Headline
                                   Text(
-                                    item.description,
+                                    formatted['headline'] ?? item.description,
                                     style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
                                       color: Theme.of(context).colorScheme.onSurface,
                                     ),
                                   ),
-                                  const SizedBox(height: 6),
-                                  // Performed By
+                                  const SizedBox(height: 4),
+                                  // Plain English Summary Subtitle
                                   Row(
                                     children: [
                                       Icon(
@@ -1367,7 +1453,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'By: ${item.performedBy ?? item.username ?? 'System'}',
+                                        'By: ${formatted['actor']}',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Theme.of(context)
@@ -1376,6 +1462,23 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                               .withValues(alpha: 0.6),
                                         ),
                                       ),
+                                      if (formatted['target']!.isNotEmpty) ...[
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            '• Target: ${formatted['target']}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: isDark
+                                                  ? AppColors.primaryGreen.withValues(alpha: 0.9)
+                                                  : AppColors.primaryGreen,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ],
@@ -1579,6 +1682,9 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                           action: item.action,
                           actionColor: actionColor,
                           icon: actionIcon,
+                          entityType: 'user',
+                          entityId: item.id.toString(),
+                          rawLog: 'User @${item.username} (${item.fullName}) role: ${item.role} action: ${item.action}',
                         );
                       },
                       child: Container(

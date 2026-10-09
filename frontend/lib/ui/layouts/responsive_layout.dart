@@ -11,13 +11,24 @@ class ResponsiveLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Breakpoint: If width is less than 800px, serve Mobile/Android UI
-        if (constraints.maxWidth < 800) {
+        final width = constraints.maxWidth;
+        // Breakpoint 1: Phone viewports (< 700px) -> Mobile UI with Bottom Nav & Drawer
+        if (width < 700) {
           return AndroidBottomNavLayout(userRole: userRole);
         }
-        // Breakpoint: If width is 800px or larger, serve Desktop/Windows UI
+        // Breakpoint 2: Tablet viewports (700px <= width < 1050px) -> Adaptive Navigation Rail
+        else if (width < 1050) {
+          return WindowsSidebarLayout(
+            userRole: userRole,
+            initialMinimized: true,
+          );
+        }
+        // Breakpoint 3: Desktop viewports (>= 1050px) -> Permanent Expanded Sidebar
         else {
-          return WindowsSidebarLayout(userRole: userRole);
+          return WindowsSidebarLayout(
+            userRole: userRole,
+            initialMinimized: false,
+          );
         }
       },
     );
