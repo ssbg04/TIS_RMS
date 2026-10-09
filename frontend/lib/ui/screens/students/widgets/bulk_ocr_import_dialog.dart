@@ -9,6 +9,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/entities/setup_models.dart';
+import '../../../../domain/entities/student_model.dart';
 import '../../../providers/ocr_provider.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/setup_provider.dart';
@@ -36,6 +37,13 @@ class _UpperCaseAllTextFormatter extends TextInputFormatter {
 // ---------------------------------------------------------------------------
 enum _FileStatus { pending, processing, done, error }
 
+enum _MatchStatus {
+  matched,
+  multiple,
+  unmatched,
+  newStudent,
+}
+
 class _OcrItem {
   final String filePath;
   final String fileName;
@@ -58,6 +66,12 @@ class _OcrItem {
   int? gradeLevel;
   String? trackStrand;
   String? docType;
+
+  // Matching & Disambiguation (Priority 5)
+  _MatchStatus matchStatus = _MatchStatus.unmatched;
+  StudentModel? matchedStudent;
+  List<StudentModel> candidateMatches = const [];
+  String? matchNote;
 
   _OcrItem({
     required this.filePath,
@@ -143,7 +157,8 @@ class BulkOcrImportDialog extends ConsumerStatefulWidget {
 }
 
 class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
-  int _step = 0; // 0=Upload  1=Review  2=Summary
+  int _step = 0; // 0=Select Files  1=Processing  2=Review & Match  3=Confirm Commit
+  String _reviewFilter = 'all'; // 'all', 'needs_review', 'matched'
   late int _activeInputTab; // 0=Document Files/Scan, 1=Live Type/Paste CSV
 
   final List<_OcrItem> _items = [];
@@ -495,30 +510,35 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
       _items.removeWhere((i) => i.filePath.startsWith('csv_row_'));
 
       for (final row in validRows) {
-        _items.add(
-          _OcrItem(
-            filePath: 'csv_row_${row.rowIndex}',
-            fileName:
-                '${row.lastName}, ${row.firstName} (CSV Row #${row.rowIndex})',
-            status: _FileStatus.done,
-            lrn: row.lrn,
-            firstName: row.firstName.toUpperCase(),
-            middleName: row.middleName.toUpperCase(),
-            lastName: row.lastName.toUpperCase(),
-            extension: row.extension.toUpperCase(),
-            sex: row.sex,
-            dob: row.dob,
-            is4ps: row.is4ps,
-            academicYearId: _sharedAcademicYearId,
-            gradeLevel: _sharedGradeLevel,
-            sectionId: _sharedSectionId,
-            trackStrand: _sharedTrackStrand,
-          ),
+        final item = _OcrItem(
+          filePath: 'csv_row_${row.rowIndex}',
+          fileName:
+              '${row.lastName}, ${row.firstName} (CSV Row #${row.rowIndex})',
+          status: _FileStatus.done,
+          lrn: row.lrn,
+          firstName: row.firstName.toUpperCase(),
+          middleName: row.middleName.toUpperCase(),
+          lastName: row.lastName.toUpperCase(),
+          extension: row.extension.toUpperCase(),
+          sex: row.sex,
+          dob: row.dob,
+          is4ps: row.is4ps,
+          academicYearId: _sharedAcademicYearId,
+          gradeLevel: _sharedGradeLevel,
+          sectionId: _sharedSectionId,
+          trackStrand: _sharedTrackStrand,
         );
+        _items.add(item);
       }
 
-      _step = 1; // Advance to Step 1 Review
+      _step = 2; // Advance to Step 2 Review & Match
     });
+
+    for (final item in _items) {
+      if (item.filePath.startsWith('csv_row_')) {
+        _matchStudentForItem(item);
+      }
+    }
   }
 
   void _removeItem(int index) {
@@ -625,6 +645,92 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   }
 
   // ── OCR processing ────────────────────────────────────────────────────────
+  Future<void> _startProcessing() async {
+    setState(() {
+      _step = 1; // Advance to Step 1: Processing
+      _isProcessing = true;
+    });
+    await _processAll();
+  }
+
+  Future<void> _matchStudentForItem(_OcrItem item) async {
+    try {
+      final repo = ref.read(studentRepositoryProvider);
+
+      // 1. Check exact LRN match
+      if (item.lrn.isNotEmpty && RegExp(r'^\d{12}$').hasMatch(item.lrn)) {
+        final lrnResults = await repo.getStudents(lrn: item.lrn, limit: 2);
+        if (lrnResults.students.isNotEmpty) {
+          final exactStudent = lrnResults.students.first;
+          setState(() {
+            item.matchStatus = _MatchStatus.matched;
+            item.matchedStudent = exactStudent;
+            item.matchNote = 'Matched by LRN ${exactStudent.lrn}';
+            item.gradeLevel ??= exactStudent.latestGradeLevel;
+            item.sectionId ??= exactStudent.latestEnrollment?.sectionId;
+          });
+          return;
+        }
+      }
+
+      // 2. Check Name search match
+      final cleanFirst = item.firstName.trim();
+      final cleanLast = item.lastName.trim();
+      if (cleanLast.isNotEmpty) {
+        final query = cleanFirst.isNotEmpty ? '$cleanLast $cleanFirst' : cleanLast;
+        final nameResults = await repo.getStudents(search: query, limit: 5);
+        final matches = nameResults.students.where((s) {
+          final sLast = s.lastName.toLowerCase();
+          final sFirst = s.firstName.toLowerCase();
+          final lastMatch = sLast == cleanLast.toLowerCase();
+          final firstMatch = cleanFirst.isEmpty ||
+              sFirst.contains(cleanFirst.toLowerCase()) ||
+              cleanFirst.toLowerCase().contains(sFirst);
+          return lastMatch && firstMatch;
+        }).toList();
+
+        if (matches.length == 1) {
+          setState(() {
+            item.matchStatus = _MatchStatus.matched;
+            item.matchedStudent = matches.first;
+            item.matchNote = 'Matched by name: ${matches.first.listDisplayName}';
+            item.gradeLevel ??= matches.first.latestGradeLevel;
+            item.sectionId ??= matches.first.latestEnrollment?.sectionId;
+          });
+          return;
+        } else if (matches.length > 1) {
+          setState(() {
+            item.matchStatus = _MatchStatus.multiple;
+            item.candidateMatches = matches;
+            item.matchNote = '${matches.length} matching students found';
+          });
+          return;
+        }
+      }
+
+      // 3. New student or incomplete
+      setState(() {
+        if (item.hasRequiredFields) {
+          item.matchStatus = _MatchStatus.newStudent;
+          item.matchNote = 'New student record';
+        } else {
+          item.matchStatus = _MatchStatus.unmatched;
+          item.matchNote = 'Could not identify student';
+        }
+      });
+    } catch (_) {
+      setState(() {
+        if (item.hasRequiredFields) {
+          item.matchStatus = _MatchStatus.newStudent;
+          item.matchNote = 'Ready to import';
+        } else {
+          item.matchStatus = _MatchStatus.unmatched;
+          item.matchNote = 'Incomplete student data';
+        }
+      });
+    }
+  }
+
   Future<void> _processAll() async {
     if (_items.isEmpty) return;
     setState(() {
@@ -639,7 +745,12 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
     for (int i = 0; i < _items.length; i++) {
       final item = _items[i];
-      if (item.status == _FileStatus.done) continue;
+      if (item.status == _FileStatus.done) {
+        if (item.matchStatus == _MatchStatus.unmatched) {
+          await _matchStudentForItem(item);
+        }
+        continue;
+      }
 
       setState(() {
         _processingIndex = i;
@@ -694,6 +805,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             item.docType = docType;
             item.status = _FileStatus.done;
           });
+          await _matchStudentForItem(item);
         }
       } catch (e) {
         setState(() {
@@ -703,11 +815,15 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
       }
     }
 
-    setState(() {
-      _isProcessing = false;
-      _processingIndex = -1;
-      if (_items.any((i) => i.status == _FileStatus.done)) _step = 1;
-    });
+    if (mounted) {
+      setState(() {
+        _isProcessing = false;
+        _processingIndex = -1;
+        if (_items.any((i) => i.status == _FileStatus.done)) {
+          _step = 2; // Advance to Step 2: Review & Match Results
+        }
+      });
+    }
   }
 
   // ── import ────────────────────────────────────────────────────────────────
@@ -839,18 +955,20 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   Widget _buildStepper() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     const stepLabels = [
-      '1. Input',
-      '2. Review',
-      '3. Results',
+      '1. Select',
+      '2. Process',
+      '3. Review',
+      '4. Confirm',
     ];
     const fullStepLabels = [
-      '1. Select / Input',
-      '2. Review & Assign',
-      '3. Results',
+      '1. Select Files',
+      '2. Processing',
+      '3. Review Results',
+      '4. Confirm Commit',
     ];
-    const totalSteps = 3;
+    const totalSteps = 4;
     final screenWidth = MediaQuery.of(context).size.width;
-    final isCompact = screenWidth < 500;
+    final isCompact = screenWidth < 550;
     final labels = isCompact ? stepLabels : fullStepLabels;
 
     return Container(
@@ -892,7 +1010,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: isCompact ? 10.5 : 11,
+                    fontSize: isCompact ? 10 : 11,
                     fontWeight: isCurrent || isDone
                         ? FontWeight.bold
                         : FontWeight.normal,
@@ -917,16 +1035,187 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
   // ── body ──────────────────────────────────────────────────────────────────
   Widget _buildBody() {
+    if (_importResult != null) {
+      return _buildSummaryStep();
+    }
     switch (_step) {
       case 0:
         return _buildUploadStep();
       case 1:
-        return _buildReviewStep();
+        return _buildProcessingStep();
       case 2:
-        return _buildSummaryStep();
+        return _buildReviewStep();
+      case 3:
+        return _buildConfirmStep();
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  // ── STEP 1: PROCESSING (Priority 5) ───────────────────────────────────────
+  Widget _buildProcessingStep() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final total = _items.where((i) => !i.filePath.startsWith('csv_row_')).length;
+    final done = _items.where((i) => i.status == _FileStatus.done).length;
+    final errors = _items.where((i) => i.status == _FileStatus.error).length;
+    final processed = done + errors;
+    final progress = total > 0 ? processed / total : 0.0;
+    final currentItem = (_processingIndex >= 0 && _processingIndex < _items.length)
+        ? _items[_processingIndex]
+        : null;
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryGreen,
+                    strokeWidth: 3.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Processing Documents',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Extracting student records and matching against school requirements...',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 28),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: progress.clamp(0.0, 1.0),
+                  minHeight: 8,
+                  backgroundColor: isDark ? AppColors.darkSurface2 : const Color(0xFFE9ECEF),
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'File $processed of $total',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    '${(progress * 100).toInt()}% completed',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              if (currentItem != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.description_outlined, size: 16, color: AppColors.primaryGreen),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          currentItem.fileName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.white : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.check_circle_outline, size: 14, color: AppColors.primaryGreen),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$done identified',
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (errors > 0) ...[
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, size: 14, color: Colors.orange),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$errors need review',
+                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Colors.orange.shade800),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // ── STEP 0: UPLOAD & CSV INPUT ────────────────────────────────────────────
@@ -2456,7 +2745,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
     );
   }
 
-  // ── STEP 1: REVIEW ────────────────────────────────────────────────────────
+  // ── STEP 2: REVIEW & MATCH (Priority 5) ───────────────────────────────────
   Widget _buildReviewStep() {
     final academicYearsAsync = ref.watch(academicYearsListProvider);
     final gradeLevelsAsync = ref.watch(gradeLevelsListProvider);
@@ -2465,6 +2754,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
     return Column(children: [
       _buildSharedEnrollmentPicker(academicYearsAsync, gradeLevelsAsync, sectionsAsync),
+      _buildReviewSummaryBar(doneItems),
       Expanded(
         child: doneItems.isEmpty
             ? const Center(
@@ -2473,6 +2763,117 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             : _buildReviewList(doneItems),
       ),
     ]);
+  }
+
+  Widget _buildReviewSummaryBar(List<_OcrItem> items) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final total = items.length;
+    final matched = items.where((i) => i.matchStatus == _MatchStatus.matched || i.matchStatus == _MatchStatus.newStudent).length;
+    final needsReview = items.where((i) => i.matchStatus == _MatchStatus.multiple || i.matchStatus == _MatchStatus.unmatched || !i.hasRequiredFields).length;
+    final errors = _items.where((i) => i.status == _FileStatus.error).length;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        border: Border(
+          bottom: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _statChip(
+                    label: '$total files selected',
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    bgColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                  ),
+                  const SizedBox(width: 8),
+                  _statChip(
+                    label: '✓ $matched identified',
+                    color: AppColors.primaryGreen,
+                    bgColor: AppColors.primaryGreen.withValues(alpha: 0.12),
+                  ),
+                  const SizedBox(width: 8),
+                  if (needsReview > 0) ...[
+                    _statChip(
+                      label: '⚠ $needsReview need review',
+                      color: Colors.orange.shade800,
+                      bgColor: Colors.orange.withValues(alpha: 0.15),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  if (errors > 0) ...[
+                    _statChip(
+                      label: '✕ $errors duplicate/error',
+                      color: AppColors.error,
+                      bgColor: AppColors.error.withValues(alpha: 0.12),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            height: 28,
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _filterBtn('All', 'all', isDark),
+                _filterBtn('Needs Review ($needsReview)', 'needs_review', isDark),
+                _filterBtn('Matched ($matched)', 'matched', isDark),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statChip({required String label, required Color color, required Color bgColor}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+      ),
+    );
+  }
+
+  Widget _filterBtn(String label, String value, bool isDark) {
+    final isSelected = _reviewFilter == value;
+    return InkWell(
+      onTap: () => setState(() => _reviewFilter = value),
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryGreen : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildSharedEnrollmentPicker(
@@ -2766,83 +3167,694 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
   Widget _buildReviewList(List<_OcrItem> items) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final filtered = items.where((item) {
+      if (_reviewFilter == 'needs_review') {
+        return item.matchStatus == _MatchStatus.multiple ||
+            item.matchStatus == _MatchStatus.unmatched ||
+            !item.hasRequiredFields;
+      }
+      if (_reviewFilter == 'matched') {
+        return item.matchStatus == _MatchStatus.matched ||
+            item.matchStatus == _MatchStatus.newStudent;
+      }
+      return true;
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            'No records match the current filter "$_reviewFilter".',
+            style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
+
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: items.length,
-      separatorBuilder: (_, unused) => const SizedBox(height: 10),
+      itemCount: filtered.length,
+      separatorBuilder: (_, unused) => const SizedBox(height: 12),
       itemBuilder: (_, i) {
-        final item = items[i];
+        final item = filtered[i];
         final rowIndex = _items.indexOf(item);
         final isValid = item.hasRequiredFields;
+        final needsDisambiguation = item.matchStatus == _MatchStatus.multiple ||
+            item.matchStatus == _MatchStatus.unmatched;
 
         return Container(
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurfaceCard : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isValid
-                  ? AppColors.primaryGreen.withValues(alpha: 0.4)
-                  : AppColors.error.withValues(alpha: 0.5),
+              color: needsDisambiguation
+                  ? Colors.orange.withValues(alpha: 0.6)
+                  : (isValid
+                      ? AppColors.primaryGreen.withValues(alpha: 0.4)
+                      : AppColors.error.withValues(alpha: 0.5)),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2)),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
             ],
           ),
-          child: Column(children: [
-            // row header
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: isValid
-                    ? AppColors.primaryGreen.withValues(alpha: 0.07)
-                    : AppColors.error.withValues(alpha: 0.07),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(11)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Row Header ──
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: needsDisambiguation
+                      ? Colors.orange.withValues(alpha: isDark ? 0.15 : 0.08)
+                      : (isValid
+                          ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.15 : 0.07)
+                          : AppColors.error.withValues(alpha: isDark ? 0.15 : 0.07)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      needsDisambiguation
+                          ? Icons.warning_amber_rounded
+                          : (item.matchStatus == _MatchStatus.matched
+                              ? Icons.verified_user_outlined
+                              : Icons.check_circle_outline),
+                      size: 18,
+                      color: needsDisambiguation
+                          ? Colors.orange.shade800
+                          : (isValid ? AppColors.primaryGreen : AppColors.error),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${item.firstName} ${item.lastName}'.trim().isEmpty
+                                ? item.fileName
+                                : '${item.firstName} ${item.lastName}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            '${item.docType ?? 'Document'} • ${item.fileName}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildMatchStatusBadge(item, isDark),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _showDisambiguationDialog(item),
+                      icon: const Icon(Icons.rate_review_outlined, size: 14),
+                      label: const Text('Review', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: needsDisambiguation ? Colors.orange.shade800 : AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      onPressed: () => setState(() => _items.removeAt(rowIndex)),
+                      icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Remove from batch',
+                    ),
+                  ],
+                ),
               ),
-              child: Row(children: [
-                Icon(
-                  isValid
-                      ? Icons.check_circle_outline
-                      : Icons.warning_amber_rounded,
-                  size: 16,
-                  color: isValid ? AppColors.primaryGreen : AppColors.warning,
+
+              // ── Match Details Banner ──
+              if (item.matchedStudent != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.08 : 0.04),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.link_rounded, size: 14, color: AppColors.primaryGreen),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Linked to Student: ${item.matchedStudent!.listDisplayName} (LRN: ${item.matchedStudent!.lrn}${item.matchedStudent!.latestGradeLevel != null ? ' • Grade ${item.matchedStudent!.latestGradeLevel}' : ''})',
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.primaryGreen),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (item.matchStatus == _MatchStatus.multiple)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  color: Colors.orange.withValues(alpha: isDark ? 0.1 : 0.05),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 14, color: Colors.orange.shade800),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '⚠ Multiple students found with this name. Click [ Review ] to select the correct student.',
+                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Colors.orange.shade900),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (item.matchStatus == _MatchStatus.unmatched)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  color: AppColors.error.withValues(alpha: isDark ? 0.08 : 0.04),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.help_outline_rounded, size: 14, color: AppColors.error),
+                      const SizedBox(width: 6),
+                      const Expanded(
+                        child: Text(
+                          '✕ Student record not matched. Click [ Review ] to search school database or create as a new student.',
+                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.error),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(item.fileName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isValid
-                              ? AppColors.primaryGreen
-                              : AppColors.warning)),
-                ),
-                IconButton(
-                  onPressed: () =>
-                      setState(() => _items.removeAt(rowIndex)),
-                  icon: const Icon(Icons.delete_outline,
-                      size: 18, color: AppColors.error),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Remove row',
-                ),
-              ]),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: _buildRowEditFields(item),
-            ),
-          ]),
+
+              // ── Editable Fields ──
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: _buildRowEditFields(item),
+              ),
+            ],
+          ),
         );
       },
+    );
+  }
+
+  Widget _buildMatchStatusBadge(_OcrItem item, bool isDark) {
+    late String text;
+    late Color color;
+    late Color bgColor;
+
+    switch (item.matchStatus) {
+      case _MatchStatus.matched:
+        text = '✓ Student matched';
+        color = AppColors.primaryGreen;
+        bgColor = AppColors.primaryGreen.withValues(alpha: 0.15);
+        break;
+      case _MatchStatus.multiple:
+        text = '⚠ Multiple matches';
+        color = Colors.orange.shade800;
+        bgColor = Colors.orange.withValues(alpha: 0.18);
+        break;
+      case _MatchStatus.newStudent:
+        text = '✓ New student';
+        color = const Color(0xFF0D8A72);
+        bgColor = const Color(0xFF0D8A72).withValues(alpha: 0.15);
+        break;
+      case _MatchStatus.unmatched:
+        text = '✕ Unmatched';
+        color = AppColors.error;
+        bgColor = AppColors.error.withValues(alpha: 0.15);
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showDisambiguationDialog(_OcrItem item) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final searchController = TextEditingController();
+    List<StudentModel> searchedStudents = [];
+    bool isSearching = false;
+
+    await showDialog(
+      context: context,
+      builder: (dlgContext) {
+        return StatefulBuilder(
+          builder: (context, setDlgState) {
+            void performSearch(String query) async {
+              if (query.trim().isEmpty) {
+                setDlgState(() {
+                  searchedStudents = [];
+                  isSearching = false;
+                });
+                return;
+              }
+              setDlgState(() => isSearching = true);
+              try {
+                final repo = ref.read(studentRepositoryProvider);
+                final res = await repo.getStudents(search: query.trim(), limit: 10);
+                if (dlgContext.mounted) {
+                  setDlgState(() {
+                    searchedStudents = res.students;
+                    isSearching = false;
+                  });
+                }
+              } catch (_) {
+                if (dlgContext.mounted) {
+                  setDlgState(() => isSearching = false);
+                }
+              }
+            }
+
+            void selectStudent(StudentModel s) {
+              setState(() {
+                item.matchedStudent = s;
+                item.lrn = s.lrn;
+                item.firstName = s.firstName;
+                item.lastName = s.lastName;
+                item.middleName = s.middleName ?? item.middleName;
+                if (s.sex == 'Male' || s.sex == 'Female') {
+                  item.sex = s.sex;
+                }
+                item.gradeLevel ??= s.latestGradeLevel;
+                item.sectionId ??= s.latestEnrollment?.sectionId;
+                item.matchStatus = _MatchStatus.matched;
+                item.matchNote = 'Manually matched: ${s.listDisplayName}';
+              });
+              Navigator.of(dlgContext).pop();
+            }
+
+            return Dialog(
+              backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 580, maxHeight: 680),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.person_search_rounded, color: Colors.orange, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Review Student Match',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  item.fileName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.of(dlgContext).pop(),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 24),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkSurface2 : const Color(0xFFF8F9FA),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'DETECTED FROM DOCUMENT:',
+                              style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, letterSpacing: 0.5, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${item.firstName} ${item.lastName}'.trim().isEmpty ? '(Name not detected)' : '${item.firstName} ${item.lastName}',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    item.docType ?? 'Document',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'LRN: ${item.lrn.isNotEmpty ? item.lrn : 'Missing'} • Sex: ${item.sex} • DOB: ${item.dob.isNotEmpty ? item.dob : 'N/A'}',
+                              style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white70 : Colors.black87),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search student by name or LRN to link...',
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          suffixIcon: isSearching
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: Padding(
+                                    padding: EdgeInsets.all(10),
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : null,
+                          isDense: true,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onChanged: performSearch,
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: Builder(
+                          builder: (context) {
+                            final displayList = searchedStudents.isNotEmpty
+                                ? searchedStudents
+                                : item.candidateMatches;
+
+                            if (displayList.isEmpty) {
+                              return Center(
+                                child: Text(
+                                  searchedStudents.isEmpty && searchController.text.isNotEmpty
+                                      ? 'No matching students found in database.'
+                                      : 'Type student name or LRN above to search and link an existing student.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 12.5, color: isDark ? Colors.white54 : Colors.grey.shade600),
+                                ),
+                              );
+                            }
+
+                            return ListView.separated(
+                              itemCount: displayList.length,
+                              separatorBuilder: (_, unused) => const SizedBox(height: 6),
+                              itemBuilder: (ctx, idx) {
+                                final student = displayList[idx];
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 14,
+                                        backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.15),
+                                        child: Text(
+                                          student.firstName.isNotEmpty ? student.firstName[0].toUpperCase() : 'S',
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              student.listDisplayName,
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            ),
+                                            Text(
+                                              'LRN: ${student.lrn} • ${student.latestGradeLevel != null ? 'Grade ${student.latestGradeLevel}' : 'No Grade'}',
+                                              style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () => selectStudent(student),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.primaryGreen,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                        child: const Text('Link Student', style: TextStyle(fontSize: 11)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                item.matchStatus = _MatchStatus.newStudent;
+                                item.matchedStudent = null;
+                                item.matchNote = 'Marked as new student';
+                              });
+                              Navigator.of(dlgContext).pop();
+                            },
+                            icon: const Icon(Icons.person_add_alt_1_outlined, size: 16),
+                            label: const Text('Create as New Student'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(dlgContext).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ── STEP 3: CONFIRM COMMIT (Priority 5) ───────────────────────────────────
+  Widget _buildConfirmStep() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final doneItems = _items.where((i) => i.status == _FileStatus.done).toList();
+    final matchedCount = doneItems.where((i) => i.matchStatus == _MatchStatus.matched).length;
+    final newStudentCount = doneItems.where((i) => i.matchStatus == _MatchStatus.newStudent).length;
+    final needsReviewCount = doneItems.where((i) =>
+        i.matchStatus == _MatchStatus.multiple || i.matchStatus == _MatchStatus.unmatched || !i.hasRequiredFields).length;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Confirm Commit',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Please verify the import details below before writing records to the database.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _confirmSummaryTile('Total Files', '${doneItems.length}', AppColors.primaryGreen, Icons.description_outlined, isDark),
+                  const SizedBox(width: 12),
+                  _confirmSummaryTile('Matched Students', '$matchedCount', const Color(0xFF1565C0), Icons.how_to_reg_outlined, isDark),
+                  const SizedBox(width: 12),
+                  _confirmSummaryTile('New Students', '$newStudentCount', const Color(0xFF0D8A72), Icons.person_add_alt_1_outlined, isDark),
+                ],
+              ),
+              const SizedBox(height: 20),
+              if (needsReviewCount > 0) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 22),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '$needsReviewCount file(s) still require review or student matching. Unresolved records will be skipped during import.',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange.shade900,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => setState(() => _step = 2),
+                        child: const Text('Review Now'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Target Enrollment Defaults',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const Divider(height: 20),
+                    _confirmDetailRow(
+                      'Academic Year',
+                      _sharedAcademicYearId != null ? 'Selected' : 'As specified per record',
+                      isDark,
+                    ),
+                    _confirmDetailRow(
+                      'Grade Level',
+                      _sharedGradeLevel != null ? 'Grade $_sharedGradeLevel' : 'As specified per record',
+                      isDark,
+                    ),
+                    _confirmDetailRow(
+                      'Section',
+                      _sharedSectionId != null ? 'Assigned' : 'As specified per record',
+                      isDark,
+                    ),
+                    if (_sharedTrackStrand != null)
+                      _confirmDetailRow(
+                        'Track & Strand',
+                        _sharedTrackStrand!,
+                        isDark,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _confirmSummaryTile(String label, String count, Color color, IconData icon, bool isDark) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: isDark ? 0.12 : 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 6),
+            Text(
+              count,
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _confirmDetailRow(String label, String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 12.5, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
+          Text(value, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.textPrimary)),
+        ],
+      ),
     );
   }
 
@@ -3166,63 +4178,30 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   // ── footer ────────────────────────────────────────────────────────────────
   Widget _buildFooter() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final validItems = _items
+        .where((i) => i.status == _FileStatus.done && i.hasRequiredFields)
+        .toList();
+    final queuedFiles =
+        _items.where((i) => !i.filePath.startsWith('csv_row_')).toList();
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.zero,
-        border: Border(top: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
+        border: Border(
+            top: BorderSide(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
       ),
-      child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-        if (_step < 2) ...[
-          OutlinedButton(
-            onPressed: _isProcessing || _isImporting
-                ? null
-                : () => Navigator.of(context).pop(),
-            style: OutlinedButton.styleFrom(
-                foregroundColor: isDark ? Colors.white : Colors.black,
-                side: BorderSide(color: isDark ? Colors.white : Colors.black),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 12)),
-            child: const Text('Cancel'),
-          ),
-          const SizedBox(width: 12),
-        ],
-
-        // Step 0 — Process All (Files) or Proceed to Review (CSV)
-        if (_step == 0) ...[
-          if (_activeInputTab == 0 &&
-              _items.where((i) => !i.filePath.startsWith('csv_row_')).isNotEmpty)
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Step Completed / Summary: Show Done
+          if (_importResult != null) ...[
             ElevatedButton.icon(
-              onPressed: _isProcessing ? null : _processAll,
-              icon: _isProcessing
-                  ? AppButtonLoader(
-                      size: 16,
-                      color: isDark ? Colors.white : Colors.black,
-                    )
-                  : const Icon(Icons.play_arrow_rounded, size: 20),
-              label: Text(_isProcessing
-                  ? 'Processing…'
-                  : 'Process All (${_items.where((i) => !i.filePath.startsWith('csv_row_')).length})'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: isDark ? Colors.white : Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-            ),
-          if (_activeInputTab == 1 &&
-              _parsedStudentRows.any((r) => r.isValid))
-            ElevatedButton.icon(
-              onPressed: _applyValidCsvRowsToQueue,
-              icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-              label: const Text('Review'),
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.check_rounded, size: 20),
+              label: const Text('Done'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryGreen,
                 foregroundColor: Colors.white,
@@ -3230,65 +4209,171 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
               ),
             ),
-        ],
-
-        // Step 1 — Back + Import
-        if (_step == 1) ...[
-          OutlinedButton.icon(
-            onPressed: _isImporting ? null : () => setState(() => _step = 0),
-            icon: Icon(Icons.arrow_back, size: 16, color: isDark ? Colors.white : Colors.black),
-            label: Text('Back', style: TextStyle(color: isDark ? Colors.white : Colors.black)),
-            style: OutlinedButton.styleFrom(
-                foregroundColor: isDark ? Colors.white : Colors.black,
-                side: BorderSide(color: isDark ? Colors.white : Colors.black),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+          ] else ...[
+            // Step 0: Select Files
+            if (_step == 0) ...[
+              OutlinedButton(
+                onPressed: _isProcessing || _isImporting
+                    ? null
+                    : () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.white : Colors.black,
+                  side: BorderSide(color: isDark ? Colors.white : Colors.black),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
                 ),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 12)),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton.icon(
-            onPressed: _isImporting ? null : _importAll,
-            icon: _isImporting
-                ? AppButtonLoader(
-                    size: 16,
-                    color: isDark ? Colors.white : Colors.black,
-                  )
-                : const Icon(Icons.upload_rounded, size: 20),
-            label: Text(_isImporting ? 'Importing…' : 'Import'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                child: const Text('Cancel'),
               ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-          ),
-        ],
+              const SizedBox(width: 12),
+              if (_activeInputTab == 0 && queuedFiles.isNotEmpty)
+                ElevatedButton.icon(
+                  onPressed: _isProcessing ? null : _startProcessing,
+                  icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                  label: Text('Process Files (${queuedFiles.length}) →'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                  ),
+                ),
+              if (_activeInputTab == 1 &&
+                  _parsedStudentRows.any((r) => r.isValid))
+                ElevatedButton.icon(
+                  onPressed: _applyValidCsvRowsToQueue,
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                  label: const Text('Review CSV Rows →'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                  ),
+                ),
+            ],
 
-        // Step 2 — Done
-        if (_step == 2)
-          ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.check_rounded, size: 20),
-            label: const Text('Done'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+            // Step 1: Processing
+            if (_step == 1) ...[
+              OutlinedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _isProcessing = false;
+                    _step = 2;
+                  });
+                },
+                icon: const Icon(Icons.skip_next_rounded, size: 18),
+                label: const Text('Skip to Review →'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.white : Colors.black,
+                  side: BorderSide(color: isDark ? Colors.white : Colors.black),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
+                ),
               ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-            ),
-          ),
-      ]),
+            ],
+
+            // Step 2: Review & Match Results
+            if (_step == 2) ...[
+              OutlinedButton.icon(
+                onPressed: () => setState(() => _step = 0),
+                icon: Icon(Icons.arrow_back,
+                    size: 16, color: isDark ? Colors.white : Colors.black),
+                label: Text('Back to Upload',
+                    style:
+                        TextStyle(color: isDark ? Colors.white : Colors.black)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.white : Colors.black,
+                  side: BorderSide(color: isDark ? Colors.white : Colors.black),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: validItems.isEmpty
+                    ? null
+                    : () => setState(() => _step = 3),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                label: Text('Proceed to Confirm (${validItems.length}) →'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+
+            // Step 3: Confirm Commit
+            if (_step == 3) ...[
+              OutlinedButton.icon(
+                onPressed: _isImporting
+                    ? null
+                    : () => setState(() => _step = 2),
+                icon: Icon(Icons.arrow_back,
+                    size: 16, color: isDark ? Colors.white : Colors.black),
+                label: Text('Back to Review',
+                    style:
+                        TextStyle(color: isDark ? Colors.white : Colors.black)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.white : Colors.black,
+                  side: BorderSide(color: isDark ? Colors.white : Colors.black),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: _isImporting || validItems.isEmpty
+                    ? null
+                    : _importAll,
+                icon: _isImporting
+                    ? const AppButtonLoader(
+                        size: 16,
+                        color: Colors.white,
+                      )
+                    : const Icon(Icons.check_circle_outline_rounded, size: 20),
+                label: Text(_isImporting
+                    ? 'Importing…'
+                    : 'Confirm & Commit (${validItems.length} Records)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
     );
   }
 }

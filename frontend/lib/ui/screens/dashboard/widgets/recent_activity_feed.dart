@@ -141,24 +141,25 @@ class RecentActivityFeed extends ConsumerWidget {
               ),
             )
           else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              itemCount: displayedActivities.length,
-              separatorBuilder: (_, _) => Divider(
-                height: 1,
-                color: isDark ? AppColors.darkBorder : Colors.grey.shade100,
+              child: Column(
+                children: [
+                  for (int i = 0; i < displayedActivities.length; i++) ...[
+                    if (i > 0)
+                      Divider(
+                        height: 1,
+                        color: isDark ? AppColors.darkBorder : Colors.grey.shade100,
+                      ),
+                    _buildActivityItem(
+                      context: context,
+                      activity: displayedActivities[i],
+                      userRole: userRole,
+                      isDark: isDark,
+                    ),
+                  ],
+                ],
               ),
-              itemBuilder: (context, i) {
-                final activity = displayedActivities[i];
-                return _buildActivityItem(
-                  context: context,
-                  activity: activity,
-                  userRole: userRole,
-                  isDark: isDark,
-                );
-              },
             ),
         ],
       ),

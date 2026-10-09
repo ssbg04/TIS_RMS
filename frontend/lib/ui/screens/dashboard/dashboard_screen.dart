@@ -386,13 +386,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         LayoutBuilder(
                           builder: (context, constraints) {
                             if (constraints.maxWidth >= 900) {
-                              return const Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(flex: 6, child: NeedsAttentionCard()),
-                                  SizedBox(width: 20),
-                                  Expanded(flex: 5, child: RecentActivityFeed()),
-                                ],
+                              return const IntrinsicHeight(
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(flex: 6, child: NeedsAttentionCard()),
+                                    SizedBox(width: 20),
+                                    Expanded(flex: 5, child: RecentActivityFeed()),
+                                  ],
+                                ),
                               );
                             } else {
                               return const Column(

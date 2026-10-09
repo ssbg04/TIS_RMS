@@ -124,12 +124,15 @@ class NeedsAttentionCard extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            'Needs Attention',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : AppColors.textPrimary,
+                          Flexible(
+                            child: Text(
+                              'Needs Attention',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : AppColors.textPrimary,
+                              ),
                             ),
                           ),
                           if (totalAlerts > 0) ...[
@@ -274,21 +277,21 @@ class NeedsAttentionCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
+              Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                itemCount: displayedStudents.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 6),
-                itemBuilder: (context, i) {
-                  final s = displayedStudents[i];
-                  return _buildStudentTile(
-                    context: context,
-                    student: s,
-                    userRole: userRole,
-                    isDark: isDark,
-                  );
-                },
+                child: Column(
+                  children: [
+                    for (int i = 0; i < displayedStudents.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 6),
+                      _buildStudentTile(
+                        context: context,
+                        student: displayedStudents[i],
+                        userRole: userRole,
+                        isDark: isDark,
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ],
           ] else ...[
@@ -365,6 +368,8 @@ class NeedsAttentionCard extends ConsumerWidget {
                   children: [
                     Text(
                       label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -461,19 +466,23 @@ class NeedsAttentionCard extends ConsumerWidget {
                     color: isDark ? Colors.white : AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Row(
+                const SizedBox(height: 3),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    for (final doc in missingList) ...[
+                    for (final doc in missingList)
                       Container(
-                        margin: const EdgeInsets.only(right: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                         decoration: BoxDecoration(
                           color: Colors.red.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          '! $doc',
+                          '! ${_formatDocTag(doc)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -481,8 +490,7 @@ class NeedsAttentionCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                    ],
-                    if (extraCount > 0) ...[
+                    if (extraCount > 0)
                       Text(
                         '+$extraCount more',
                         style: TextStyle(
@@ -490,7 +498,6 @@ class NeedsAttentionCard extends ConsumerWidget {
                           color: isDark ? Colors.white54 : Colors.black54,
                         ),
                       ),
-                    ],
                   ],
                 ),
               ],
@@ -528,6 +535,15 @@ class NeedsAttentionCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _formatDocTag(String doc) {
+    final upper = doc.toUpperCase();
+    if (upper.contains('SF9') || upper.contains('FORM 9')) return 'SF9';
+    if (upper.contains('SF10') || upper.contains('FORM 10')) return 'SF10';
+    if (upper.contains('PSA') || upper.contains('BIRTH')) return 'PSA';
+    if (upper.contains('GOOD MORAL')) return 'Good Moral';
+    return doc.length > 15 ? '${doc.substring(0, 14)}…' : doc;
   }
 
   void _openMissingDocSheet(

@@ -54,22 +54,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   StudentViewTab _viewTab = StudentViewTab.enrolled;
 
   final ScrollController _scrollController = ScrollController();
-  bool _showTopFade = false;
-  bool _showBottomFade = false;
-
-  void _onScroll() {
-    if (!_scrollController.hasClients) return;
-    final offset = _scrollController.offset;
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final showTop = offset > 4;
-    final showBottom = maxScroll > 0 && offset < (maxScroll - 4);
-    if (showTop != _showTopFade || showBottom != _showBottomFade) {
-      setState(() {
-        _showTopFade = showTop;
-        _showBottomFade = showBottom;
-      });
-    }
-  }
 
   void _updateSelection(void Function() updateFn) {
     setState(updateFn);
@@ -84,7 +68,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     _showMultiSelect = ref.read(studentMultiSelectProvider);
     _selectedStudentIds.addAll(ref.read(studentSelectedIdsProvider));
 
-    _scrollController.addListener(_onScroll);
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onSearchFocusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -152,7 +135,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _dragResetTimer?.cancel();
     _tabListener?.close();
@@ -1207,64 +1189,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                     return LayoutBuilder(
                                       builder: (ctx, c) {
                                         final isDesktop = c.maxWidth > 800;
-                                        return Stack(
-                                          children: [
-                                            _buildStudentCardList(
-                                              sortedStudents,
-                                              isDesktop: isDesktop,
-                                              noSections: hasNoSections,
-                                            ),
-                                            // Top scroll fade
-                                            Positioned(
-                                              top: 0,
-                                              left: 0,
-                                              right: 0,
-                                              height: 20,
-                                              child: IgnorePointer(
-                                                child: AnimatedOpacity(
-                                                  opacity: _showTopFade ? 1.0 : 0.0,
-                                                  duration: const Duration(milliseconds: 200),
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                      gradient: LinearGradient(
-                                                        begin: Alignment.topCenter,
-                                                        end: Alignment.bottomCenter,
-                                                        colors: [
-                                                          Theme.of(context).scaffoldBackgroundColor,
-                                                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            // Bottom scroll fade
-                                            Positioned(
-                                              bottom: 0,
-                                              left: 0,
-                                              right: 0,
-                                              height: 24,
-                                              child: IgnorePointer(
-                                                child: AnimatedOpacity(
-                                                  opacity: _showBottomFade ? 1.0 : 0.0,
-                                                  duration: const Duration(milliseconds: 200),
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                      gradient: LinearGradient(
-                                                        begin: Alignment.bottomCenter,
-                                                        end: Alignment.topCenter,
-                                                        colors: [
-                                                          Theme.of(context).scaffoldBackgroundColor,
-                                                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                        return _buildStudentCardList(
+                                          sortedStudents,
+                                          isDesktop: isDesktop,
+                                          noSections: hasNoSections,
                                         );
                                       },
                                     );

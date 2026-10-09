@@ -1073,8 +1073,8 @@ Files backup/restore - mirror mode or zip -->
 - [x] Add simplified recent operational activity feed linking directly to student targets.
 
 ## Priority 5: OCR / Import Review Flow
-- [ ] Implement 4-step wizard UI: Select Files → Processing → Review & Match Results → Confirm Commit.
-- [ ] Allow manual student disambiguation on ambiguous or missing matches before database insertion.
+- [x] Implement 4-step wizard UI: Select Files → Processing → Review & Match Results → Confirm Commit.
+- [x] Allow manual student disambiguation on ambiguous or missing matches before database insertion.
 
 ## Priority 6: Task-Specific Reports
 - [ ] Refactor Reports into categorized tasks (Student Masterlists, Document Completion, School Forms SF9/SF10).
