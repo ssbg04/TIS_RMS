@@ -49,7 +49,7 @@ flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/sym
 The Windows client runs natively on Windows 10 and Windows 11 (64-bit).
 
 ### Prerequisites:
-- **Microsoft Visual C++ 2015–2022 Redistributable (x64)** (Core runtime libraries `vcruntime140_1.dll`, `msvcp140.dll`, etc. are bundled directly with the release binaries; the installer also automatically installs the full redistributable if missing).
+- **Microsoft Visual C++ 2015–2022 Redistributable (x64)** (v14.30+ / VS 2022 toolset; the installer automatically checks system compatibility and installs the official Microsoft redistributable silently if missing or outdated).
 - **Microsoft .NET Desktop Runtime 6.0/8.0+ (x64)** (automatically detected and installed silently by setup if missing).
 
 ---
@@ -73,12 +73,11 @@ flutter build windows --release --obfuscate --split-debug-info=build/windows/sym
 
 ### B. Compiling the Windows Inno Setup Installer (`TIS_RMS_Client.iss`)
 
-The installer script [`frontend/TIS_RMS_Client.iss`](file:///d:/Capstone/TIS_RIS_Server_Manager/TIS_RMS/frontend/TIS_RMS_Client.iss) packages the app into an ultra-compact standalone setup file (`TIS_RMS_Client_Setup_v<version>.exe` ~**16.7 MB**).
+The installer script [`frontend/TIS_RMS_Client.iss`](file:///f:/SumbrerongBato/tis_rms_server/frontend/TIS_RMS_Client.iss) packages the app into an ultra-compact standalone setup file (`TIS_RMS_Client_Setup_v<version>.exe` ~**16.7 MB**).
 
 #### Features:
 - **Small File Size (~17 MB)**: Uses `lzma2/ultra64` solid 64MB dictionary compression.
-- **Bundled VC++ Runtime DLLs**: Packages MSVC CRT libraries (`vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll`, etc.) directly into the application folder to prevent missing DLL crashes.
-- **Automated VC++ & .NET Runtime Setup**: Checks system registry and automatically installs Microsoft Visual C++ 2015-2022 Redistributable and Microsoft .NET Desktop Runtime silently if missing.
+- **Automated System-Wide VC++ & .NET Runtime Setup**: Automatically detects whether a compatible Visual Studio 2022 (v14.30+) x64 runtime is installed in Windows (`System32`) and silently installs Microsoft's official `vc_redist.x64.exe` if missing or outdated. Also purges legacy app-local CRT DLLs to prevent ABI mismatch crashes.
 - **Selectable Destination Path**: Lets the user choose where to install (defaults to `C:\Program Files\TIS RMS Client`).
 - **Desktop Shortcut Checkbox**: Optional checkbox on the tasks page to create a desktop shortcut with the official school icon logo.
 - **Start Menu & Uninstaller**: Registers a Start Menu program group and includes a clean uninstaller in Windows *Apps & Features* / *Settings*.

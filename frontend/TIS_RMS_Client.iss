@@ -58,11 +58,18 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-; Main application binaries and libraries (excludes unnecessary dev .lib and .exp files for smaller footprint)
+; Main application binaries and libraries (excludes unnecessary dev .lib/.exp and prevents app-local CRT poisoning)
 Source: "build\windows\x64\runner\Release\*.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "build\windows\x64\runner\Release\*.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "build\windows\x64\runner\Release\*.dll"; DestDir: "{app}"; Flags: ignoreversion; Excludes: "msvcp140*.dll,vcruntime140*.dll,concrt140.dll,vccorlib140.dll"
 Source: "build\windows\x64\runner\Release\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#MyAppIcon}"; DestDir: "{app}"; DestName: "app_icon.ico"; Flags: ignoreversion
+
+[InstallDelete]
+; Clean up any legacy app-local MSVC CRT DLLs from older installations so app always uses C:\Windows\System32
+Type: files; Name: "{app}\msvcp140*.dll"
+Type: files; Name: "{app}\vcruntime140*.dll"
+Type: files; Name: "{app}\concrt140.dll"
+Type: files; Name: "{app}\vccorlib140.dll"
 
 [Icons]
 ; Start menu shortcut
@@ -77,14 +84,30 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilen
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-// Helper function to verify Microsoft Visual C++ 2015-2022 Redistributable (x64)
-function IsVCRedistInstalled: Boolean;
+// Helper function to verify Microsoft Visual C++ 2015-2022 Redistributable (x64, Minor >= 30 for VS 2022 compatibility)
+function IsVCRedistCompatible: Boolean;
 var
   installed: Cardinal;
+  minor: Cardinal;
 begin
-  Result := RegQueryDWordValue(HKLM64, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64', 'Installed', installed) and (installed = 1);
+  Result := False;
+  if RegQueryDWordValue(HKLM64, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64', 'Installed', installed) and (installed = 1) then
+  begin
+    if RegQueryDWordValue(HKLM64, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64', 'Minor', minor) then
+      Result := (minor >= 30) // Minor 30+ indicates Visual Studio 2022 or newer
+    else
+      Result := True;
+  end;
   if not Result then
-    Result := RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64', 'Installed', installed) and (installed = 1);
+  begin
+    if RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64', 'Installed', installed) and (installed = 1) then
+    begin
+      if RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64', 'Minor', minor) then
+        Result := (minor >= 30)
+      else
+        Result := True;
+    end;
+  end;
 end;
 
 // Helper function to verify Microsoft .NET Desktop Runtime
@@ -101,8 +124,8 @@ var
 begin
   if CurStep = ssPostInstall then
   begin
-    // If Microsoft Visual C++ 2015-2022 Redistributable (x64) is not installed, automatically install it silently
-    if not IsVCRedistInstalled then
+    // If Microsoft Visual C++ 2015-2022 Redistributable (x64) is not installed or outdated (< VS 2022), automatically install it silently
+    if not IsVCRedistCompatible then
     begin
       Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference = ''SilentlyContinue''; try { if (Get-Command winget -ErrorAction SilentlyContinue) { winget install --id Microsoft.VCRedist.2015+.x64 --silent --accept-package-agreements --accept-source-agreements } else { $url = ''https://aka.ms/vs/17/release/vc_redist.x64.exe''; $out = ''$env:TEMP\vc_redist.x64.exe''; Invoke-WebRequest -Uri $url -OutFile $out; Start-Process -FilePath $out -ArgumentList ''/install /quiet /norestart'' -Wait } } catch {}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     end;

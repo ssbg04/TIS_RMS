@@ -339,7 +339,9 @@ class _WindowsDocViewState extends State<_WindowsDocView> {
 
     if (_isInitialized) {
       try {
-        _controller.dispose();
+        _controller.dispose().catchError((e) {
+          debugPrint('[DocumentationScreen] webview async dispose error: $e');
+        });
       } catch (e) {
         debugPrint('[DocumentationScreen] webview dispose error: $e');
       }
