@@ -1052,7 +1052,47 @@ Files backup/restore - mirror mode or zip -->
 # SETTINGS SCREEN
 - [x] make the download update downloads in app doesnt redirect to others apps github or chrome, and ask to download via default installer of android, for windows download it then open the installer and close the windows app when the installer is open
 - [x] in-app documentation viewing (bundled offline HTML user guide, local loopback server, embedded WebView for Windows & Android without redirecting to browser)
-- check all the screens and  -->
+-->
+
+# UI/UX RECOMMENDATIONS ROADMAP (TIS RMS UI-UX Recommendations.md)
+
+## Priority 1: Student Profile as Central Workspace
+- [x] Refactor student profile into primary operational hub: Overview, Documents checklist, and Activity History tabs.
+- [x] Direct inline document workflows (View, Upload, Verify, Print Queue) from student document tab.
+
+## Priority 2: Student Search & Filtering
+- [ ] Transition student list to compact rows with direct status badges, LRN, and completion counters.
+- [ ] Implement mobile bottom sheet for filtering (grade, section, status, school year) with active filter chips.
+
+## Priority 3: Status-Driven Documents & Requirements Workflow
+- [ ] Integrate document requirements directly into Documents module workflow (All Documents, Requirements, Upload/Import, Print Queue).
+- [ ] Add status system badges (✓ Complete, ⚠ Pending, ! Missing, ○ Archived) across document lists.
+
+## Priority 4: Action-Oriented Dashboard
+- [ ] Add "Needs Attention" operational card (missing SF9/SF10, documents requiring verification).
+- [ ] Add simplified recent operational activity feed linking directly to student targets.
+
+## Priority 5: OCR / Import Review Flow
+- [ ] Implement 4-step wizard UI: Select Files → Processing → Review & Match Results → Confirm Commit.
+- [ ] Allow manual student disambiguation on ambiguous or missing matches before database insertion.
+
+## Priority 6: Task-Specific Reports
+- [ ] Refactor Reports into categorized tasks (Student Masterlists, Document Completion, School Forms SF9/SF10).
+- [ ] Progressive filter modal (Report Type → Grade/Section → School Year → Format: PDF/Excel).
+
+## Priority 7: Human-Readable Activity History
+- [ ] Reformat audit trail entries to plain English (User + Action + Target Student) with progressive disclosure for technical logs.
+
+## Priority 8: Navigation Drawer & Hierarchy
+- [ ] Standardize drawer section labels: MAIN (Dashboard, Students, Documents, Archives) & ADMINISTRATION (Reports, Users, Activity History, Settings).
+
+## Priority 9: Feedback & State Standardization
+- [ ] Implement skeleton loaders for list and folder views.
+- [ ] Replace generic empty screens with actionable empty states (reason + clear CTA).
+- [ ] Add lightweight persistent server connection status pill (Connected / Offline).
+
+## Priority 10: Adaptive Tablet / Desktop Navigation
+- [ ] Implement adaptive Navigation Rail for tablet viewports and maintain persistent sidebar on desktop.
 
 ---
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/repositories/document_repository.dart';
 import '../../domain/entities/document_requirement_model.dart';
 import '../../domain/entities/folder_model.dart';
+import '../../domain/entities/document_model.dart';
 import 'student_provider.dart';
 
 final documentRepositoryProvider = Provider<DocumentRepository>((ref) {
@@ -146,7 +147,7 @@ final documentPageProvider = FutureProvider.autoDispose<DocumentPage>((
 // Student-specific documents provider
 // ============================================================
 final studentDocumentsProvider = FutureProvider.family
-    .autoDispose<List<dynamic>, int>((ref, studentId) async {
+    .autoDispose<List<DocumentModel>, int>((ref, studentId) async {
       final repo = ref.read(documentRepositoryProvider);
       return repo.getDocumentsByStudent(studentId);
     });

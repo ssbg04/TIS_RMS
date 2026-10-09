@@ -86,7 +86,7 @@ class _DocumentationScreenState extends State<DocumentationScreen> {
         elevation: 1,
         titleSpacing: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           tooltip: 'Back to Application',
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -130,12 +130,12 @@ class _DocumentationScreenState extends State<DocumentationScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.open_in_browser_rounded, size: 20),
+            icon: const Icon(Icons.open_in_browser_rounded, size: 20, color: Colors.white),
             tooltip: 'Open in External Browser',
             onPressed: _openInBrowser,
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: 20),
+            icon: const Icon(Icons.close, size: 20, color: Colors.white),
             tooltip: 'Close Documentation',
             onPressed: () => Navigator.of(context).pop(),
           ),

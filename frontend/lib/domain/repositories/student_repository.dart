@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../core/network/api_constants.dart';
 import '../entities/student_model.dart';
+import '../entities/dashboard_models.dart' show RecentActivity;
 
 /// Paginated student list returned from the API.
 class StudentPage {
@@ -578,6 +579,27 @@ class StudentRepository {
     } on DioException catch (e) {
       final msg =
           e.response?.data?['message'] ?? 'Failed to import enrollments.';
+      throw Exception(msg);
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // Fetch Student Audit / Activity Log
+  // ----------------------------------------------------------------
+  Future<List<RecentActivity>> getStudentActivities(int studentId) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get(
+        '/students/$studentId/activities',
+        options: options,
+      );
+      final list = (response.data['activities'] as List?) ?? [];
+      return list
+          .map((a) => RecentActivity.fromJson(a as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to fetch student activities.';
       throw Exception(msg);
     }
   }

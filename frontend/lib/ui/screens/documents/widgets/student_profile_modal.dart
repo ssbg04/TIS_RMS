@@ -4,11 +4,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/haptic_service.dart';
+import '../../../../domain/entities/student_model.dart';
+import '../../../../domain/entities/document_model.dart';
+import '../../../../domain/entities/dashboard_models.dart' show RecentActivity;
 import '../../../../domain/repositories/document_repository.dart'
     show MissingRequirements;
 import '../../../../domain/entities/document_requirement_model.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/document_provider.dart';
+import 'document_preview_modal.dart';
+import 'upload_ocr_modal.dart';
+import 'print_queue_modal.dart';
 // ─────────────────────────────────────────────────────────────
 // Public helper – call this anywhere to show the modal
 // ─────────────────────────────────────────────────────────────
@@ -109,14 +115,14 @@ class _StudentProfileDialogShellState
       backgroundColor: Colors.transparent,
       insetPadding: widget.isMobile
           ? const EdgeInsets.all(12)
-          : const EdgeInsets.symmetric(horizontal: 80, vertical: 40),
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          width: widget.isMobile ? double.infinity : 620,
+          width: widget.isMobile ? double.infinity : 740,
           height: widget.isMobile
-              ? MediaQuery.of(context).size.height * 0.88
-              : 680,
+              ? MediaQuery.of(context).size.height * 0.92
+              : 720,
           color: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
           child: Stack(
             children: [
@@ -336,7 +342,9 @@ class _StudentProfileDialogShellState
 // ─────────────────────────────────────────────────────────────
 // Reusable body widget
 // ─────────────────────────────────────────────────────────────
-class StudentProfileModalBody extends ConsumerWidget {
+enum _StudentProfileTab { overview, documents, history }
+
+class StudentProfileModalBody extends ConsumerStatefulWidget {
   final int studentId;
   final String userRole;
   final bool hideEnrollmentActions;
@@ -353,9 +361,87 @@ class StudentProfileModalBody extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final studentAsync = ref.watch(studentDetailProvider(studentId));
-    final missingReqsAsync = ref.watch(missingRequirementsProvider(studentId));
+  ConsumerState<StudentProfileModalBody> createState() =>
+      _StudentProfileModalBodyState();
+}
+
+class _StudentProfileModalBodyState
+    extends ConsumerState<StudentProfileModalBody> {
+  _StudentProfileTab _selectedTab = _StudentProfileTab.overview;
+
+  Future<void> _handleToggleVerify(DocumentModel doc) async {
+    final newStatus =
+        doc.status.toLowerCase() == 'completed' ? 'Pending' : 'Completed';
+    try {
+      await ref
+          .read(documentRepositoryProvider)
+          .updateDocumentStatus(doc.id, newStatus);
+      ref.invalidate(studentDocumentsProvider(widget.studentId));
+      ref.invalidate(missingRequirementsProvider(widget.studentId));
+      ref.invalidate(studentDetailProvider(widget.studentId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Document status updated to $newStatus'),
+            backgroundColor: AppColors.primaryGreen,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update status: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleAddToPrintQueue(DocumentModel doc) async {
+    try {
+      await ref.read(printQueueMutationProvider.notifier).addToQueue(doc.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.print_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Text('${doc.fileName} added to Print Queue')),
+              ],
+            ),
+            backgroundColor: AppColors.primaryGreen,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add to print queue: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final studentAsync = ref.watch(studentDetailProvider(widget.studentId));
+    final missingReqsAsync =
+        ref.watch(missingRequirementsProvider(widget.studentId));
+    final docsAsync = ref.watch(studentDocumentsProvider(widget.studentId));
+    final activitiesAsync =
+        ref.watch(studentActivitiesProvider(widget.studentId));
 
     return studentAsync.when(
       loading: () => const Center(
@@ -376,175 +462,1187 @@ class StudentProfileModalBody extends ConsumerWidget {
       ),
       data: (student) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildInfoCard(context, student),
-              const SizedBox(height: 20),
+        final docsList = docsAsync.valueOrNull ?? [];
+        final activitiesList = activitiesAsync.valueOrNull ?? [];
+        final missingData = missingReqsAsync.valueOrNull;
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Enrollments',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+        return Column(
+          children: [
+            // ── Top Summary Header ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: _buildInfoCard(context, student),
+            ),
+
+            // ── Segmented Navigation Tabs ──
+            _buildTabBar(
+              context,
+              student,
+              docsList.length,
+              activitiesList.length,
+              isDark,
+            ),
+
+            // ── Scrollable Tab Content ──
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: KeyedSubtree(
+                    key: ValueKey(_selectedTab),
+                    child: switch (_selectedTab) {
+                      _StudentProfileTab.overview => _buildOverviewTab(
+                          context,
+                          student,
+                          missingData,
+                          missingReqsAsync.isLoading,
+                          isDark,
+                        ),
+                      _StudentProfileTab.documents => _buildDocumentsTab(
+                          context,
+                          student,
+                          missingData,
+                          docsAsync,
+                          isDark,
+                        ),
+                      _StudentProfileTab.history => _buildHistoryTab(
+                          context,
+                          student,
+                          activitiesAsync,
+                          isDark,
+                        ),
+                    },
                   ),
                 ),
-                if (onEditEnrollment != null && userRole.toLowerCase() != 'teacher')
-                  Tooltip(
-                    message: 'Manage or Add Enrollments',
-                    child: InkWell(
-                      onTap: onEditEnrollment,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ── Tab Bar ──────────────────────────────────────────────
+  Widget _buildTabBar(
+    BuildContext context,
+    StudentModel student,
+    int docCount,
+    int actCount,
+    bool isDark,
+  ) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildTabButton(
+              label: 'Overview',
+              icon: Icons.person_outline_rounded,
+              isSelected: _selectedTab == _StudentProfileTab.overview,
+              isDark: isDark,
+              onTap: () => setState(() => _selectedTab = _StudentProfileTab.overview),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _buildTabButton(
+              label: 'Documents',
+              icon: Icons.folder_outlined,
+              count: docCount,
+              isSelected: _selectedTab == _StudentProfileTab.documents,
+              isDark: isDark,
+              onTap: () => setState(() => _selectedTab = _StudentProfileTab.documents),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _buildTabButton(
+              label: 'History',
+              icon: Icons.history_rounded,
+              count: actCount,
+              isSelected: _selectedTab == _StudentProfileTab.history,
+              isDark: isDark,
+              onTap: () => setState(() => _selectedTab = _StudentProfileTab.history),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabButton({
+    required String label,
+    required IconData icon,
+    int? count,
+    required bool isSelected,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryGreen : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected
+                  ? Colors.white
+                  : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+              ),
+            ),
+            if (count != null && count > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : (isDark ? Colors.white12 : Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected
+                        ? Colors.white
+                        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Tab 1: Overview ──────────────────────────────────────
+  Widget _buildOverviewTab(
+    BuildContext context,
+    StudentModel student,
+    MissingRequirements? missing,
+    bool isLoadingMissing,
+    bool isDark,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Enrollment Section Header
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Enrollments',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (widget.onEditEnrollment != null &&
+                widget.userRole.toLowerCase() != 'teacher')
+              Tooltip(
+                message: 'Manage or Add Enrollments',
+                child: InkWell(
+                  onTap: widget.onEditEnrollment,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen
+                          .withValues(alpha: isDark ? 0.20 : 0.10),
                       borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.20 : 0.10),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.45 : 0.35),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryGreen.withValues(alpha: 0.08),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(3),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.edit_calendar_rounded, size: 12, color: AppColors.primaryGreen),
-                            ),
-                            const SizedBox(width: 5),
-                            const Text(
-                              'Edit Enrollment',
-                              style: TextStyle(
-                                color: AppColors.primaryGreen,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ],
-                        ),
+                      border: Border.all(
+                        color: AppColors.primaryGreen
+                            .withValues(alpha: isDark ? 0.45 : 0.35),
+                        width: 1,
                       ),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            if (student.enrollments != null &&
-                student.enrollments!.isNotEmpty) ...[
-              ...(() {
-                final sorted = List.from(student.enrollments!);
-                sorted.sort(
-                  (a, b) => (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0),
-                );
-
-                final seen = <String>{};
-                final uniqueEnrollments = [];
-                for (final e in sorted) {
-                  final key = '${e.gradeLevel}_${e.academicYearId}';
-                  if (!seen.contains(key)) {
-                    seen.add(key);
-                    uniqueEnrollments.add(e);
-                  }
-                }
-
-                return uniqueEnrollments
-                    .map<Widget>((e) => _buildEnrollmentCard(context, ref, e))
-                    .toList();
-              })(),
-              const SizedBox(height: 20),
-            ] else ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.edit_calendar_rounded,
+                            size: 12,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        const Text(
+                          'Edit Enrollment',
+                          style: TextStyle(
+                            color: AppColors.primaryGreen,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline_rounded,
-                      size: 20,
-                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        if (student.enrollments != null && student.enrollments!.isNotEmpty) ...[
+          ...(() {
+            final sorted = List.from(student.enrollments!);
+            sorted.sort(
+              (a, b) => (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0),
+            );
+
+            final seen = <String>{};
+            final uniqueEnrollments = [];
+            for (final e in sorted) {
+              final key = '${e.gradeLevel}_${e.academicYearId}';
+              if (!seen.contains(key)) {
+                seen.add(key);
+                uniqueEnrollments.add(e);
+              }
+            }
+
+            return uniqueEnrollments
+                .map<Widget>((e) => _buildEnrollmentCard(context, ref, e))
+                .toList();
+          })(),
+          const SizedBox(height: 18),
+        ] else ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : Colors.grey.shade600,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'No enrollment records found for this student.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : Colors.grey.shade700,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'No enrollment records found for this student.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
-                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+        ],
+
+        // Document Requirements Status Section
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Document Requirements',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            TextButton.icon(
+              onPressed: () =>
+                  setState(() => _selectedTab = _StudentProfileTab.documents),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+              label: const Text(
+                'Open Documents Hub',
+                style: TextStyle(fontSize: 12),
+              ),
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                foregroundColor: AppColors.primaryGreen,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        if (isLoadingMissing)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(color: AppColors.primaryGreen),
+            ),
+          )
+        else if (missing != null)
+          _buildRequirementsStatus(
+            context,
+            missing,
+            onUploadRequirement: (req) => UploadOcrModal.show(
+              context,
+              prefilledStudentId: student.id,
+              prefilledLrn: student.lrn,
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              ),
+            ),
+            child: const Center(
+              child: Text(
+                'No requirement data available.',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ── Tab 2: Documents Hub ──────────────────────────────────
+  Widget _buildDocumentsTab(
+    BuildContext context,
+    StudentModel student,
+    MissingRequirements? missing,
+    AsyncValue<List<DocumentModel>> docsAsync,
+    bool isDark,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Action Toolbar
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Document Workspace',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Upload, view, verify, and print scholastic documents.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => PrintQueueModal.show(context),
+                    icon: const Icon(Icons.print_outlined, size: 14),
+                    label: const Text('Print Queue', style: TextStyle(fontSize: 11.5)),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
+                      side: BorderSide(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : Colors.grey.shade300,
+                      ),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => UploadOcrModal.show(
+                      context,
+                      prefilledStudentId: student.id,
+                      prefilledLrn: student.lrn,
+                    ),
+                    icon: const Icon(Icons.upload_file_rounded, size: 14),
+                    label:
+                        const Text('Upload File', style: TextStyle(fontSize: 11.5)),
+                    style: ElevatedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    ),
+                  ),
+                ],
+              ),
             ],
+          ),
+        ),
+        const SizedBox(height: 16),
 
-            const Text(
-              'Document Requirements',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        // Section: Requirements Checklist
+        const Text(
+          'Requirements Checklist',
+          style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        if (missing != null)
+          _buildRequirementsStatus(
+            context,
+            missing,
+            onUploadRequirement: (req) => UploadOcrModal.show(
+              context,
+              prefilledStudentId: student.id,
+              prefilledLrn: student.lrn,
             ),
-            const SizedBox(height: 10),
-            missingReqsAsync.when(
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryGreen,
+          )
+        else
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(color: AppColors.primaryGreen),
+            ),
+          ),
+        const SizedBox(height: 16),
+
+        // Section: Uploaded Files
+        _buildDocumentsList(context, student, docsAsync, isDark),
+      ],
+    );
+  }
+
+  Widget _buildDocumentsList(
+    BuildContext context,
+    StudentModel student,
+    AsyncValue<List<DocumentModel>> docsAsync,
+    bool isDark,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Text(
+                  'Files on Record',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                docsAsync.maybeWhen(
+                  data: (docs) => Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen
+                          .withValues(alpha: isDark ? 0.2 : 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${docs.length}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
+                  ),
+                  orElse: () => const SizedBox.shrink(),
+                ),
+              ],
+            ),
+            TextButton.icon(
+              onPressed: () =>
+                  ref.invalidate(studentDocumentsProvider(student.id)),
+              icon: const Icon(Icons.refresh_rounded, size: 14),
+              label: const Text('Refresh', style: TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                foregroundColor: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        docsAsync.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(color: AppColors.primaryGreen),
+            ),
+          ),
+          error: (e, _) => Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded,
+                    color: AppColors.error, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Failed to load documents: $e',
+                    style: const TextStyle(color: AppColors.error, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          data: (docs) {
+            if (docs.isEmpty) {
+              return Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                decoration: BoxDecoration(
+                  color:
+                      isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.folder_open_rounded,
+                      size: 40,
+                      color: isDark ? Colors.white24 : Colors.grey.shade300,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'No documents uploaded yet',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Upload or scan school forms to add them to this student\'s folder.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => UploadOcrModal.show(
+                        context,
+                        prefilledStudentId: student.id,
+                        prefilledLrn: student.lrn,
+                      ),
+                      icon: const Icon(Icons.upload_file_rounded, size: 15),
+                      label: const Text('Upload Document',
+                          style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Column(
+              children: docs
+                  .map((doc) =>
+                      _buildDocumentItemTile(context, student, doc, isDark))
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDocumentItemTile(
+    BuildContext context,
+    StudentModel student,
+    DocumentModel doc,
+    bool isDark,
+  ) {
+    final isPending = doc.status.toLowerCase() == 'pending';
+    final isArchived = doc.status.toLowerCase() == 'archived';
+
+    Color statusColor;
+    String statusLabel;
+    IconData statusIcon;
+
+    if (isPending) {
+      statusColor = Colors.orange;
+      statusLabel = 'Pending';
+      statusIcon = Icons.hourglass_empty_rounded;
+    } else if (isArchived) {
+      statusColor = Colors.blueGrey;
+      statusLabel = 'Archived';
+      statusIcon = Icons.archive_outlined;
+    } else {
+      statusColor = AppColors.success;
+      statusLabel = 'Verified';
+      statusIcon = Icons.check_circle_rounded;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          _buildDocIcon(doc.fileName, isDark),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        doc.fileName,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: isDark ? 0.2 : 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border:
+                            Border.all(color: statusColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon, size: 10, color: statusColor),
+                          const SizedBox(width: 3),
+                          Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: statusColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    if (doc.documentType != null &&
+                        doc.documentType!.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? AppColors.darkSurface2
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          doc.documentType!,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      '${doc.size ?? ''} • ${_formatDate(doc.createdAt)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Actions: View, Verify, Print
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Tooltip(
+                message: 'Preview',
+                child: IconButton(
+                  icon: const Icon(Icons.visibility_outlined, size: 18),
+                  color: AppColors.primaryGreen,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.all(6),
+                  constraints:
+                      const BoxConstraints(minWidth: 32, minHeight: 32),
+                  onPressed: () => showDocumentPreview(
+                    context: context,
+                    document: doc,
                   ),
                 ),
               ),
-              error: (e, _) => Text(
-                'Error: $e',
-                style: const TextStyle(color: AppColors.error),
+              if (widget.userRole.toLowerCase() != 'teacher')
+                Tooltip(
+                  message: isPending ? 'Mark as Verified' : 'Mark as Pending',
+                  child: IconButton(
+                    icon: Icon(
+                      isPending
+                          ? Icons.check_circle_outline_rounded
+                          : Icons.pending_outlined,
+                      size: 18,
+                      color: isPending ? AppColors.success : Colors.orange,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
+                    onPressed: () => _handleToggleVerify(doc),
+                  ),
+                ),
+              Tooltip(
+                message: 'Add to Print Queue',
+                child: IconButton(
+                  icon: const Icon(Icons.print_outlined, size: 18),
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.all(6),
+                  constraints:
+                      const BoxConstraints(minWidth: 32, minHeight: 32),
+                  onPressed: () => _handleAddToPrintQueue(doc),
+                ),
               ),
-              data: (missing) => _buildRequirementsStatus(context, missing),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Tab 3: History ───────────────────────────────────────
+  Widget _buildHistoryTab(
+    BuildContext context,
+    StudentModel student,
+    AsyncValue<List<RecentActivity>> activitiesAsync,
+    bool isDark,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Text(
+                  'Activity History',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                activitiesAsync.maybeWhen(
+                  data: (items) => Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: isDark ? 0.2 : 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${items.length}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                  orElse: () => const SizedBox.shrink(),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () =>
+                  ref.invalidate(studentActivitiesProvider(student.id)),
+              icon: const Icon(Icons.refresh_rounded, size: 14),
+              label: const Text('Refresh', style: TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                foregroundColor: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
+              ),
+            ),
           ],
         ),
-      );
-      },
+        const SizedBox(height: 10),
+        activitiesAsync.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(color: AppColors.primaryGreen),
+            ),
+          ),
+          error: (e, _) => Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded,
+                    color: AppColors.error, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Failed to load history: $e',
+                    style: const TextStyle(color: AppColors.error, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          data: (activities) {
+            if (activities.isEmpty) {
+              return Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+                decoration: BoxDecoration(
+                  color:
+                      isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.history_toggle_off_rounded,
+                      size: 40,
+                      color: isDark ? Colors.white24 : Colors.grey.shade300,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'No activity logs yet',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Events related to this student will appear here in chronological order.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Column(
+              children: activities
+                  .map((a) => _buildActivityItemTile(context, a, isDark))
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActivityItemTile(
+    BuildContext context,
+    RecentActivity a,
+    bool isDark,
+  ) {
+    IconData icon;
+    Color iconColor;
+
+    final act = a.action.toUpperCase();
+    if (act.contains('CREATE') || act.contains('ADD')) {
+      icon = Icons.add_circle_outline_rounded;
+      iconColor = AppColors.success;
+    } else if (act.contains('DELETE')) {
+      icon = Icons.delete_outline_rounded;
+      iconColor = AppColors.error;
+    } else if (act.contains('ARCHIVE')) {
+      icon = Icons.archive_outlined;
+      iconColor = Colors.blueGrey;
+    } else if (act.contains('UPLOAD')) {
+      icon = Icons.upload_file_rounded;
+      iconColor = Colors.teal;
+    } else {
+      icon = Icons.edit_note_rounded;
+      iconColor = Colors.blue;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: isDark ? 0.2 : 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 16),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  a.description.isNotEmpty
+                      ? a.description
+                      : '${a.action} ${a.entityType}',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.person_outline_rounded,
+                        size: 12,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      a.performedBy ?? a.username ?? 'System',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Icon(Icons.access_time_rounded,
+                        size: 12,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatDateTime(a.createdAt),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocIcon(String fileName, bool isDark) {
+    final ext = fileName.split('.').last.toLowerCase();
+    IconData icon = Icons.description_rounded;
+    Color color = Colors.blue;
+    if (['pdf'].contains(ext)) {
+      icon = Icons.picture_as_pdf_rounded;
+      color = Colors.redAccent;
+    } else if (['jpg', 'jpeg', 'png', 'webp', 'bmp'].contains(ext)) {
+      icon = Icons.image_rounded;
+      color = Colors.teal;
+    } else if (['xlsx', 'xls', 'csv'].contains(ext)) {
+      icon = Icons.table_chart_rounded;
+      color = Colors.green;
+    }
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.2 : 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Icon(icon, color: color, size: 18),
     );
   }
 
   // ── Info card ────────────────────────────────────────────
-  Widget _buildInfoCard(BuildContext context, dynamic student) {
+  Widget _buildInfoCard(BuildContext context, StudentModel student) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -560,12 +1658,12 @@ class StudentProfileModalBody extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     CircleAvatar(
-                      radius: 26,
+                      radius: 24,
                       backgroundColor: AppColors.primaryGreen,
                       child: Text(
-                        '${student.firstName?[0] ?? ''}${student.lastName?[0] ?? ''}',
+                        '${student.firstName[0]}${student.lastName.isNotEmpty ? student.lastName[0] : ''}',
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -579,17 +1677,32 @@ class StudentProfileModalBody extends ConsumerWidget {
                           Text(
                             student.profileDisplayName,
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           _CopyableLrnButton(
-                            lrn: student.lrn?.toString(),
+                            lrn: student.lrn.toString(),
                             isDark: isDark,
                           ),
+                          if (student.latestGradeLevel != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              'Grade ${student.latestGradeLevel} • ${student.latestSection ?? 'Unassigned'}',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -597,47 +1710,36 @@ class StudentProfileModalBody extends ConsumerWidget {
                     _buildStatusBadge(student.status),
                   ],
                 ),
-                if (onEditDetails != null) ...[
+                if (widget.onEditDetails != null) ...[
                   const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
                     child: InkWell(
-                      onTap: onEditDetails,
-                      borderRadius: BorderRadius.circular(10),
+                      onTap: widget.onEditDetails,
+                      borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 7),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.20 : 0.10),
-                          borderRadius: BorderRadius.circular(10),
+                          color: AppColors.primaryGreen
+                              .withValues(alpha: isDark ? 0.20 : 0.10),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.45 : 0.35),
+                            color: AppColors.primaryGreen
+                                .withValues(alpha: isDark ? 0.45 : 0.35),
                             width: 1,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryGreen.withValues(alpha: 0.08),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(3.5),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.edit_rounded, size: 13, color: AppColors.primaryGreen),
-                            ),
+                            const Icon(Icons.edit_rounded,
+                                size: 13, color: AppColors.primaryGreen),
                             const SizedBox(width: 6),
                             const Text(
                               'Edit Details',
                               style: TextStyle(
                                 color: AppColors.primaryGreen,
-                                fontSize: 12.5,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.2,
                               ),
@@ -652,12 +1754,12 @@ class StudentProfileModalBody extends ConsumerWidget {
                 Row(
                   children: [
                     CircleAvatar(
-                      radius: 30,
+                      radius: 26,
                       backgroundColor: AppColors.primaryGreen,
                       child: Text(
-                        '${student.firstName?[0] ?? ''}${student.lastName?[0] ?? ''}',
+                        '${student.firstName[0]}${student.lastName.isNotEmpty ? student.lastName[0] : ''}',
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 18,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -671,17 +1773,32 @@ class StudentProfileModalBody extends ConsumerWidget {
                           Text(
                             student.profileDisplayName,
                             style: TextStyle(
-                              fontSize: 17,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           _CopyableLrnButton(
-                            lrn: student.lrn?.toString(),
+                            lrn: student.lrn.toString(),
                             isDark: isDark,
                           ),
+                          if (student.latestGradeLevel != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              'Grade ${student.latestGradeLevel} • ${student.latestSection ?? 'Unassigned'}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -691,49 +1808,38 @@ class StudentProfileModalBody extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildStatusBadge(student.status),
-                        if (onEditDetails != null) ...[
+                        if (widget.onEditDetails != null) ...[
                           const SizedBox(height: 6),
                           Tooltip(
                             message: 'Edit Student Details',
                             child: InkWell(
-                              onTap: onEditDetails,
-                              borderRadius: BorderRadius.circular(20),
+                              onTap: widget.onEditDetails,
+                              borderRadius: BorderRadius.circular(16),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.20 : 0.10),
-                                  borderRadius: BorderRadius.circular(20),
+                                  color: AppColors.primaryGreen
+                                      .withValues(alpha: isDark ? 0.20 : 0.10),
+                                  borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.45 : 0.35),
+                                    color: AppColors.primaryGreen
+                                        .withValues(alpha: isDark ? 0.45 : 0.35),
                                     width: 1,
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primaryGreen.withValues(alpha: 0.08),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ],
                                 ),
-                                child: Row(
+                                child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(3),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.edit_rounded, size: 12, color: AppColors.primaryGreen),
-                                    ),
-                                    const SizedBox(width: 5),
-                                    const Text(
+                                    Icon(Icons.edit_rounded,
+                                        size: 12, color: AppColors.primaryGreen),
+                                    SizedBox(width: 4),
+                                    Text(
                                       'Edit Details',
                                       style: TextStyle(
                                         color: AppColors.primaryGreen,
-                                        fontSize: 12,
+                                        fontSize: 11.5,
                                         fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.2,
                                       ),
                                     ),
                                   ],
@@ -747,13 +1853,25 @@ class StudentProfileModalBody extends ConsumerWidget {
                   ],
                 ),
               ],
-              Divider(height: 24, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+              Divider(
+                  height: 20,
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
               Wrap(
                 spacing: 20,
                 runSpacing: 8,
                 children: [
-                  _buildInfoItem(context, 'Sex', (student.sex != null && student.sex!.isNotEmpty) ? student.sex! : '-'),
-                  _buildInfoItem(context, 'Birth Date', student.birthDate != null ? _formatDate(student.birthDate!) : '-'),
+                  _buildInfoItem(
+                      context,
+                      'Sex',
+                      (student.sex.isNotEmpty)
+                          ? student.sex
+                          : '-'),
+                  _buildInfoItem(
+                      context,
+                      'Birth Date',
+                      student.birthDate != null
+                          ? _formatDate(student.birthDate!)
+                          : '-'),
                   _build4psItem(context, student.is4ps),
                 ],
               ),
@@ -783,18 +1901,18 @@ class StudentProfileModalBody extends ConsumerWidget {
         color = Colors.grey;
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Text(
         status ?? 'Unknown',
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.w600,
-          fontSize: 12,
+          fontSize: 11.5,
         ),
       ),
     );
@@ -809,7 +1927,8 @@ class StudentProfileModalBody extends ConsumerWidget {
         Text(
           label,
           style: TextStyle(
-            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            color:
+                isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             fontSize: 11,
           ),
         ),
@@ -817,7 +1936,7 @@ class StudentProfileModalBody extends ConsumerWidget {
           displayValue,
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            fontSize: 13,
+            fontSize: 12.5,
             color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
         ),
@@ -833,7 +1952,8 @@ class StudentProfileModalBody extends ConsumerWidget {
         Text(
           '4Ps Beneficiary',
           style: TextStyle(
-            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            color:
+                isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             fontSize: 11,
           ),
         ),
@@ -844,7 +1964,7 @@ class StudentProfileModalBody extends ConsumerWidget {
             children: [
               Icon(
                 Icons.check_circle,
-                size: 14,
+                size: 13,
                 color: isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs,
               ),
               const SizedBox(width: 4),
@@ -862,9 +1982,10 @@ class StudentProfileModalBody extends ConsumerWidget {
           Text(
             '-',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+              color:
+                  isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
             ),
           ),
       ],
@@ -897,8 +2018,8 @@ class StudentProfileModalBody extends ConsumerWidget {
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -911,7 +2032,8 @@ class StudentProfileModalBody extends ConsumerWidget {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.blue.withValues(alpha: 0.25)),
             ),
-            child: const Icon(Icons.school_rounded, color: Colors.blue, size: 22),
+            child:
+                const Icon(Icons.school_rounded, color: Colors.blue, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -924,8 +2046,10 @@ class StudentProfileModalBody extends ConsumerWidget {
                       'Grade ${enrollment.gradeLevel}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        fontSize: 13.5,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
                       ),
                     ),
                   ],
@@ -934,17 +2058,22 @@ class StudentProfileModalBody extends ConsumerWidget {
                 Text(
                   '${enrollment.sectionName ?? '-'} · ${enrollment.yearRange ?? '-'}',
                   style: TextStyle(
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (enrollment.trackStrand != null && enrollment.trackStrand.toString().isNotEmpty) ...[
+                if (enrollment.trackStrand != null &&
+                    enrollment.trackStrand.toString().isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     'Track: ${enrollment.trackStrand}',
                     style: TextStyle(
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -952,12 +2081,13 @@ class StudentProfileModalBody extends ConsumerWidget {
               ],
             ),
           ),
-          if (onEditEnrollment != null && userRole.toLowerCase() != 'teacher')
+          if (widget.onEditEnrollment != null &&
+              widget.userRole.toLowerCase() != 'teacher')
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 18),
               color: AppColors.primaryGreen,
               tooltip: 'Edit Enrollment',
-              onPressed: onEditEnrollment,
+              onPressed: widget.onEditEnrollment,
             ),
         ],
       ),
@@ -965,12 +2095,18 @@ class StudentProfileModalBody extends ConsumerWidget {
   }
 
   // ── Requirements status ──────────────────────────────────
-  Widget _buildRequirementsStatus(BuildContext context, MissingRequirements data) {
+  Widget _buildRequirementsStatus(
+    BuildContext context,
+    MissingRequirements data, {
+    void Function(DocumentRequirementModel req)? onUploadRequirement,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final jhsMissing = data.missing.where((r) => r.category == 'JHS').toList();
     final shsMissing = data.missing.where((r) => r.category == 'SHS').toList();
-    final jhsVerified = data.verified.where((r) => r.category == 'JHS').toList();
-    final shsVerified = data.verified.where((r) => r.category == 'SHS').toList();
+    final jhsVerified =
+        data.verified.where((r) => r.category == 'JHS').toList();
+    final shsVerified =
+        data.verified.where((r) => r.category == 'SHS').toList();
 
     final hasJhs = (jhsMissing.length + jhsVerified.length) > 0;
     final hasShs = (shsMissing.length + shsVerified.length) > 0;
@@ -981,12 +2117,16 @@ class StudentProfileModalBody extends ConsumerWidget {
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+          border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
         ),
         child: Center(
           child: Text(
             'No document requirements for this student.',
-            style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+            style: TextStyle(
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary),
           ),
         ),
       );
@@ -1006,16 +2146,18 @@ class StudentProfileModalBody extends ConsumerWidget {
 
       final mandatoryTotal = mandatoryMissing.length + mandatoryVerified.length;
       final mandatoryDone = mandatoryVerified.length;
-      final archivedCount = verified.where((r) => r.documentStatus == 'Archived').length;
-      final activeCompletedCount = verified.where((r) => r.documentStatus != 'Archived').length;
+      final archivedCount =
+          verified.where((r) => r.documentStatus == 'Archived').length;
+      final activeCompletedCount =
+          verified.where((r) => r.documentStatus != 'Archived').length;
 
       final isAllMandatoryDone = mandatoryMissing.isEmpty && mandatoryTotal > 0;
 
       return Container(
-        margin: const EdgeInsets.only(bottom: 14),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isCurrent
                 ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.6 : 0.8)
@@ -1035,36 +2177,43 @@ class StudentProfileModalBody extends ConsumerWidget {
           children: [
             // Level header strip
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: isDark ? 0.12 : 0.06),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(11)),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                     decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                      color:
+                          isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       label,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        fontSize: 11.5,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
                       ),
                     ),
                   ),
                   if (isCurrent) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: AppColors.primaryGreen.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.4)),
+                        border: Border.all(
+                            color: AppColors.primaryGreen.withValues(alpha: 0.4)),
                       ),
                       child: const Text(
                         'Current Level',
@@ -1082,10 +2231,14 @@ class StudentProfileModalBody extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          archivedCount == mandatoryTotal ? Icons.archive_outlined : Icons.check_circle_rounded,
+                          archivedCount == mandatoryTotal
+                              ? Icons.archive_outlined
+                              : Icons.check_circle_rounded,
                           size: 14,
                           color: archivedCount == mandatoryTotal
-                              ? (isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700)
+                              ? (isDark
+                                  ? Colors.blueGrey.shade200
+                                  : Colors.blueGrey.shade700)
                               : AppColors.success,
                         ),
                         const SizedBox(width: 4),
@@ -1096,7 +2249,9 @@ class StudentProfileModalBody extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 11,
                             color: archivedCount == mandatoryTotal
-                                ? (isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700)
+                                ? (isDark
+                                    ? Colors.blueGrey.shade200
+                                    : Colors.blueGrey.shade700)
                                 : AppColors.success,
                             fontWeight: FontWeight.bold,
                           ),
@@ -1108,7 +2263,9 @@ class StudentProfileModalBody extends ConsumerWidget {
                       '$mandatoryDone / $mandatoryTotal Required Done',
                       style: TextStyle(
                         fontSize: 11,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1117,7 +2274,7 @@ class StudentProfileModalBody extends ConsumerWidget {
             ),
             // Body with stats & items
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1128,7 +2285,9 @@ class StudentProfileModalBody extends ConsumerWidget {
                     children: [
                       _buildCountBadge(
                         label: 'Required: $mandatoryDone / $mandatoryTotal',
-                        color: isAllMandatoryDone ? AppColors.success : Colors.orange,
+                        color: isAllMandatoryDone
+                            ? AppColors.success
+                            : Colors.orange,
                         isDark: isDark,
                       ),
                       if (activeCompletedCount > 0)
@@ -1151,39 +2310,73 @@ class StudentProfileModalBody extends ConsumerWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
 
                   // ── Mandatory Requirements Group ──
                   if (mandatoryTotal > 0) ...[
                     Text(
                       'MANDATORY REQUIREMENTS',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10.5,
                         letterSpacing: 0.5,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : Colors.grey.shade700,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    ...mandatoryVerified.map((r) => _buildRequirementCard(context, r, r.documentStatus == 'Archived' ? 'archived' : 'completed', isDark)),
-                    ...mandatoryMissing.map((r) => _buildRequirementCard(context, r, 'missing_mandatory', isDark)),
+                    ...mandatoryVerified.map((r) => _buildRequirementCard(
+                          context,
+                          r,
+                          r.documentStatus == 'Archived'
+                              ? 'archived'
+                              : 'completed',
+                          isDark,
+                        )),
+                    ...mandatoryMissing.map((r) => _buildRequirementCard(
+                          context,
+                          r,
+                          'missing_mandatory',
+                          isDark,
+                          onUpload: onUploadRequirement != null
+                              ? () => onUploadRequirement(r)
+                              : null,
+                        )),
                   ],
 
                   // ── Optional Requirements Group ──
                   if ((optionalMissing.length + optionalVerified.length) > 0) ...[
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     Text(
                       'OPTIONAL REQUIREMENTS',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10.5,
                         letterSpacing: 0.5,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : Colors.grey.shade600,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    ...optionalVerified.map((r) => _buildRequirementCard(context, r, r.documentStatus == 'Archived' ? 'archived' : 'completed', isDark)),
-                    ...optionalMissing.map((r) => _buildRequirementCard(context, r, 'missing_optional', isDark)),
+                    ...optionalVerified.map((r) => _buildRequirementCard(
+                          context,
+                          r,
+                          r.documentStatus == 'Archived'
+                              ? 'archived'
+                              : 'completed',
+                          isDark,
+                        )),
+                    ...optionalMissing.map((r) => _buildRequirementCard(
+                          context,
+                          r,
+                          'missing_optional',
+                          isDark,
+                          onUpload: onUploadRequirement != null
+                              ? () => onUploadRequirement(r)
+                              : null,
+                        )),
                   ],
                 ],
               ),
@@ -1216,7 +2409,11 @@ class StudentProfileModalBody extends ConsumerWidget {
     );
   }
 
-  Widget _buildCountBadge({required String label, required Color color, required bool isDark}) {
+  Widget _buildCountBadge({
+    required String label,
+    required Color color,
+    required bool isDark,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -1239,8 +2436,9 @@ class StudentProfileModalBody extends ConsumerWidget {
     BuildContext context,
     DocumentRequirementModel r,
     String state, // 'completed', 'archived', 'missing_mandatory', 'missing_optional'
-    bool isDark,
-  ) {
+    bool isDark, {
+    VoidCallback? onUpload,
+  }) {
     Color bg;
     Color border;
     Color iconColor;
@@ -1260,10 +2458,12 @@ class StudentProfileModalBody extends ConsumerWidget {
       case 'archived':
         bg = Colors.blueGrey.withValues(alpha: isDark ? 0.15 : 0.06);
         border = Colors.blueGrey.withValues(alpha: isDark ? 0.35 : 0.25);
-        iconColor = isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
+        iconColor =
+            isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
         icon = Icons.archive_outlined;
         statusLabel = 'Archived';
-        statusColor = isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
+        statusColor =
+            isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
         break;
       case 'missing_mandatory':
         bg = Colors.orange.withValues(alpha: isDark ? 0.1 : 0.05);
@@ -1280,7 +2480,8 @@ class StudentProfileModalBody extends ConsumerWidget {
         iconColor = isDark ? AppColors.darkTextSecondary : Colors.grey.shade400;
         icon = Icons.radio_button_unchecked_rounded;
         statusLabel = 'Not Submitted';
-        statusColor = isDark ? AppColors.darkTextSecondary : Colors.grey.shade600;
+        statusColor =
+            isDark ? AppColors.darkTextSecondary : Colors.grey.shade600;
         break;
     }
 
@@ -1305,7 +2506,9 @@ class StudentProfileModalBody extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
                   ),
                 ),
                 if (r.description != null && r.description!.trim().isNotEmpty)
@@ -1315,7 +2518,9 @@ class StudentProfileModalBody extends ConsumerWidget {
                       r.description!.trim(),
                       style: TextStyle(
                         fontSize: 10,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1330,7 +2535,9 @@ class StudentProfileModalBody extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: r.isMandatory
-                  ? (isDark ? Colors.indigo.withValues(alpha: 0.25) : Colors.indigo.shade50)
+                  ? (isDark
+                      ? Colors.indigo.withValues(alpha: 0.25)
+                      : Colors.indigo.shade50)
                   : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
@@ -1346,7 +2553,9 @@ class StudentProfileModalBody extends ConsumerWidget {
                 fontSize: 9,
                 fontWeight: FontWeight.w600,
                 color: r.isMandatory
-                    ? (isDark ? Colors.indigo.shade200 : Colors.indigo.shade800)
+                    ? (isDark
+                        ? Colors.indigo.shade200
+                        : Colors.indigo.shade800)
                     : (isDark ? Colors.grey.shade300 : Colors.grey.shade700),
               ),
             ),
@@ -1378,6 +2587,44 @@ class StudentProfileModalBody extends ConsumerWidget {
               ],
             ),
           ),
+          // Inline Upload action if missing
+          if ((state == 'missing_mandatory' || state == 'missing_optional') &&
+              onUpload != null) ...[
+            const SizedBox(width: 6),
+            InkWell(
+              onTap: onUpload,
+              borderRadius: BorderRadius.circular(6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen
+                      .withValues(alpha: isDark ? 0.25 : 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: AppColors.primaryGreen
+                        .withValues(alpha: isDark ? 0.5 : 0.35),
+                    width: 0.8,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.upload_file_rounded,
+                        size: 11, color: AppColors.primaryGreen),
+                    SizedBox(width: 3),
+                    Text(
+                      'Upload',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1386,9 +2633,26 @@ class StudentProfileModalBody extends ConsumerWidget {
   String _formatDate(dynamic date) {
     if (date == null) return 'N/A';
     if (date is DateTime) return '${date.month}/${date.day}/${date.year}';
+    final parsed = DateTime.tryParse(date.toString());
+    if (parsed != null) return '${parsed.month}/${parsed.day}/${parsed.year}';
     return date.toString();
   }
+
+  String _formatDateTime(dynamic dt) {
+    if (dt == null) return 'N/A';
+    final parsed = dt is DateTime ? dt : DateTime.tryParse(dt.toString());
+    if (parsed != null) {
+      final hour = parsed.hour > 12
+          ? parsed.hour - 12
+          : (parsed.hour == 0 ? 12 : parsed.hour);
+      final amPm = parsed.hour >= 12 ? 'PM' : 'AM';
+      final min = parsed.minute.toString().padLeft(2, '0');
+      return '${parsed.month}/${parsed.day}/${parsed.year} $hour:$min $amPm';
+    }
+    return dt.toString();
+  }
 }
+
 
 class _CopyableLrnButton extends StatefulWidget {
   final String? lrn;

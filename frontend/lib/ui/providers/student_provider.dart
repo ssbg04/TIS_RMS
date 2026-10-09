@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/network/api_constants.dart';
 import '../../domain/repositories/student_repository.dart';
 import '../../domain/entities/student_model.dart';
+import '../../domain/entities/dashboard_models.dart' show RecentActivity;
 
 // ============================================================
 // Academic Years Model
@@ -66,6 +67,15 @@ final studentDetailProvider = FutureProvider.family
     .autoDispose<StudentModel, int>((ref, studentId) async {
       final repo = ref.read(studentRepositoryProvider);
       return repo.getStudentById(studentId);
+    });
+
+// ============================================================
+// Student Activities / Audit Trail Provider
+// ============================================================
+final studentActivitiesProvider = FutureProvider.family
+    .autoDispose<List<RecentActivity>, int>((ref, studentId) async {
+      final repo = ref.read(studentRepositoryProvider);
+      return repo.getStudentActivities(studentId);
     });
 
 // ============================================================
