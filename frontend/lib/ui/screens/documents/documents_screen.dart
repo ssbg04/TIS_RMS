@@ -36,6 +36,7 @@ import 'widgets/styled_folder_icon.dart';
 import '../../../domain/entities/document_model.dart';
 import 'widgets/folder_filter_dialog.dart';
 import 'widgets/document_requirements_view.dart';
+import 'widgets/requirements_settings_modal.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -95,6 +96,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     super.initState();
     // 3 tabs: 0=Folders, 1=Documents, 2=Requirements
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _searchFocusNode.addListener(_onSearchFocusChanged);
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
@@ -1529,6 +1533,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               const SizedBox(width: 6),
             ],
 
+
+
             if (defaultTargetPlatform != TargetPlatform.android && !isMobile && widget.userRole != 'teacher') ...[
               SizedBox(
                 height: 36,
@@ -1615,6 +1621,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               userRole: widget.userRole,
             );
           }
+        } else if (value == 'configure_requirements') {
+          RequirementsSettingsModal.show(context);
         } else if (value == 'recycle_bin') {
           showDialog(context: context, builder: (_) => const RecycleBinModal());
         } else if (value == 'download_guide') {
@@ -1625,6 +1633,29 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         }
       },
       itemBuilder: (context) => [
+        if (_tabController.index == 2) ...[
+          PopupMenuItem(
+            value: 'configure_requirements',
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.tune_rounded,
+                  size: 20,
+                  color: AppColors.primaryGreen,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Configure Requirements',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(),
+        ],
         if (!isMobile &&
             widget.userRole != 'teacher' &&
             (_tabController.index == 1 || isFolderOpened)) ...[

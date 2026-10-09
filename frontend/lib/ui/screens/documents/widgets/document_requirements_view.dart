@@ -339,11 +339,14 @@ class _DocumentRequirementsViewState
   // CONTROLS BAR: SEARCH & CONFIGURE
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildControlsBar(bool isDark) {
+    final screenW = MediaQuery.of(context).size.width;
+    final isCompact = screenW < 520;
+
     return Row(
       children: [
         Expanded(
           child: Container(
-            height: 38,
+            height: 40,
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
               borderRadius: BorderRadius.circular(10),
@@ -374,7 +377,7 @@ class _DocumentRequirementsViewState
                         },
                       )
                     : null,
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(vertical: 9),
                 border: InputBorder.none,
               ),
               style: TextStyle(
@@ -384,33 +387,33 @@ class _DocumentRequirementsViewState
             ),
           ),
         ),
-        if (widget.userRole != 'teacher') ...[
-          const SizedBox(width: 10),
-          SizedBox(
-            height: 38,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const RequirementsSettingsModal(),
-                );
-              },
-              icon: const Icon(Icons.tune_rounded, size: 16),
-              label: const Text(
-                'Configure',
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primaryGreen,
-                side: const BorderSide(color: AppColors.primaryGreen),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+        const SizedBox(width: 10),
+        SizedBox(
+          height: 40,
+          child: ElevatedButton.icon(
+            onPressed: () => RequirementsSettingsModal.show(context),
+            icon: const Icon(Icons.tune_rounded, size: 18, color: Colors.white),
+            label: Text(
+              isCompact ? 'Configure' : 'Configure Requirements',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 0.2,
               ),
             ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              elevation: 2,
+              shadowColor: AppColors.primaryGreen.withValues(alpha: 0.35),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
           ),
-        ],
+        ),
       ],
     );
   }

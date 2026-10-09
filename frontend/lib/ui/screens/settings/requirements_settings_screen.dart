@@ -17,7 +17,8 @@ class RequirementsModal extends ConsumerStatefulWidget {
 
   static void open(BuildContext context) {
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
-    if (isAndroid) {
+    final isMobile = isAndroid || MediaQuery.of(context).size.width < 720;
+    if (isMobile) {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => const RequirementsModal()));
@@ -222,6 +223,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     final screenSize = MediaQuery.of(context).size;
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     final isWide = screenSize.width >= 720;
+    final isMobile = isAndroid || !isWide;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final settingsAsync = ref.watch(requirementsSettingsProvider);
 
@@ -264,7 +266,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text('Junior High School'),
+                          Text(isWide ? 'Junior High School' : 'JHS'),
                           const SizedBox(width: 8),
                           _countBadge(jhsList.length, isDark),
                         ],
@@ -274,7 +276,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text('Senior High School'),
+                          Text(isWide ? 'Senior High School' : 'SHS'),
                           const SizedBox(width: 8),
                           _countBadge(shsList.length, isDark),
                         ],
@@ -338,7 +340,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
             ],
           );
 
-          if (isAndroid) {
+          if (isMobile) {
             return PopScope(
               canPop: !_multiSelectMode,
               onPopInvokedWithResult: (didPop, _) {
