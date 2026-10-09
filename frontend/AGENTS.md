@@ -1065,8 +1065,8 @@ Files backup/restore - mirror mode or zip -->
 - [x] Implement mobile bottom sheet for filtering (grade, section, status, school year) with active filter chips.
 
 ## Priority 3: Status-Driven Documents & Requirements Workflow
-- [ ] Integrate document requirements directly into Documents module workflow (All Documents, Requirements, Upload/Import, Print Queue).
-- [ ] Add status system badges (✓ Complete, ⚠ Pending, ! Missing, ○ Archived) across document lists.
+- [x] Integrate document requirements directly into Documents module workflow (All Documents, Requirements, Upload/Import, Print Queue).
+- [x] Add status system badges (✓ Complete, ⚠ Pending, ! Missing, ○ Archived) across document lists.
 
 ## Priority 4: Action-Oriented Dashboard
 - [ ] Add "Needs Attention" operational card (missing SF9/SF10, documents requiring verification).

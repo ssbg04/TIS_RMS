@@ -35,6 +35,7 @@ import 'widgets/bulk_operations_bar.dart';
 import 'widgets/styled_folder_icon.dart';
 import '../../../domain/entities/document_model.dart';
 import 'widgets/folder_filter_dialog.dart';
+import 'widgets/document_requirements_view.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -61,6 +62,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   Timer? _debounce;
   bool _isGridView = false;
   late final TabController _tabController;
+  bool _skipFilterClearOnNextTabChange = false;
 
   // --- Windows Explorer State Variables ---
   int? _openedFolderStudentId;
@@ -91,8 +93,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   @override
   void initState() {
     super.initState();
-    // 2 tabs: 0=Folders, 1=Documents
-    _tabController = TabController(length: 2, vsync: this);
+    // 3 tabs: 0=Folders, 1=Documents, 2=Requirements
+    _tabController = TabController(length: 3, vsync: this);
     _searchFocusNode.addListener(_onSearchFocusChanged);
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
@@ -104,6 +106,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ref.invalidate(studentFoldersProvider);
         } else if (_tabController.index == 1) {
           ref.invalidate(documentPageProvider);
+        } else if (_tabController.index == 2) {
+          ref.invalidate(requirementsSettingsProvider);
         }
       }
     });
@@ -156,13 +160,20 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           _selectedDocumentIds.clear();
         });
 
-        _clearFilters();
+        if (_skipFilterClearOnNextTabChange) {
+          _skipFilterClearOnNextTabChange = false;
+        } else {
+          _clearFilters();
+        }
 
         // Refresh data to keep UI real-time
         ref.invalidate(documentPageProvider);
         ref.invalidate(foldersProvider);
         ref.invalidate(studentFoldersProvider);
         ref.invalidate(trashDocumentsProvider);
+        if (_tabController.index == 2) {
+          ref.invalidate(requirementsSettingsProvider);
+        }
 
         if (_tabController.index != 0 && _openedFolderStudentId != null) {
           setState(() {
@@ -869,6 +880,22 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                               ),
                             ],
                           ),
+
+                          // Tab 2: Document Requirements Workflow
+                          DocumentRequirementsView(
+                            userRole: widget.userRole,
+                            onFilterByDocumentType: (type) {
+                              _skipFilterClearOnNextTabChange = true;
+                              setState(() {
+                                _selectedDocumentType = type;
+                              });
+                              _tabController.animateTo(1);
+                              _applyFilters();
+                            },
+                            onSwitchToDocumentsTab: () {
+                              _tabController.animateTo(1);
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -995,6 +1022,17 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             activeIcon: Icons.description_rounded,
             label: isMobile ? 'Documents' : 'All Documents',
             isSelected: activeIndex == 1,
+            isDark: isDark,
+            isMobile: isMobile,
+            isMobileOrAndroid: isMobileOrAndroid,
+          ),
+          const SizedBox(width: 2),
+          _buildSegmentedTabItem(
+            index: 2,
+            icon: Icons.assignment_outlined,
+            activeIcon: Icons.assignment_rounded,
+            label: isMobile ? 'Reqs' : 'Requirements',
+            isSelected: activeIndex == 2,
             isDark: isDark,
             isMobile: isMobile,
             isMobileOrAndroid: isMobileOrAndroid,
@@ -1208,7 +1246,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             ],
 
             // Action buttons
-            if (!isMobile && !isFolderOpened) ...[
+            if (!isMobile && !isFolderOpened && _tabController.index != 2) ...[
               Tooltip(
                 richMessage: (_searchController.text.isNotEmpty || query.search.isNotEmpty)
                     ? const TextSpan(text: 'Clear Search')

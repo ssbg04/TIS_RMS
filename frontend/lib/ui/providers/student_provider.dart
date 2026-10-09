@@ -281,6 +281,28 @@ final studentPageProvider = FutureProvider.autoDispose<StudentPage>((
 });
 
 // ============================================================
+// Enrolled students for Requirements module (excludes non-enrolled/archived)
+// ============================================================
+final enrolledStudentsForRequirementsProvider = FutureProvider.autoDispose<List<StudentModel>>((
+  ref,
+) async {
+  final repo = ref.read(studentRepositoryProvider);
+
+  final sub = repo.onStudentChanged.listen((_) {
+    ref.invalidateSelf();
+  });
+
+  ref.onDispose(() => sub.cancel());
+
+  final page = await repo.getStudents(
+    status: 'Enrolled',
+    limit: 1000,
+  );
+  return page.students;
+});
+
+
+// ============================================================
 // Mutation notifier — handles Create / Update / Delete
 // ============================================================
 final studentMutationProvider =

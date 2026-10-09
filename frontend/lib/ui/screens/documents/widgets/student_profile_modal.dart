@@ -369,38 +369,6 @@ class _StudentProfileModalBodyState
     extends ConsumerState<StudentProfileModalBody> {
   _StudentProfileTab _selectedTab = _StudentProfileTab.overview;
 
-  Future<void> _handleVerifyDocument(DocumentModel doc) async {
-    const newStatus = 'Completed';
-    try {
-      await ref
-          .read(documentRepositoryProvider)
-          .updateDocumentStatus(doc.id, newStatus);
-      ref.invalidate(studentDocumentsProvider(widget.studentId));
-      ref.invalidate(missingRequirementsProvider(widget.studentId));
-      ref.invalidate(studentDetailProvider(widget.studentId));
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Document marked as verified'),
-            backgroundColor: AppColors.primaryGreen,
-            duration: Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update status: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
   Future<void> _handleAddToPrintQueue(DocumentModel doc) async {
     try {
       await ref.read(printQueueMutationProvider.notifier).addToQueue(doc.id);
@@ -1190,17 +1158,12 @@ class _StudentProfileModalBodyState
     bool isDark,
   ) {
     final bool isMobile = MediaQuery.of(context).size.width < 500;
-    final isPending = doc.status.toLowerCase() == 'pending';
-    final isRejected = doc.status.toLowerCase() == 'rejected';
-    final statusColor = isPending
-        ? AppColors.warning
-        : (isRejected ? AppColors.error : AppColors.success);
-    final statusIcon = isPending
-        ? Icons.hourglass_top_rounded
-        : (isRejected ? Icons.cancel_outlined : Icons.check_circle_rounded);
-    final statusLabel = isPending
-        ? 'Pending'
-        : (isRejected ? 'Rejected' : 'Verified');
+    final isArchived = doc.status.toLowerCase() == 'archived';
+    final statusColor = isArchived ? Colors.grey : AppColors.success;
+    final statusIcon = isArchived
+        ? Icons.archive_outlined
+        : Icons.check_circle_rounded;
+    final statusLabel = isArchived ? 'Archived' : 'Verified';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -1348,22 +1311,7 @@ class _StudentProfileModalBodyState
                   ),
                 ),
               ),
-              if (widget.userRole.toLowerCase() != 'teacher' && isPending)
-                Tooltip(
-                  message: 'Mark as Verified',
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.check_circle_outline_rounded,
-                      size: 17,
-                      color: AppColors.success,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.all(2),
-                    constraints:
-                        const BoxConstraints(minWidth: 26, minHeight: 26),
-                    onPressed: () => _handleVerifyDocument(doc),
-                  ),
-                ),
+
               Tooltip(
                 message: 'Add to Print Queue',
                 child: IconButton(

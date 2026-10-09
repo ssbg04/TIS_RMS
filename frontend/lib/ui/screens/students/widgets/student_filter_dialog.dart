@@ -85,7 +85,7 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
   static const _docStatusSortItems = [
     'Default',
     'Completed',
-    'Pending',
+    'Missing',
   ];
   static const _allTabStatusItems = [
     'All Status',
@@ -446,13 +446,13 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
                           ? 'Completed'
                           : ((_pendingSortBy == 'doc_status' &&
                                   _pendingSortOrder == 'desc')
-                              ? 'Pending'
+                              ? 'Missing'
                               : 'Default'),
                       onSelected: (v) => setState(() {
                         if (v == 'Completed') {
                           _pendingSortBy = 'doc_status';
                           _pendingSortOrder = 'asc';
-                        } else if (v == 'Pending') {
+                        } else if (v == 'Missing') {
                           _pendingSortBy = 'doc_status';
                           _pendingSortOrder = 'desc';
                         } else {

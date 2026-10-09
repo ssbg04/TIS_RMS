@@ -472,7 +472,7 @@ class _FileFolderCardState extends State<FileFolderCard> {
                       ),
                     ),
                   ),
-                  // Bottom section: File name & metadata
+                  // Bottom section: File name, metadata & status badge
                   Padding(
                     padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
                     child: Column(
@@ -481,7 +481,7 @@ class _FileFolderCardState extends State<FileFolderCard> {
                       children: [
                         Text(
                           widget.document.fileName,
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
@@ -493,17 +493,25 @@ class _FileFolderCardState extends State<FileFolderCard> {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        Text(
-                          '${FileIconHelper.formatFileSize(widget.document.fileSize ?? widget.document.size)} • ${formatShortDate(widget.document.createdAt)}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: isDark
-                                ? AppColors.darkTextMuted
-                                : AppColors.textMuted,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${FileIconHelper.formatFileSize(widget.document.fileSize ?? widget.document.size)} • ${formatShortDate(widget.document.createdAt)}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: isDark
+                                      ? AppColors.darkTextMuted
+                                      : AppColors.textMuted,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 4),
+                        _buildStatusBadge(widget.document.status, isDark),
                       ],
                     ),
                   ),
@@ -650,6 +658,8 @@ class _FileFolderCardState extends State<FileFolderCard> {
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 6),
+                            _buildStatusBadge(widget.document.status, isDark),
                             if (widget.document.documentType != null &&
                                 widget.document.documentType!.isNotEmpty) ...[
                               const SizedBox(width: 6),
@@ -714,4 +724,69 @@ class _FileFolderCardState extends State<FileFolderCard> {
       ),
     );
   }
+
+  /// Standardized status system badge:
+  /// ✓ Complete / Verified, ! Missing, ○ Archived
+  Widget _buildStatusBadge(String? status, bool isDark) {
+    final norm = (status ?? 'Completed').trim().toLowerCase();
+
+    Color fg;
+    Color bg;
+    Color border;
+    String label;
+    IconData icon;
+
+    if (norm == 'completed' || norm == 'complete' || norm == 'verified') {
+      fg = isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
+      bg = isDark ? const Color(0x334CAF50) : const Color(0x182E7D32);
+      border = isDark ? const Color(0x4D81C784) : const Color(0x332E7D32);
+      label = 'Complete';
+      icon = Icons.check_rounded;
+    } else if (norm == 'missing') {
+      fg = isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828);
+      bg = isDark ? const Color(0x33F44336) : const Color(0x1AC62828);
+      border = isDark ? const Color(0x4DEF5350) : const Color(0x33C62828);
+      label = 'Missing';
+      icon = Icons.priority_high_rounded;
+    } else if (norm == 'archived') {
+      fg = isDark ? const Color(0xFFB0BEC5) : const Color(0xFF546E7A);
+      bg = isDark ? const Color(0x3378909C) : const Color(0x1A546E7A);
+      border = isDark ? const Color(0x4DB0BEC5) : const Color(0x33546E7A);
+      label = 'Archived';
+      icon = Icons.circle_outlined;
+    } else {
+      fg = isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
+      bg = isDark ? const Color(0x334CAF50) : const Color(0x182E7D32);
+      border = isDark ? const Color(0x4D81C784) : const Color(0x332E7D32);
+      label = 'Complete';
+      icon = Icons.check_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: border, width: 0.7),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, size: 10.5, color: fg),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+              color: fg,
+              height: 1.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+
