@@ -1986,8 +1986,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
-      height: isDesktop ? 480 : null,
-      padding: const EdgeInsets.all(AppSizes.p24),
+      height: isDesktop ? 300 : null,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3193,6 +3193,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   width: isWideTable ? tableConstraints.maxWidth : null,
                   child: DataTable(
                     showCheckboxColumn: false,
+                    headingRowHeight: 40,
+                    dataRowMinHeight: 38,
+                    dataRowMaxHeight: 42,
+                    horizontalMargin: 14,
                     headingRowColor: WidgetStateProperty.all(
                       AppColors.primaryGreen.withValues(alpha: 0.04),
                     ),
@@ -3695,8 +3699,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
-      height: isDesktop ? 480 : null,
-      padding: const EdgeInsets.all(AppSizes.p24),
+      height: isDesktop ? 300 : null,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3785,7 +3789,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
         final Widget chartWidget = SizedBox(
           width: chartWidth,
-          height: isDesktop ? 260 : 300,
+          height: isDesktop ? 175 : 200,
           child: BarChart(
             BarChartData(
               maxY: 140,
@@ -3927,8 +3931,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
         return Container(
           width: double.infinity,
-          height: isDesktop ? 480 : null,
-          padding: const EdgeInsets.all(AppSizes.p24),
+          height: isDesktop ? 300 : null,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: _cardDecoration(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -4096,8 +4100,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
-      height: isDesktop ? 480 : null,
-      padding: const EdgeInsets.all(AppSizes.p24),
+      height: isDesktop ? 300 : null,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
