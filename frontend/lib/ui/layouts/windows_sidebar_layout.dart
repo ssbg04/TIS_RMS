@@ -182,21 +182,34 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
               borderRadius: BorderRadius.circular(8),
             ),
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              transitionBuilder: (child, animation) => ScaleTransition(
-                scale: animation,
-                child: FadeTransition(opacity: animation, child: child),
-              ),
+              duration: const Duration(milliseconds: 240),
+              transitionBuilder: (child, animation) {
+                final inAnimation = Tween<Offset>(
+                  begin: Offset(_isMinimized ? -0.15 : 0.15, 0.0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                );
+                return SlideTransition(
+                  position: inAnimation,
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
               child: Icon(
                 _isMinimized
-                    ? Icons.keyboard_double_arrow_right_rounded
-                    : Icons.keyboard_double_arrow_left_rounded,
+                    ? Icons.view_sidebar_outlined
+                    : Icons.view_sidebar_rounded,
                 key: ValueKey(_isMinimized),
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.85),
-                size: 22,
+                color: _isMinimized
+                    ? Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.80)
+                    : AppColors.primaryGreen,
+                size: 21,
               ),
             ),
           ),
