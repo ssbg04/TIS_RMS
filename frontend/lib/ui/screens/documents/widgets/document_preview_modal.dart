@@ -30,6 +30,7 @@ void showDocumentPreview({
   DocumentModel? document,
   File? localFile,
   String? localFileName,
+  bool isArchive = false,
 }) {
   assert(document != null || (localFile != null && localFileName != null));
   showDialog(
@@ -39,6 +40,7 @@ void showDocumentPreview({
       document: document,
       localFile: localFile,
       localFileName: localFileName,
+      isArchive: isArchive,
     ),
   );
 }
@@ -50,11 +52,13 @@ class _DocumentPreviewDialog extends ConsumerStatefulWidget {
   final DocumentModel? document;
   final File? localFile;
   final String? localFileName;
+  final bool isArchive;
 
   const _DocumentPreviewDialog({
     this.document,
     this.localFile,
     this.localFileName,
+    this.isArchive = false,
   });
 
   @override
@@ -501,8 +505,9 @@ class _DocumentPreviewDialogState
       }
     }
     if (widget.document != null) {
+      final isArchivedDoc = widget.isArchive || widget.document?.status == 'Archived';
       // Edit action for editable file types
-      if (_isExcel || _isOffice) {
+      if (!isArchivedDoc && (_isExcel || _isOffice)) {
         directActions.add(_PreviewActionItem(
           id: 'edit',
           label: 'Edit',
@@ -512,15 +517,17 @@ class _DocumentPreviewDialogState
           color: Colors.orange.shade700,
         ));
       }
-      // Upload New Version
-      directActions.add(_PreviewActionItem(
-        id: 'upload_version',
-        label: 'Upload New Version',
-        iconData: Icons.upload_file_rounded,
-        onTap: _isUploadingVersion ? null : _uploadNewVersion,
-        isLoading: _isUploadingVersion,
-        color: AppColors.primaryGreen,
-      ));
+      // Upload New Version (hidden for archived documents)
+      if (!isArchivedDoc) {
+        directActions.add(_PreviewActionItem(
+          id: 'upload_version',
+          label: 'Upload New Version',
+          iconData: Icons.upload_file_rounded,
+          onTap: _isUploadingVersion ? null : _uploadNewVersion,
+          isLoading: _isUploadingVersion,
+          color: AppColors.primaryGreen,
+        ));
+      }
       directActions.add(_PreviewActionItem(
         id: 'print_list',
         label: 'Add to Print List',
@@ -554,14 +561,16 @@ class _DocumentPreviewDialogState
         ));
       }
 
-      // Always inside More menu: Copy and Delete
-      menuActions.add(_PreviewActionItem(
-        id: 'copy',
-        label: 'Copy',
-        iconData: Icons.copy_rounded,
-        onTap: _copyDocument,
-      ));
-      if (ref.watch(authProvider).value?.role != 'teacher') {
+      // More menu: Copy and Delete (both hidden for archived documents)
+      if (!isArchivedDoc) {
+        menuActions.add(_PreviewActionItem(
+          id: 'copy',
+          label: 'Copy',
+          iconData: Icons.copy_rounded,
+          onTap: _copyDocument,
+        ));
+      }
+      if (!isArchivedDoc && ref.watch(authProvider).value?.role != 'teacher') {
         menuActions.add(_PreviewActionItem(
           id: 'delete',
           label: 'Delete',

@@ -1125,7 +1125,7 @@ Files backup/restore - mirror mode or zip -->
   - use white font for dark theme and black for white theme for previous, next, and pagination numbers and add background like the numbers
 
 # ARCHIVE SCREEN
-- remove the recycle bin and delete, restore, upload new version buttons
+- [x] Removed Recycle Bin, delete, restore, upload new version, and copy buttons from the Archive Screen (including folder context menus, document context menus, document preview modal, and bulk operations bar).
 
 
 ---

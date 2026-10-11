@@ -10,7 +10,7 @@ class BulkOperationsBar extends StatelessWidget {
   final VoidCallback onCancel;
   final VoidCallback onToggleSelectAll;
   final VoidCallback onBatchPrint;
-  final VoidCallback onBatchCopy;
+  final VoidCallback? onBatchCopy;
   final VoidCallback onBatchDownload;
   final ValueChanged<String> onBatchStatus;
   final VoidCallback onBatchArchive;
@@ -26,7 +26,7 @@ class BulkOperationsBar extends StatelessWidget {
     required this.onCancel,
     required this.onToggleSelectAll,
     required this.onBatchPrint,
-    required this.onBatchCopy,
+    this.onBatchCopy,
     required this.onBatchDownload,
     required this.onBatchStatus,
     required this.onBatchArchive,
@@ -98,34 +98,30 @@ class BulkOperationsBar extends StatelessWidget {
                     tooltip: 'Print',
                     onPressed: onBatchPrint,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.copy_rounded, color: Colors.white),
-                    tooltip: 'Copy',
-                    onPressed: onBatchCopy,
-                  ),
+                  if (!isArchiveScreen && onBatchCopy != null)
+                    IconButton(
+                      icon: const Icon(Icons.copy_rounded, color: Colors.white),
+                      tooltip: 'Copy',
+                      onPressed: onBatchCopy,
+                    ),
                   IconButton(
                     icon: const Icon(Icons.download_rounded, color: Colors.white),
                     tooltip: 'Download',
                     onPressed: onBatchDownload,
                   ),
-                  if (isArchiveScreen)
-                    IconButton(
-                      icon: const Icon(Icons.unarchive_rounded, color: Colors.white),
-                      tooltip: 'Restore',
-                      onPressed: onBatchRestore ?? () => onBatchStatus('Completed'),
-                    )
-                  else
+                  if (!isArchiveScreen) ...[
                     IconButton(
                       icon: const Icon(Icons.archive_rounded, color: Colors.white),
                       tooltip: 'Archive',
                       onPressed: onBatchArchive,
                     ),
-                  if (isAdmin && onBatchDelete != null)
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
-                      tooltip: 'Delete',
-                      onPressed: onBatchDelete,
-                    ),
+                    if (isAdmin && onBatchDelete != null)
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                        tooltip: 'Delete',
+                        onPressed: onBatchDelete,
+                      ),
+                  ],
                 ] else ...[
                   IconButton(
                     icon: const Icon(Icons.download_rounded, color: Colors.white),
@@ -143,7 +139,7 @@ class BulkOperationsBar extends StatelessWidget {
                     onSelected: (val) {
                       switch (val) {
                         case 'copy':
-                          onBatchCopy();
+                          onBatchCopy?.call();
                           break;
                         case 'archive':
                           onBatchArchive();
@@ -161,28 +157,18 @@ class BulkOperationsBar extends StatelessWidget {
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'copy',
-                        child: Row(
-                          children: [
-                            Icon(Icons.copy_rounded, size: 20),
-                            SizedBox(width: 10),
-                            Text('Copy'),
-                          ],
-                        ),
-                      ),
-                      if (isArchiveScreen)
+                      if (!isArchiveScreen && onBatchCopy != null)
                         const PopupMenuItem(
-                          value: 'restore',
+                          value: 'copy',
                           child: Row(
                             children: [
-                              Icon(Icons.unarchive_rounded, size: 20),
+                              Icon(Icons.copy_rounded, size: 20),
                               SizedBox(width: 10),
-                              Text('Restore'),
+                              Text('Copy'),
                             ],
                           ),
-                        )
-                      else
+                        ),
+                      if (!isArchiveScreen) ...[
                         const PopupMenuItem(
                           value: 'archive',
                           child: Row(
@@ -193,17 +179,18 @@ class BulkOperationsBar extends StatelessWidget {
                             ],
                           ),
                         ),
-                      if (isAdmin && onBatchDelete != null)
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_outline_rounded, size: 20, color: Colors.redAccent),
-                              SizedBox(width: 10),
-                              Text('Delete', style: TextStyle(color: Colors.redAccent)),
-                            ],
+                        if (isAdmin && onBatchDelete != null)
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline_rounded, size: 20, color: Colors.redAccent),
+                                SizedBox(width: 10),
+                                Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                              ],
+                            ),
                           ),
-                        ),
+                      ],
                     ],
                   ),
                 ],

@@ -25,7 +25,6 @@ import '../documents/widgets/styled_folder_icon.dart';
 import '../documents/widgets/print_queue_modal.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import '../documents/widgets/download_guide_dialog.dart';
-import '../documents/widgets/recycle_bin_modal.dart';
 import '../../shared/dialogs/document_properties_dialog.dart';
 import '../../../core/utils/download_service.dart';
 import '../../../core/network/api_constants.dart';
@@ -260,62 +259,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     ref.read(archiveDocumentQueryProvider.notifier).reset();
   }
 
-  // ── Restore archived student (admin) ────────────────────────────
-  void _handleRestoreStudent(int studentId, String studentName) async {
-    if (!_isAdmin) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.restore, color: AppColors.primaryGreen),
-            SizedBox(width: 8),
-            Text('Restore Student'),
-          ],
-        ),
-        content: Text(
-          'Restore $studentName to Active (Enrolled) status? Their documents will also be set back to Completed.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('RESTORE'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      await ref
-          .read(archiveMutationProvider.notifier)
-          .restoreArchive(studentId);
-      if (!mounted) return;
-      showSuccessDialog(
-        context,
-        message: '$studentName has been restored to Enrolled.',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      showErrorDialog(
-        context,
-        'Restore Failed',
-        e.toString().replaceFirst('Exception: ', ''),
-      );
-    }
-  }
-
   // ── Preview document ────────────────────────────────────────────
   void _handlePreview(DocumentModel doc) {
-    showDocumentPreview(context: context, document: doc);
+    showDocumentPreview(context: context, document: doc, isArchive: true);
   }
 
   // ── Document file menu (print, download, preview) ──────────────
@@ -337,16 +283,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       }
       if (!mounted) return;
       PrintQueueModal.show(context);
-    } else if (action == 'copy') {
-      try {
-        await ref.read(documentMutationProvider.notifier).copyDocument(doc.id);
-        if (!mounted) return;
-        showSuccessDialog(context, message: 'Document copied successfully.');
-        ref.invalidate(archiveDocumentPageProvider);
-      } catch (e) {
-        if (!mounted) return;
-        showErrorDialog(context, 'Copy Failed', e.toString());
-      }
     } else if (action == 'download') {
       try {
         final token =
@@ -378,108 +314,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         userRole: widget.userRole,
         hideEnrollmentActions: true,
       );
-    } else if (action == 'restore') {
-      _confirmRestoreDocument(doc);
-    } else if (action == 'delete') {
-      _handleDeleteDocument(doc);
-    }
-  }
-
-  void _confirmRestoreDocument(DocumentModel doc) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.unarchive_outlined, color: AppColors.primaryGreen),
-            SizedBox(width: 8),
-            Text('Restore Document'),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to restore "${doc.fileName}" to active documents?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await ref
-                    .read(documentMutationProvider.notifier)
-                    .updateStatus(doc.id, 'Completed');
-                if (!mounted) return;
-                showSuccessDialog(
-                  context,
-                  message: 'Document restored to active documents.',
-                );
-                ref.invalidate(archiveDocumentPageProvider);
-                ref.invalidate(archiveStudentFoldersProvider);
-              } catch (e) {
-                if (!mounted) return;
-                showErrorDialog(context, 'Restore Failed', e.toString());
-              }
-            },
-            child: const Text('RESTORE'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _handleDeleteDocument(DocumentModel doc) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: AppColors.error),
-            SizedBox(width: 8),
-            Text('Delete Document', style: TextStyle(color: AppColors.error)),
-          ],
-        ),
-        content: const Text(
-          'Are you sure you want to permanently delete this document?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('DELETE'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      await ref
-          .read(documentMutationProvider.notifier)
-          .deleteDocument(doc.id);
-      if (!mounted) return;
-      showSuccessDialog(
-        context,
-        message: 'Document deleted.',
-      );
-      ref.invalidate(archiveDocumentPageProvider);
-    } catch (e) {
-      if (!mounted) return;
-      showErrorDialog(context, 'Delete Failed', e.toString());
     }
   }
 
@@ -502,31 +336,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       showErrorDialog(
         context,
         'Print Queue Failed',
-        e.toString().replaceFirst('Exception: ', ''),
-      );
-    }
-  }
-
-  Future<void> _handleBatchCopy() async {
-    try {
-      await ref
-          .read(documentMutationProvider.notifier)
-          .bulkCopy(_selectedDocumentIds.toList());
-      setState(() {
-        _selectedDocumentIds.clear();
-        _isMultiSelectMode = false;
-      });
-      if (!mounted) return;
-      showSuccessDialog(
-        context,
-        message: 'Selected documents copied successfully.',
-      );
-      ref.invalidate(archiveDocumentPageProvider);
-    } catch (e) {
-      if (!mounted) return;
-      showErrorDialog(
-        context,
-        'Copy Failed',
         e.toString().replaceFirst('Exception: ', ''),
       );
     }
@@ -597,67 +406,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     }
   }
 
-  Future<void> _handleBatchDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: AppColors.error),
-            SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                'Delete Selected Documents',
-                style: TextStyle(color: AppColors.error, fontSize: 17),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to permanently delete these ${_selectedDocumentIds.length} documents?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('DELETE'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      await ref
-          .read(documentMutationProvider.notifier)
-          .bulkDelete(_selectedDocumentIds.toList());
-      setState(() {
-        _selectedDocumentIds.clear();
-        _isMultiSelectMode = false;
-      });
-      if (!mounted) return;
-      showSuccessDialog(
-        context,
-        message: 'Selected documents deleted successfully.',
-      );
-      ref.invalidate(archiveDocumentPageProvider);
-    } catch (e) {
-      if (!mounted) return;
-      showErrorDialog(
-        context,
-        'Delete Failed',
-        e.toString().replaceFirst('Exception: ', ''),
-      );
-    }
-  }
-
   Widget _buildInlineMultiSelectHeader() {
     final pageDocs = ref.watch(archiveDocumentPageProvider).value?.documents ?? [];
     final pageIds = pageDocs.map((d) => d.id).toSet();
@@ -683,12 +431,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               });
             },
       onBatchPrint: _handleBatchPrint,
-      onBatchCopy: _handleBatchCopy,
       onBatchDownload: _handleBatchDownload,
       onBatchStatus: _handleBatchStatus,
       onBatchArchive: () => _handleBatchStatus('Archived'),
-      onBatchRestore: () => _handleBatchStatus('Completed'),
-      onBatchDelete: _handleBatchDelete,
       isArchiveScreen: true,
     );
   }
@@ -1416,11 +1161,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           });
         } else if (value == 'grid_list') {
           setState(() => _isGridView = !_isGridView);
-        } else if (value == 'recycle_bin') {
-          showDialog(
-            context: context,
-            builder: (_) => const RecycleBinModal(),
-          );
         } else if (value == 'download_guide') {
           showDialog(
             context: context,
@@ -1473,23 +1213,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 _isGridView ? 'Switch to List' : 'Switch to Grid',
                 style: const TextStyle(fontSize: 14),
               ),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'recycle_bin',
-          child: Row(
-            children: [
-              Icon(
-                Icons.delete_sweep,
-                size: 20,
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.textSecondary,
-              ),
-              const SizedBox(width: 8),
-              const Text('Recycle Bin', style: TextStyle(fontSize: 14)),
             ],
           ),
         ),
@@ -1916,19 +1639,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             ],
           ),
         ),
-        if (_isAdmin) ...[
-          const PopupMenuDivider(),
-          const PopupMenuItem(
-            value: 'restore',
-            child: Row(
-              children: [
-                Icon(Icons.restore, size: 18, color: AppColors.primaryGreen),
-                SizedBox(width: 12),
-                Text('Restore to Active', style: TextStyle(fontSize: 14, color: AppColors.primaryGreen)),
-              ],
-            ),
-          ),
-        ],
       ],
     );
 
@@ -1948,8 +1658,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         userRole: widget.userRole,
         hideEnrollmentActions: true,
       );
-    } else if (value == 'restore') {
-      _handleRestoreStudent(folder.studentId!, studentName);
     }
   }
 
@@ -1966,8 +1674,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             userRole: widget.userRole,
             hideEnrollmentActions: true,
           );
-        } else if (val == 'restore') {
-          _handleRestoreStudent(studentId, studentName);
         }
       },
       itemBuilder: (ctx) => [
@@ -1980,20 +1686,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               Text(
                 'View Profile',
                 style: TextStyle(fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'restore',
-          child: Row(
-            children: [
-              Icon(Icons.restore, color: AppColors.primaryGreen, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Restore to Active',
-                style: TextStyle(color: AppColors.primaryGreen),
               ),
             ],
           ),

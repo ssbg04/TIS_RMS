@@ -106,16 +106,17 @@ class _FileFolderCardState extends State<FileFolderCard> {
           ],
         ),
       ),
-      const PopupMenuItem(
-        value: 'copy',
-        child: Row(
-          children: [
-            Icon(Icons.copy, size: 18),
-            SizedBox(width: 12),
-            Text('Copy', style: TextStyle(fontSize: 14)),
-          ],
+      if (!widget.isArchiveScreen)
+        const PopupMenuItem(
+          value: 'copy',
+          child: Row(
+            children: [
+              Icon(Icons.copy, size: 18),
+              SizedBox(width: 12),
+              Text('Copy', style: TextStyle(fontSize: 14)),
+            ],
+          ),
         ),
-      ),
       const PopupMenuItem(
         value: 'download',
         child: Row(
@@ -136,7 +137,7 @@ class _FileFolderCardState extends State<FileFolderCard> {
           ],
         ),
       ),
-      if (_isExcel)
+      if (_isExcel && !widget.isArchiveScreen)
         const PopupMenuItem(
           value: 'edit',
           child: Row(
@@ -147,16 +148,17 @@ class _FileFolderCardState extends State<FileFolderCard> {
             ],
           ),
         ),
-      const PopupMenuItem(
-        value: 'upload_version',
-        child: Row(
-          children: [
-            Icon(Icons.upload_file_rounded, size: 18, color: AppColors.primaryGreen),
-            SizedBox(width: 12),
-            Text('Upload New Version', style: TextStyle(fontSize: 14)),
-          ],
+      if (!widget.isArchiveScreen)
+        const PopupMenuItem(
+          value: 'upload_version',
+          child: Row(
+            children: [
+              Icon(Icons.upload_file_rounded, size: 18, color: AppColors.primaryGreen),
+              SizedBox(width: 12),
+              Text('Upload New Version', style: TextStyle(fontSize: 14)),
+            ],
+          ),
         ),
-      ),
       const PopupMenuItem(
         value: 'version_history',
         child: Row(
@@ -194,43 +196,24 @@ class _FileFolderCardState extends State<FileFolderCard> {
       ),
     ];
 
-    if (widget.userRole != 'teacher') {
+    if (widget.userRole != 'teacher' && !widget.isArchiveScreen) {
       items.add(const PopupMenuDivider());
-      if (widget.isArchiveScreen) {
-        items.add(
-          const PopupMenuItem(
-            value: 'restore',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.unarchive_outlined,
-                  size: 18,
-                  color: AppColors.primaryGreen,
-                ),
-                SizedBox(width: 12),
-                Text('Restore', style: TextStyle(fontSize: 14)),
-              ],
-            ),
+      items.add(
+        const PopupMenuItem(
+          value: 'archive',
+          child: Row(
+            children: [
+              Icon(
+                Icons.archive_outlined,
+                size: 18,
+                color: AppColors.primaryGreen,
+              ),
+              SizedBox(width: 12),
+              Text('Archive', style: TextStyle(fontSize: 14)),
+            ],
           ),
-        );
-      } else {
-        items.add(
-          const PopupMenuItem(
-            value: 'archive',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.archive_outlined,
-                  size: 18,
-                  color: AppColors.primaryGreen,
-                ),
-                SizedBox(width: 12),
-                Text('Archive', style: TextStyle(fontSize: 14)),
-              ],
-            ),
-          ),
-        );
-      }
+        ),
+      );
       items.add(
         const PopupMenuItem(
           value: 'delete',
