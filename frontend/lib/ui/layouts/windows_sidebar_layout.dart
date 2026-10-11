@@ -59,18 +59,24 @@ class WindowsSidebarLayout extends ConsumerStatefulWidget {
       _WindowsSidebarLayoutState();
 }
 
-class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
+class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
+    with SingleTickerProviderStateMixin {
   final Set<int> _visitedIndices = {};
   Timer? _holdTimer;
   Timer? _tabLoadingTimer;
   late bool _isMinimized;
   bool _isTabLoading = false;
-  bool _isLogoHovered = false;
+  late AnimationController _menuAnimController;
 
   @override
   void initState() {
     super.initState();
     _isMinimized = widget.initialMinimized;
+    _menuAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+      value: _isMinimized ? 0.0 : 1.0,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(heartbeatServiceProvider).onConnectionLost = () {
         if (mounted) {
@@ -88,9 +94,21 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
 
   @override
   void dispose() {
+    _menuAnimController.dispose();
     _holdTimer?.cancel();
     _tabLoadingTimer?.cancel();
     super.dispose();
+  }
+
+  void _toggleSidebar() {
+    setState(() {
+      _isMinimized = !_isMinimized;
+      if (_isMinimized) {
+        _menuAnimController.reverse();
+      } else {
+        _menuAnimController.forward();
+      }
+    });
   }
 
   void _reloadTabContent(String label) {
@@ -143,6 +161,41 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
     );
   }
 
+  Widget _buildHamburgerButton(bool isDark) {
+    return Tooltip(
+      message: _isMinimized ? 'Expand Sidebar' : 'Collapse Sidebar',
+      waitDuration: const Duration(milliseconds: 300),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(6),
+          hoverColor: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.06),
+          onTap: _toggleSidebar,
+          child: Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: AnimatedIcon(
+              icon: AnimatedIcons.menu_close,
+              progress: _menuAnimController,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.85),
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildNavItem(
     Map<String, Object> tab,
     bool isSelected,
@@ -178,9 +231,9 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                 .colorScheme
                                 .onSurface
                                 .withValues(alpha: 0.55),
-                            fontSize: 11,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w700,
-                            letterSpacing: 0.9,
+                            letterSpacing: 1.0,
                           ),
                         ),
                       ),
@@ -228,7 +281,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                   _reloadTabContent(tab['label'] as String);
                 },
                 child: SizedBox(
-                  height: 38,
+                  height: 42,
                   child: Row(
                     children: [
                       // WinUI 3 Fluent Active Indicator Pill
@@ -237,8 +290,8 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           curve: Curves.easeOutCubic,
-                          width: 3,
-                          height: isSelected ? 16 : 0,
+                          width: 3.5,
+                          height: isSelected ? 20 : 0,
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AppColors.primaryGreen
@@ -247,7 +300,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                           ),
                         ),
                       ),
-                      SizedBox(width: _isMinimized ? 20 : 10),
+                      SizedBox(width: _isMinimized ? 19 : 10),
                       Icon(
                         (isSelected
                                 ? tab['activeIcon'] ?? tab['icon']
@@ -258,16 +311,16 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                             : Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withValues(alpha: 0.7),
-                        size: 19,
+                                .withValues(alpha: 0.72),
+                        size: 22,
                       ),
                       if (!_isMinimized) ...[
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 13),
                         Expanded(
                           child: Text(
                             tab['label'] as String,
                             style: TextStyle(
-                              fontSize: 13.5,
+                              fontSize: 14.5,
                               fontWeight: isSelected
                                   ? FontWeight.w600
                                   : FontWeight.w500,
@@ -278,7 +331,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                   : Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withValues(alpha: 0.8),
+                                      .withValues(alpha: 0.82),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -522,85 +575,34 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                               children: [
                         Padding(
                           padding: EdgeInsets.symmetric(
-                            horizontal: _isMinimized ? 16 : 14,
+                            horizontal: _isMinimized ? 21 : 14,
                             vertical: 12,
                           ),
-                          child: Row(
-                            children: [
-                              // App Logo acts as the interactive Expand trigger when minimized
-                              Tooltip(
-                                message: _isMinimized
-                                    ? 'Expand Sidebar (Click to expand)'
-                                    : 'TIS Record Management System',
-                                waitDuration: const Duration(milliseconds: 300),
-                                child: MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  onEnter: (_) =>
-                                      setState(() => _isLogoHovered = true),
-                                  onExit: (_) =>
-                                      setState(() => _isLogoHovered = false),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      if (_isMinimized) {
-                                        setState(() => _isMinimized = false);
-                                      }
-                                    },
-                                    onLongPressStart: (_) {
-                                      _holdTimer = Timer(
-                                        const Duration(seconds: 3),
-                                        () {
-                                          _showCapstoneMembers(context);
-                                        },
-                                      );
-                                    },
-                                    onLongPressEnd: (_) =>
-                                        _holdTimer?.cancel(),
-                                    onLongPressCancel: () =>
-                                        _holdTimer?.cancel(),
-                                    child: AnimatedScale(
-                                      scale: (_isMinimized && _isLogoHovered)
-                                          ? 1.08
-                                          : 1.0,
-                                      duration:
-                                          const Duration(milliseconds: 200),
-                                      curve: Curves.easeOutCubic,
-                                      child: AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.all(4),
+                          child: _isMinimized
+                              ? Center(
+                                  child: _buildHamburgerButton(isDark),
+                                )
+                              : Row(
+                                  children: [
+                                    _buildHamburgerButton(isDark),
+                                    const SizedBox(width: 10),
+                                    GestureDetector(
+                                      onLongPressStart: (_) {
+                                        _holdTimer = Timer(
+                                          const Duration(seconds: 3),
+                                          () {
+                                            _showCapstoneMembers(context);
+                                          },
+                                        );
+                                      },
+                                      onLongPressEnd: (_) =>
+                                          _holdTimer?.cancel(),
+                                      onLongPressCancel: () =>
+                                          _holdTimer?.cancel(),
+                                      child: Container(
                                         decoration: BoxDecoration(
                                           borderRadius:
-                                              BorderRadius.circular(8),
-                                          color: _isMinimized
-                                              ? (_isLogoHovered
-                                                  ? AppColors.primaryGreen
-                                                      .withValues(
-                                                          alpha: isDark
-                                                              ? 0.25
-                                                              : 0.15)
-                                                  : (isDark
-                                                      ? Colors.white
-                                                          .withValues(
-                                                              alpha: 0.08)
-                                                      : Colors.black
-                                                          .withValues(
-                                                              alpha: 0.05)))
-                                              : Colors.transparent,
-                                          border: Border.all(
-                                            color: _isMinimized
-                                                ? (_isLogoHovered
-                                                    ? AppColors.primaryGreen
-                                                        .withValues(alpha: 0.45)
-                                                    : (isDark
-                                                        ? Colors.white
-                                                            .withValues(
-                                                                alpha: 0.12)
-                                                        : Colors.black
-                                                            .withValues(
-                                                                alpha: 0.08)))
-                                                : Colors.transparent,
-                                            width: 1,
-                                          ),
+                                              BorderRadius.circular(6),
                                           boxShadow: [
                                             BoxShadow(
                                               color: Colors.black.withValues(
@@ -616,65 +618,31 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                               BorderRadius.circular(6),
                                           child: Image.asset(
                                             'assets/images/logo.webp',
-                                            width: 32,
-                                            height: 32,
+                                            width: 30,
+                                            height: 30,
                                             fit: BoxFit.contain,
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ),
-                              if (!_isMinimized) ...[
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    'TIS RMS',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                      letterSpacing: 0.9,
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'TIS RMS',
+                                        style: TextStyle(
+                                          fontSize: 16.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                          letterSpacing: 0.9,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                  ],
                                 ),
-                                IconButton(
-                                  icon: AnimatedRotation(
-                                    turns: _isMinimized ? 0.5 : 0.0,
-                                    duration:
-                                        const Duration(milliseconds: 320),
-                                    curve: Curves.easeInOutCubic,
-                                    child: Icon(
-                                      Icons.menu,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.65),
-                                      size: 20,
-                                    ),
-                                  ),
-                                  hoverColor: isDark
-                                      ? Colors.white.withValues(alpha: 0.06)
-                                      : Colors.black.withValues(alpha: 0.05),
-                                  style: IconButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(6),
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    setState(() => _isMinimized = true);
-                                  },
-                                  tooltip: 'Collapse Sidebar',
-                                ),
-                              ],
-                            ],
-                          ),
                         ),
                         const SizedBox(height: 6),
 
