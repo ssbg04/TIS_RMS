@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
@@ -430,83 +431,95 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         }
       },
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: Column(
-          children: [
-            if (!kIsWeb &&
-                (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
-              Container(
-                height: 32,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF202020)
-                      : const Color(0xFFF3F3F3),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: isDark
-                          ? const Color(0xFF2D2D2D)
-                          : const Color(0xFFE5E5E5),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                child: WindowCaption(
-                  brightness:
-                      isDark ? Brightness.dark : Brightness.light,
-                  backgroundColor: isDark
-                      ? const Color(0xFF202020)
-                      : const Color(0xFFF3F3F3),
-                  title: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: Image.asset(
-                          'assets/images/logo.webp',
-                          width: 16,
-                          height: 16,
-                          fit: BoxFit.contain,
+        backgroundColor: Colors.transparent,
+        body: AbstractBackground(
+          child: Column(
+            children: [
+              if (!kIsWeb &&
+                  (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+                ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                    child: Container(
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: (isDark
+                                ? const Color(0xFF202020)
+                                : const Color(0xFFF3F3F3))
+                            .withValues(alpha: 0.82),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: (isDark
+                                    ? const Color(0xFF2D2D2D)
+                                    : const Color(0xFFE5E5E5))
+                                .withValues(alpha: 0.70),
+                            width: 1,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'TIS Record Management System',
-                        style: TextStyle(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.9)
-                              : const Color(0xFF1F1F1F),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            Expanded(
-              child: Row(
-                children: [
-                  // ==========================================
-                  // WINDOWS SIDEBAR (Fixed Width: 260px)
-                  // ==========================================
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOutCubic,
-                    width: _isMinimized ? 80 : 260,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF202020)
-                          : const Color(0xFFF3F3F3),
-                      border: Border(
-                        right: BorderSide(
-                          color: isDark
-                              ? const Color(0xFF2D2D2D)
-                              : const Color(0xFFE5E5E5),
-                          width: 1,
+                      child: WindowCaption(
+                        brightness:
+                            isDark ? Brightness.dark : Brightness.light,
+                        backgroundColor: Colors.transparent,
+                        title: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: Image.asset(
+                                'assets/images/logo.webp',
+                                width: 16,
+                                height: 16,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'TIS Record Management System',
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.9)
+                                    : const Color(0xFF1F1F1F),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    child: Column(
-                      children: [
+                  ),
+                ),
+              Expanded(
+                child: Row(
+                  children: [
+                    // ==========================================
+                    // WINDOWS SIDEBAR (Fixed Width: 260px)
+                    // ==========================================
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      width: _isMinimized ? 80 : 260,
+                      child: ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: (isDark
+                                      ? const Color(0xFF202020)
+                                      : const Color(0xFFF3F3F3))
+                                  .withValues(alpha: 0.80),
+                              border: Border(
+                                right: BorderSide(
+                                  color: (isDark
+                                          ? const Color(0xFF2D2D2D)
+                                          : const Color(0xFFE5E5E5))
+                                      .withValues(alpha: 0.65),
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           physics: const NeverScrollableScrollPhysics(),
@@ -831,37 +844,45 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                       ],
                     ),
                   ),
-
-                  // ==========================================
-                  // MAIN CONTENT AREA
-                  // ==========================================
-                  Expanded(
-                    child: AbstractBackground(
-                      child: Stack(
-                        children: [
-                          IndexedStack(
-                            index: currentIndex,
-                            children: tabs.asMap().entries.map((entry) {
-                              return _visitedIndices.contains(entry.key)
-                                  ? entry.value['screen'] as Widget
-                                  : const SizedBox.shrink();
-                            }).toList(),
-                          ),
-                          if (_isTabLoading)
-                            Container(
-                              color: Theme.of(context).scaffoldBackgroundColor,
-                              width: double.infinity,
-                              height: double.infinity,
-                              child: const _PageSkeletonLoader(),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ],
+
+            // ==========================================
+            // MAIN CONTENT AREA
+            // ==========================================
+            Expanded(
+              child: Container(
+                color: (isDark
+                        ? const Color(0xFF161616)
+                        : const Color(0xFFFAFAFA))
+                    .withValues(alpha: 0.88),
+                child: Stack(
+                  children: [
+                    IndexedStack(
+                      index: currentIndex,
+                      children: tabs.asMap().entries.map((entry) {
+                        return _visitedIndices.contains(entry.key)
+                            ? entry.value['screen'] as Widget
+                            : const SizedBox.shrink();
+                      }).toList(),
+                    ),
+                    if (_isTabLoading)
+                      Container(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: const _PageSkeletonLoader(),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
