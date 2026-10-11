@@ -433,6 +433,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: AbstractBackground(
+          blurSigma: 0.0,
           child: Column(
             children: [
               if (!kIsWeb &&
@@ -444,15 +445,14 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                       height: 32,
                       decoration: BoxDecoration(
                         color: (isDark
-                                ? const Color(0xFF202020)
+                                ? const Color(0xFF181818)
                                 : const Color(0xFFF3F3F3))
-                            .withValues(alpha: 0.82),
+                            .withValues(alpha: isDark ? 0.60 : 0.45),
                         border: Border(
                           bottom: BorderSide(
                             color: (isDark
-                                    ? const Color(0xFF2D2D2D)
-                                    : const Color(0xFFE5E5E5))
-                                .withValues(alpha: 0.70),
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : Colors.black.withValues(alpha: 0.08)),
                             width: 1,
                           ),
                         ),
@@ -505,15 +505,14 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                           child: Container(
                             decoration: BoxDecoration(
                               color: (isDark
-                                      ? const Color(0xFF202020)
+                                      ? const Color(0xFF181818)
                                       : const Color(0xFFF3F3F3))
-                                  .withValues(alpha: 0.80),
+                                  .withValues(alpha: isDark ? 0.60 : 0.45),
                               border: Border(
                                 right: BorderSide(
                                   color: (isDark
-                                          ? const Color(0xFF2D2D2D)
-                                          : const Color(0xFFE5E5E5))
-                                      .withValues(alpha: 0.65),
+                                          ? Colors.white.withValues(alpha: 0.08)
+                                          : Colors.black.withValues(alpha: 0.08)),
                                   width: 1,
                                 ),
                               ),
@@ -852,30 +851,24 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
             // MAIN CONTENT AREA
             // ==========================================
             Expanded(
-              child: Container(
-                color: (isDark
-                        ? const Color(0xFF161616)
-                        : const Color(0xFFFAFAFA))
-                    .withValues(alpha: 0.88),
-                child: Stack(
-                  children: [
-                    IndexedStack(
-                      index: currentIndex,
-                      children: tabs.asMap().entries.map((entry) {
-                        return _visitedIndices.contains(entry.key)
-                            ? entry.value['screen'] as Widget
-                            : const SizedBox.shrink();
-                      }).toList(),
+              child: Stack(
+                children: [
+                  IndexedStack(
+                    index: currentIndex,
+                    children: tabs.asMap().entries.map((entry) {
+                      return _visitedIndices.contains(entry.key)
+                          ? entry.value['screen'] as Widget
+                          : const SizedBox.shrink();
+                    }).toList(),
+                  ),
+                  if (_isTabLoading)
+                    Container(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      width: double.infinity,
+                      height: double.infinity,
+                      child: const _PageSkeletonLoader(),
                     ),
-                    if (_isTabLoading)
-                      Container(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        width: double.infinity,
-                        height: double.infinity,
-                        child: const _PageSkeletonLoader(),
-                      ),
-                  ],
-                ),
+                ],
               ),
             ),
                   ],
