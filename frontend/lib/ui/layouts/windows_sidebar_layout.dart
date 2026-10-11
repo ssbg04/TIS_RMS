@@ -161,15 +161,15 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
     );
   }
 
-  Widget _buildHamburgerButton(bool isDark) {
+  Widget _buildExpandButton(bool isDark) {
     return Tooltip(
       message: _isMinimized ? 'Expand Sidebar' : 'Collapse Sidebar',
       waitDuration: const Duration(milliseconds: 300),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         child: InkWell(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           hoverColor: isDark
               ? Colors.white.withValues(alpha: 0.08)
               : Colors.black.withValues(alpha: 0.06),
@@ -179,16 +179,25 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
             height: 38,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: AnimatedIcon(
-              icon: AnimatedIcons.menu_close,
-              progress: _menuAnimController,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.85),
-              size: 22,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (child, animation) => ScaleTransition(
+                scale: animation,
+                child: FadeTransition(opacity: animation, child: child),
+              ),
+              child: Icon(
+                _isMinimized
+                    ? Icons.keyboard_double_arrow_right_rounded
+                    : Icons.keyboard_double_arrow_left_rounded,
+                key: ValueKey(_isMinimized),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.85),
+                size: 22,
+              ),
             ),
           ),
         ),
@@ -282,65 +291,101 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                 },
                 child: SizedBox(
                   height: 42,
-                  child: Row(
-                    children: [
-                      // WinUI 3 Fluent Active Indicator Pill
-                      Padding(
-                        padding: const EdgeInsets.only(left: 3),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeOutCubic,
-                          width: 3.5,
-                          height: isSelected ? 20 : 0,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.primaryGreen
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: _isMinimized ? 19 : 10),
-                      Icon(
-                        (isSelected
-                                ? tab['activeIcon'] ?? tab['icon']
-                                : tab['icon'])
-                            as IconData,
-                        color: isSelected
-                            ? AppColors.primaryGreen
-                            : Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.72),
-                        size: 22,
-                      ),
-                      if (!_isMinimized) ...[
-                        const SizedBox(width: 13),
-                        Expanded(
-                          child: Text(
-                            tab['label'] as String,
-                            style: TextStyle(
-                              fontSize: 14.5,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
+                  child: _isMinimized
+                      // ==========================================
+                      // COLLAPSED STATE: PERFECTLY CENTERED ICON
+                      // ==========================================
+                      ? Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            if (isSelected)
+                              Positioned(
+                                left: 0,
+                                child: Container(
+                                  width: 3.5,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGreen,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              ),
+                            Center(
+                              child: Icon(
+                                (isSelected
+                                        ? tab['activeIcon'] ?? tab['icon']
+                                        : tab['icon'])
+                                    as IconData,
+                                color: isSelected
+                                    ? AppColors.primaryGreen
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.72),
+                                size: 22,
+                              ),
+                            ),
+                          ],
+                        )
+                      // ==========================================
+                      // EXPANDED STATE: ROW WITH PILL, ICON, LABEL
+                      // ==========================================
+                      : Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(left: 3),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeOutCubic,
+                                width: 3.5,
+                                height: isSelected ? 20 : 0,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.primaryGreen
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Icon(
+                              (isSelected
+                                      ? tab['activeIcon'] ?? tab['icon']
+                                      : tab['icon'])
+                                  as IconData,
                               color: isSelected
-                                  ? (isDark
-                                      ? Colors.white
-                                      : const Color(0xFF1B1B1B))
+                                  ? AppColors.primaryGreen
                                   : Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withValues(alpha: 0.82),
+                                      .withValues(alpha: 0.72),
+                              size: 22,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                            const SizedBox(width: 13),
+                            Expanded(
+                              child: Text(
+                                tab['label'] as String,
+                                style: TextStyle(
+                                  fontSize: 14.5,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
+                                  color: isSelected
+                                      ? (isDark
+                                          ? Colors.white
+                                          : const Color(0xFF1B1B1B))
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.82),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                      ],
-                    ],
-                  ),
                 ),
               ),
             ),
@@ -552,7 +597,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
-                      width: _isMinimized ? 80 : 260,
+                      width: _isMinimized ? 72 : 260,
                       child: ClipRect(
                         child: BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -575,16 +620,16 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                               children: [
                         Padding(
                           padding: EdgeInsets.symmetric(
-                            horizontal: _isMinimized ? 21 : 14,
+                            horizontal: _isMinimized ? 17 : 14,
                             vertical: 12,
                           ),
                           child: _isMinimized
                               ? Center(
-                                  child: _buildHamburgerButton(isDark),
+                                  child: _buildExpandButton(isDark),
                                 )
                               : Row(
                                   children: [
-                                    _buildHamburgerButton(isDark),
+                                    _buildExpandButton(isDark),
                                     const SizedBox(width: 10),
                                     GestureDetector(
                                       onLongPressStart: (_) {
@@ -693,12 +738,12 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                               : const Color(0xFFE5E5E5),
                         ),
                         Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 8.0,
+                          margin: EdgeInsets.symmetric(
+                            horizontal: _isMinimized ? 12.0 : 8.0,
                             vertical: 8.0,
                           ),
                           padding: EdgeInsets.symmetric(
-                            horizontal: _isMinimized ? 4.0 : 8.0,
+                            horizontal: _isMinimized ? 0.0 : 8.0,
                             vertical: 6.0,
                           ),
                           decoration: BoxDecoration(
@@ -713,135 +758,159 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                               width: 1,
                             ),
                           ),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            physics: const NeverScrollableScrollPhysics(),
-                            child: SizedBox(
-                              width: _isMinimized ? 56 : 228,
-                              child: Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      if (_isMinimized) {
-                                        setState(() => _isMinimized = false);
-                                      }
-                                    },
-                                    child: Builder(
-                                      builder: (context) {
-                                        final user = ref
-                                            .watch(authProvider)
-                                            .value;
-                                        final initials =
-                                            user != null &&
-                                                user.firstName.isNotEmpty &&
-                                                user.lastName.isNotEmpty
-                                            ? '${user.firstName[0]}${user.lastName[0]}'
+                          child: SizedBox(
+                            width: _isMinimized ? 48 : 228,
+                            child: _isMinimized
+                                ? Center(
+                                    child: Tooltip(
+                                      message: ref
+                                              .watch(authProvider)
+                                              .value
+                                              ?.fullName ??
+                                          'User Profile',
+                                      waitDuration:
+                                          const Duration(milliseconds: 300),
+                                      child: Builder(
+                                        builder: (context) {
+                                          final user = ref
+                                              .watch(authProvider)
+                                              .value;
+                                          final initials = user != null &&
+                                                  user.firstName.isNotEmpty &&
+                                                  user.lastName.isNotEmpty
+                                              ? '${user.firstName[0]}${user.lastName[0]}'
                                                   .toUpperCase()
-                                            : 'SA';
-                                        return CircleAvatar(
-                                          radius: 17,
-                                          backgroundColor:
-                                              AppColors.primaryGreen,
-                                          child: Text(
-                                            initials,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13,
+                                              : 'SA';
+                                          return CircleAvatar(
+                                            radius: 17,
+                                            backgroundColor:
+                                                AppColors.primaryGreen,
+                                            child: Text(
+                                              initials,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                              ),
                                             ),
-                                          ),
-                                        );
-                                      },
+                                          );
+                                        },
+                                      ),
                                     ),
+                                  )
+                                : Row(
+                                    children: [
+                                      Builder(
+                                        builder: (context) {
+                                          final user = ref
+                                              .watch(authProvider)
+                                              .value;
+                                          final initials = user != null &&
+                                                  user.firstName.isNotEmpty &&
+                                                  user.lastName.isNotEmpty
+                                              ? '${user.firstName[0]}${user.lastName[0]}'
+                                                  .toUpperCase()
+                                              : 'SA';
+                                          return CircleAvatar(
+                                            radius: 17,
+                                            backgroundColor:
+                                                AppColors.primaryGreen,
+                                            child: Text(
+                                              initials,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              ref
+                                                      .watch(authProvider)
+                                                      .value
+                                                      ?.fullName ??
+                                                  'Unknown User',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            Text(
+                                              widget.userRole.toUpperCase(),
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w500,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.55),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.menu_book_outlined,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.65),
+                                          size: 18,
+                                        ),
+                                        tooltip: 'User Guide & Documentation',
+                                        hoverColor: isDark
+                                            ? Colors.white.withValues(alpha: 0.06)
+                                            : Colors.black.withValues(alpha: 0.05),
+                                        visualDensity: VisualDensity.compact,
+                                        padding: const EdgeInsets.all(6),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 30,
+                                          minHeight: 30,
+                                        ),
+                                        onPressed: () {
+                                          DocumentationScreen.open(context);
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.logout,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.65),
+                                          size: 18,
+                                        ),
+                                        tooltip: 'Logout',
+                                        hoverColor: isDark
+                                            ? Colors.white.withValues(alpha: 0.06)
+                                            : Colors.black.withValues(alpha: 0.05),
+                                        visualDensity: VisualDensity.compact,
+                                        padding: const EdgeInsets.all(6),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 30,
+                                          minHeight: 30,
+                                        ),
+                                        onPressed: () {
+                                          showLogoutConfirmationDialog(context);
+                                        },
+                                      ),
+                                    ],
                                   ),
-                                  if (!_isMinimized) ...[
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            ref
-                                                    .watch(authProvider)
-                                                    .value
-                                                    ?.fullName ??
-                                                'Unknown User',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          Text(
-                                            widget.userRole.toUpperCase(),
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withValues(alpha: 0.55),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.menu_book_outlined,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.65),
-                                        size: 18,
-                                      ),
-                                      tooltip: 'User Guide & Documentation',
-                                      hoverColor: isDark
-                                          ? Colors.white.withValues(alpha: 0.06)
-                                          : Colors.black.withValues(alpha: 0.05),
-                                      visualDensity: VisualDensity.compact,
-                                      padding: const EdgeInsets.all(6),
-                                      constraints: const BoxConstraints(
-                                        minWidth: 30,
-                                        minHeight: 30,
-                                      ),
-                                      onPressed: () {
-                                        DocumentationScreen.open(context);
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.logout,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.65),
-                                        size: 18,
-                                      ),
-                                      tooltip: 'Logout',
-                                      hoverColor: isDark
-                                          ? Colors.white.withValues(alpha: 0.06)
-                                          : Colors.black.withValues(alpha: 0.05),
-                                      visualDensity: VisualDensity.compact,
-                                      padding: const EdgeInsets.all(6),
-                                      constraints: const BoxConstraints(
-                                        minWidth: 30,
-                                        minHeight: 30,
-                                      ),
-                                      onPressed: () {
-                                        showLogoutConfirmationDialog(context);
-                                      },
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
                           ),
                         ),
                       ],
