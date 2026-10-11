@@ -66,4 +66,15 @@ class DashboardRepository {
       throw Exception(e.response?.data['message'] ?? 'Failed to fetch KPIs.');
     }
   }
+
+  Future<NeedsAttentionData> getNeedsAttention() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get('/dashboard/needs-attention', options: options);
+      return NeedsAttentionData.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Failed to fetch Needs Attention data.');
+    }
+  }
 }
+

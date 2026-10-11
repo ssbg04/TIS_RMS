@@ -42,6 +42,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       );
       ref.invalidate(dashboardDataProvider);
       ref.invalidate(dashboardKpisProvider);
+      ref.invalidate(dashboardNeedsAttentionProvider);
       state = AsyncData(user);
       ref.read(heartbeatServiceProvider).start(user);
       ForegroundSyncService.start();
@@ -105,7 +106,9 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
 
     ref.invalidate(dashboardDataProvider);
     ref.invalidate(dashboardKpisProvider);
+    ref.invalidate(dashboardNeedsAttentionProvider);
   }
+
 
   Future<void> refreshUser() async {
     try {

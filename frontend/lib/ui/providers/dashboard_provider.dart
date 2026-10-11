@@ -59,6 +59,18 @@ final dashboardKpisProvider = FutureProvider.autoDispose<DashboardKpis>((ref) as
   return repository.getKpis();
 });
 
+// ── Needs Attention dedicated provider ─────────────────────────────────────
+final dashboardNeedsAttentionProvider =
+    FutureProvider.autoDispose<NeedsAttentionData>((ref) async {
+  final user = ref.watch(authProvider).value;
+  if (user == null) {
+    throw Exception('User not authenticated');
+  }
+  final repository = ref.watch(dashboardRepositoryProvider);
+  return repository.getNeedsAttention();
+});
+
+
 // ── Full paginated activities (used by RecentActivitiesScreen) ─────────────
 class ActivityQueryParams {
   final int page;

@@ -63,9 +63,9 @@ class NeedsAttentionCard extends ConsumerWidget {
     final user = ref.watch(authProvider).value;
     final userRole = user?.role ?? 'teacher';
 
-    final kpisAsync = ref.watch(dashboardKpisProvider);
+    final needsAttentionAsync = ref.watch(dashboardNeedsAttentionProvider);
 
-    if (kpisAsync.isLoading) {
+    if (needsAttentionAsync.isLoading) {
       return Container(
         height: 140,
         decoration: BoxDecoration(
@@ -86,7 +86,7 @@ class NeedsAttentionCard extends ConsumerWidget {
       );
     }
 
-    if (kpisAsync.hasError) {
+    if (needsAttentionAsync.hasError) {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -113,7 +113,7 @@ class NeedsAttentionCard extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               TextButton(
-                onPressed: () => ref.invalidate(dashboardKpisProvider),
+                onPressed: () => ref.invalidate(dashboardNeedsAttentionProvider),
                 child: const Text('Retry'),
               ),
             ],
@@ -122,8 +122,7 @@ class NeedsAttentionCard extends ConsumerWidget {
       );
     }
 
-    final kpis = kpisAsync.value;
-    final needsAttention = kpis?.needsAttention;
+    final needsAttention = needsAttentionAsync.value;
 
     // missing requirements from backend needsAttention
     final List<MissingRequirementGroup> missingGroups = needsAttention?.missingRequirements ?? [];
@@ -131,10 +130,9 @@ class NeedsAttentionCard extends ConsumerWidget {
         missingGroups.fold<int>(0, (sum, g) => sum + g.count);
 
     // Urgent students needing immediate attention
-    final List<StudentDocCount> urgentStudents = needsAttention?.urgentStudents.isNotEmpty == true
-        ? needsAttention!.urgentStudents
-        : (kpis?.bottomStudents.where((s) => s.missingCount > 0).take(5).toList() ?? []);
+    final List<StudentDocCount> urgentStudents = needsAttention?.urgentStudents ?? [];
     final displayedStudents = urgentStudents.take(3).toList();
+
 
     return Container(
       decoration: BoxDecoration(

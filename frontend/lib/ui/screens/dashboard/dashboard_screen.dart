@@ -139,6 +139,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ref.read(activeTabProvider) == 'Dashboard') {
         ref.invalidate(dashboardDataProvider);
         ref.invalidate(dashboardKpisProvider);
+        ref.invalidate(dashboardNeedsAttentionProvider);
         ref.read(notificationsProvider.notifier).refreshNotifications();
       }
     });
@@ -152,11 +153,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (!mounted) return;
     ref.invalidate(dashboardDataProvider);
     ref.invalidate(dashboardKpisProvider);
+    ref.invalidate(dashboardNeedsAttentionProvider);
     if (!mounted) return;
     ref.read(notificationsProvider.notifier).refreshNotifications();
     if (!mounted) return;
     await ref.read(dashboardDataProvider.future);
   }
+
 
   Color _getNotificationColor(String title) {
     final t = title.toLowerCase();

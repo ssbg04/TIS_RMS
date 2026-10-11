@@ -1109,7 +1109,7 @@ Files backup/restore - mirror mode or zip -->
 - [x] Removed "Top Students by Documents" and "Needs Attention" cards from the bottom of the dashboard.
 - [x] Fixed "4 missing" empty list bug: student count and student modal list are derived synchronously and directly from matching students.
 - [x] Implemented dynamic missing document requirement chips (Approach A): dynamically evaluates and sorts missing counts across all enabled mandatory requirements (SF9, SF10, PSA, etc.) descending by missing frequency.
-- [x] Needs Attention section fix: synchronized backend KPI endpoint (`/api/dashboard/kpis`) to return exact mandatory missing document requirements, counts, and urgent student records for both Admin and Teacher roles; updated frontend models and `NeedsAttentionCard` to consume this synced dataset with direct profile and upload actions. 
+- [x] Needs Attention section fix: created dedicated endpoint (`/api/dashboard/needs-attention`) filtering strictly active enrolled students (`s.status = 'Enrolled'`) and dedicated `dashboardNeedsAttentionProvider` to isolate alerts from other KPI chart metrics.
 
 # STUDENT SCREEN
 - enrolled tab: 
@@ -1126,6 +1126,7 @@ Files backup/restore - mirror mode or zip -->
 
 # ARCHIVE SCREEN
 - [x] Removed Recycle Bin, delete, restore, upload new version, and copy buttons from the Archive Screen (including folder context menus, document context menus, document preview modal, and bulk operations bar).
+
 
 
 ---
