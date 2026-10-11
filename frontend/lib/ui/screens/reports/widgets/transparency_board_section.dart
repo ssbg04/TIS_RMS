@@ -360,7 +360,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             _activeTab == _TransparencyTab.enrollment) ...[
           _buildEnrollmentCard(context, data, isDark),
           if (_activeTab == _TransparencyTab.all)
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
         ],
 
         // ── Section 2: Dropouts & Transferees ─────────────────────────────
@@ -368,7 +368,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             _activeTab == _TransparencyTab.dropoutsTransferees) ...[
           _buildDropoutTransfereeCard(context, data, isDark),
           if (_activeTab == _TransparencyTab.all)
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
         ],
 
         // ── Section 3: 4Ps Beneficiaries ──────────────────────────────────
@@ -624,7 +624,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           ),
         ],
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -682,7 +682,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               description: description,
               isDark: isDark,
             ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           content,
         ],
       ),
@@ -822,7 +822,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         : activeAy?.id;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(8),
@@ -953,7 +953,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   static Widget _buildRemarkBadge(int? diff, {required bool hasPreviousYear, required bool isDark}) {
     if (!hasPreviousYear || diff == null) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
@@ -974,7 +974,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
 
     if (diff > 0) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1B3828) : const Color(0xFFE8F5E9),
           borderRadius: BorderRadius.circular(12),
@@ -993,7 +993,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       );
     } else if (diff < 0) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF3E1F1F) : const Color(0xFFFFEBEE),
           borderRadius: BorderRadius.circular(12),
@@ -1012,7 +1012,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       );
     } else {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(12),
@@ -1125,7 +1125,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
             const SizedBox(height: 6),
             SizedBox(
-              height: isDesktop ? 340 : (constraints.maxWidth < 720 ? 260 : 230),
+              height: isDesktop ? 240 : (constraints.maxWidth < 720 ? 230 : 210),
               child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
             ),
           ],
@@ -1213,14 +1213,14 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         final double chartContentWidth = isNarrow ? minChartWidth : constraints.maxWidth;
 
         final chartWidget = Padding(
-          padding: const EdgeInsets.only(top: 16, right: 14, left: 4),
+          padding: const EdgeInsets.only(top: 6, right: 10, left: 4),
           child: SizedBox(
             width: chartContentWidth,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
                 groupsSpace: 24,
-                maxY: (maxVal * 1.65).ceilToDouble(),
+                maxY: (maxVal * 1.22).ceilToDouble(),
                 barTouchData: BarTouchData(
                   enabled: true,
                   handleBuiltInTouches: true,
@@ -1280,7 +1280,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 52,
+                      reservedSize: 38,
                       getTitlesWidget: (val, meta) {
                         if (val == 0) return const SizedBox.shrink();
                         return Padding(
@@ -1464,14 +1464,14 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
             children: [
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   'Key Stage / Grade Level',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   prevLabel,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -1479,7 +1479,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   currentLabel,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -1487,7 +1487,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   'Difference',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -1495,7 +1495,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   'Remarks',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -1514,7 +1514,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
             children: const [
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   'KEY STAGE 3 (JUNIOR HIGH SCHOOL)',
                   style: TextStyle(
@@ -1559,18 +1559,18 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             return TableRow(
               children: [
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   child: Text('Grade $grade'),
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   child: Text(
                     hasPrev ? '$prev' : '—',
                     textAlign: TextAlign.center,
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   child: Text(
                     '$curr',
                     textAlign: TextAlign.center,
@@ -1578,13 +1578,13 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   child: Center(
                     child: _buildDifferenceCell(diff, hasPreviousYear: hasPrev, isDark: isDark),
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
                   child: Center(
                     child: _buildRemarkBadge(diff, hasPreviousYear: hasPrev, isDark: isDark),
                   ),
@@ -1600,14 +1600,14 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
             children: [
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   'Key Stage 3 (JHS) Total',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   hasPrev ? '${previousYear.enrollment.jhsTotal.total}' : '—',
                   textAlign: TextAlign.center,
@@ -1615,7 +1615,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   '${latestYear.enrollment.jhsTotal.total}',
                   textAlign: TextAlign.center,
@@ -1626,7 +1626,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Center(
                   child: _buildDifferenceCell(
                     hasPrev
@@ -1639,7 +1639,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
                 child: Center(
                   child: _buildRemarkBadge(
                     hasPrev
@@ -1663,7 +1663,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
             children: const [
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   'KEY STAGE 4 (SENIOR HIGH SCHOOL)',
                   style: TextStyle(
@@ -1708,18 +1708,18 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             return TableRow(
               children: [
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   child: Text('Grade $grade'),
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   child: Text(
                     hasPrev ? '$prev' : '—',
                     textAlign: TextAlign.center,
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   child: Text(
                     '$curr',
                     textAlign: TextAlign.center,
@@ -1727,13 +1727,13 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   child: Center(
                     child: _buildDifferenceCell(diff, hasPreviousYear: hasPrev, isDark: isDark),
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
                   child: Center(
                     child: _buildRemarkBadge(diff, hasPreviousYear: hasPrev, isDark: isDark),
                   ),
@@ -1749,14 +1749,14 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
             children: [
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   'Key Stage 4 (SHS) Total',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   hasPrev ? '${previousYear.enrollment.shsTotal.total}' : '—',
                   textAlign: TextAlign.center,
@@ -1764,7 +1764,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   '${latestYear.enrollment.shsTotal.total}',
                   textAlign: TextAlign.center,
@@ -1775,7 +1775,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Center(
                   child: _buildDifferenceCell(
                     hasPrev
@@ -1788,7 +1788,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
                 child: Center(
                   child: _buildRemarkBadge(
                     hasPrev
@@ -1810,7 +1810,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
             children: [
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   'Overall Total (JHS + SHS)',
                   style: TextStyle(
@@ -1820,7 +1820,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   hasPrev ? '${previousYear.enrollment.overallTotal.total}' : '—',
                   textAlign: TextAlign.center,
@@ -1828,7 +1828,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   '${latestYear.enrollment.overallTotal.total}',
                   textAlign: TextAlign.center,
@@ -1839,7 +1839,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Center(
                   child: _buildDifferenceCell(
                     hasPrev
@@ -1852,7 +1852,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
                 child: Center(
                   child: _buildRemarkBadge(
                     hasPrev
@@ -1940,7 +1940,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               headerColor: Colors.red.withValues(alpha: 0.08),
               totalColor: Colors.redAccent,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             // Transferees sub-section
             Row(
               children: [
@@ -2048,7 +2048,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             decoration: BoxDecoration(color: headerColor),
             children: [
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   'Grade Level',
                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -2056,7 +2056,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               ),
               ...years.map(
                 (y) => Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   child: Text(
                     y.yearRange,
                     style: const TextStyle(fontWeight: FontWeight.bold),
@@ -2071,12 +2071,12 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             return TableRow(
               children: [
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   child: Text('Grade $g'),
                 ),
                 ...years.map(
                   (y) => Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                     child: Text(
                       getValue(y, g).toString(),
                       textAlign: TextAlign.center,
@@ -2095,7 +2095,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
             children: [
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                 child: Text(
                   'TOTAL',
                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -2103,7 +2103,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               ),
               ...years.map(
                 (y) => Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   child: Text(
                     getTotal(y).toString(),
                     style: TextStyle(
@@ -2226,14 +2226,14 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   ),
                   children: [
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         'Key Stage / Grade Level',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         prevLabel,
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -2241,7 +2241,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         currentLabel,
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -2249,7 +2249,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         'Difference',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -2257,7 +2257,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         '4Ps Share',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -2265,7 +2265,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         'Remarks',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -2284,7 +2284,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   ),
                   children: const [
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         'KEY STAGE 3 (JUNIOR HIGH SCHOOL)',
                         style: TextStyle(
@@ -2332,18 +2332,18 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   return TableRow(
                     children: [
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         child: Text('Grade $grade'),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         child: Text(
                           hasPrev ? '$prev' : '—',
                           textAlign: TextAlign.center,
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         child: Text(
                           '$curr',
                           textAlign: TextAlign.center,
@@ -2351,13 +2351,13 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         child: Center(
                           child: _buildDifferenceCell(diff, hasPreviousYear: hasPrev, isDark: isDark),
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         child: Text(
                           '${currRow.percentage}%',
                           textAlign: TextAlign.center,
@@ -2369,7 +2369,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
                         child: Center(
                           child: _buildRemarkBadge(diff, hasPreviousYear: hasPrev, isDark: isDark),
                         ),
@@ -2385,14 +2385,14 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   ),
                   children: [
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         'Key Stage 3 (JHS) Total',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         hasPrev ? '${previousYear.fourPs.jhsTotal.fourPsCount}' : '—',
                         textAlign: TextAlign.center,
@@ -2400,7 +2400,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         '${latestYear.fourPs.jhsTotal.fourPsCount}',
                         textAlign: TextAlign.center,
@@ -2411,7 +2411,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Center(
                         child: _buildDifferenceCell(
                           hasPrev
@@ -2424,7 +2424,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         '${latestYear.fourPs.jhsTotal.percentage}%',
                         textAlign: TextAlign.center,
@@ -2436,7 +2436,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
                       child: Center(
                         child: _buildRemarkBadge(
                           hasPrev
@@ -2460,7 +2460,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   ),
                   children: const [
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         'KEY STAGE 4 (SENIOR HIGH SCHOOL)',
                         style: TextStyle(
@@ -2508,18 +2508,18 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   return TableRow(
                     children: [
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         child: Text('Grade $grade'),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         child: Text(
                           hasPrev ? '$prev' : '—',
                           textAlign: TextAlign.center,
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         child: Text(
                           '$curr',
                           textAlign: TextAlign.center,
@@ -2527,13 +2527,13 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         child: Center(
                           child: _buildDifferenceCell(diff, hasPreviousYear: hasPrev, isDark: isDark),
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                         child: Text(
                           '${currRow.percentage}%',
                           textAlign: TextAlign.center,
@@ -2545,7 +2545,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
                         child: Center(
                           child: _buildRemarkBadge(diff, hasPreviousYear: hasPrev, isDark: isDark),
                         ),
@@ -2561,14 +2561,14 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   ),
                   children: [
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         'Key Stage 4 (SHS) Total',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         hasPrev ? '${previousYear.fourPs.shsTotal.fourPsCount}' : '—',
                         textAlign: TextAlign.center,
@@ -2576,7 +2576,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         '${latestYear.fourPs.shsTotal.fourPsCount}',
                         textAlign: TextAlign.center,
@@ -2587,7 +2587,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Center(
                         child: _buildDifferenceCell(
                           hasPrev
@@ -2600,7 +2600,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         '${latestYear.fourPs.shsTotal.percentage}%',
                         textAlign: TextAlign.center,
@@ -2612,7 +2612,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
                       child: Center(
                         child: _buildRemarkBadge(
                           hasPrev
@@ -2634,7 +2634,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   ),
                   children: [
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         'Overall Total (JHS + SHS)',
                         style: TextStyle(
@@ -2644,7 +2644,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         hasPrev ? '${previousYear.fourPs.overallTotal.fourPsCount}' : '—',
                         textAlign: TextAlign.center,
@@ -2652,7 +2652,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         '${latestYear.fourPs.overallTotal.fourPsCount}',
                         textAlign: TextAlign.center,
@@ -2663,7 +2663,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Center(
                         child: _buildDifferenceCell(
                           hasPrev
@@ -2676,7 +2676,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                       child: Text(
                         '${latestYear.fourPs.overallTotal.percentage}%',
                         textAlign: TextAlign.center,
@@ -2688,7 +2688,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
                       child: Center(
                         child: _buildRemarkBadge(
                           hasPrev
@@ -2773,14 +2773,14 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         final double chartWidth = isNarrow ? minChartWidth : constraints.maxWidth;
 
         final chartWidget = Padding(
-          padding: const EdgeInsets.only(top: 16, right: 14, left: 4),
+          padding: const EdgeInsets.only(top: 6, right: 10, left: 4),
           child: SizedBox(
             width: chartWidth,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
                 groupsSpace: 20,
-                maxY: (maxVal * 1.65).ceilToDouble(),
+                maxY: (maxVal * 1.22).ceilToDouble(),
                 barTouchData: BarTouchData(
                   enabled: true,
                   handleBuiltInTouches: true,
@@ -2918,7 +2918,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: isNarrow ? 260 : 280,
+              height: isNarrow ? 220 : 230,
               child: isNarrow
                   ? SingleChildScrollView(
                       controller: _dropoutChartScrollController,
@@ -2968,14 +2968,14 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         final double chartWidth = isNarrow ? minChartWidth : constraints.maxWidth;
 
         final chartWidget = Padding(
-          padding: const EdgeInsets.only(top: 16, right: 14, left: 4),
+          padding: const EdgeInsets.only(top: 6, right: 10, left: 4),
           child: SizedBox(
             width: chartWidth,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
                 groupsSpace: 20,
-                maxY: (maxVal * 1.65).ceilToDouble(),
+                maxY: (maxVal * 1.22).ceilToDouble(),
                 barTouchData: BarTouchData(
                   enabled: true,
                   handleBuiltInTouches: true,
@@ -3088,7 +3088,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: isNarrow ? 260 : 300,
+              height: isNarrow ? 220 : 240,
               child: isNarrow
                   ? SingleChildScrollView(
                       controller: _equity4PsChartScrollController,
@@ -3228,7 +3228,7 @@ class _CollapsibleSectionDescriptionState
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
     return Container(
-      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      margin: const EdgeInsets.only(top: 5, bottom: 2),
       decoration: BoxDecoration(
         color: isDark
             ? AppColors.darkSurface2.withValues(alpha: 0.45)
@@ -3250,7 +3250,7 @@ class _CollapsibleSectionDescriptionState
             },
             borderRadius: BorderRadius.circular(10),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               child: Row(
                 children: [
                   Icon(
