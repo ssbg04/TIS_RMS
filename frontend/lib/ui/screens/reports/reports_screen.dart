@@ -40,7 +40,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   int _currentPage = 0;
   int _rowsPerPage = 10;
-  int _selectedViewMode = 0; // 0: DepEd Transparency Board, 1: Compliance & Analytics, 2: Combined
+  int _selectedViewMode = 0; // 0: DepEd Transparency Board, 1: Document Compliance
 
   // Table search & sort state
   final TextEditingController _searchController = TextEditingController();
@@ -283,12 +283,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 _buildViewModeToggle(),
                 const SizedBox(height: 10),
 
-                if (_selectedViewMode == 0 || _selectedViewMode == 2) ...[
+                if (_selectedViewMode == 0) ...[
                   const TransparencyBoardSection(),
                   const SizedBox(height: 14),
                 ],
 
-                if (_selectedViewMode == 1 || _selectedViewMode == 2) ...[
+                if (_selectedViewMode == 1) ...[
                   statsAsync.when(
                     skipLoadingOnReload: true,
                     loading: () => const Center(
@@ -431,14 +431,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         subtitle: 'Student Records & Requirements',
         icon: Icons.fact_check_rounded,
         accentColor: const Color(0xFF0284C7),
-      ),
-      (
-        index: 2,
-        title: 'Combined View',
-        shortTitle: 'Combined',
-        subtitle: 'Full DepEd & Compliance',
-        icon: Icons.view_agenda_rounded,
-        accentColor: const Color(0xFF7C3AED),
       ),
     ];
 
