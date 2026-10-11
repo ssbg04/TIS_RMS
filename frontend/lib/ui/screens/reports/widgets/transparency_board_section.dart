@@ -171,6 +171,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   }
 
   Widget _buildExportPdfButton(TransparencyBoardData data) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final activeCat = _activeTab == _TransparencyTab.enrollment
         ? 'enrollment'
         : _activeTab == _TransparencyTab.dropoutsTransferees
@@ -203,15 +204,18 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           borderRadius: BorderRadius.circular(8),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
                 ),
               ],
             ),
@@ -236,17 +240,17 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 const SizedBox(width: 7),
                 Text(
                   isThisButtonExporting ? 'Exporting...' : label,
-                  style: const TextStyle(
-                    fontSize: 12.5,
+                  style: TextStyle(
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
+                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1E293B),
                   ),
                 ),
                 const SizedBox(width: 5),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDC2626).withValues(alpha: 0.12),
+                    color: const Color(0xFFDC2626).withValues(alpha: isDark ? 0.2 : 0.12),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(
@@ -341,19 +345,15 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Clean Header Widget (Minimal, No Clutter) ─────────────────────
-        _buildCleanHeader(
+        // ── Integrated Slim Toolbar (Option 3) ───────────────────────────
+        _buildIntegratedToolbar(
           context,
           data: data,
           academicYears: academicYears,
           selectedYearId: selectedYearId,
           isDark: isDark,
         ),
-        const SizedBox(height: 10),
-
-        // ── Simple, Clean Tab Switcher ────────────────────────────────────
-        _buildTabSwitcher(context, isDark),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
         // ── Section 1: Data on Enrollment ─────────────────────────────────
         if (_activeTab == _TransparencyTab.all ||
@@ -380,7 +380,13 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     );
   }
 
-  Widget _buildTabSwitcher(BuildContext context, bool isDark) {
+  Widget _buildIntegratedToolbar(
+    BuildContext context, {
+    required TransparencyBoardData data,
+    required List<AcademicYear> academicYears,
+    required int? selectedYearId,
+    required bool isDark,
+  }) {
     final tabs = [
       (_TransparencyTab.all, 'All Sections', Icons.dashboard_outlined),
       (_TransparencyTab.enrollment, 'Data on Enrollment', Icons.bar_chart_rounded),
@@ -389,7 +395,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     ];
 
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -404,133 +410,112 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           ),
         ],
       ),
-      child: Scrollbar(
-        controller: _tabBarScrollController,
-        thumbVisibility: true,
-        child: SingleChildScrollView(
-          controller: _tabBarScrollController,
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-          children: tabs.map((t) {
-            final isSelected = _activeTab == t.$1;
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: InkWell(
-                onTap: () => setState(() => _activeTab = t.$1),
-                borderRadius: BorderRadius.circular(8),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primaryGreen
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: AppColors.primaryGreen.withValues(alpha: 0.25),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        t.$3,
-                        size: 16,
-                        color: isSelected
-                            ? Colors.white
-                            : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        t.$2,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                          color: isSelected
-                              ? Colors.white
-                              : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCleanHeader(
-    BuildContext context, {
-    required TransparencyBoardData data,
-    required List<AcademicYear> academicYears,
-    required int? selectedYearId,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.p20,
-        vertical: 8,
-      ),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            AppColors.primaryGreen,
-            AppColors.darkGreen,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.darkGreen.withValues(alpha: 0.25),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isNarrow = constraints.maxWidth < 650;
+          final isWide = constraints.maxWidth >= 1200;
+          final isMedium = constraints.maxWidth >= 720;
 
-          final titleRow = Row(
+          final titleWidget = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(7),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.dashboard_outlined,
-                  color: Colors.white,
-                  size: 20,
+                  color: AppColors.primaryGreen,
+                  size: 18,
                 ),
               ),
-              const SizedBox(width: AppSizes.p12),
-              const Text(
-                'DEPED TRANSPARENCY BOARD',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'DEPED TRANSPARENCY BOARD',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    'Transparency & Performance Metrics',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: isDark ? AppColors.darkTextMuted : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ],
+          );
+
+          final tabSwitcher = SingleChildScrollView(
+            controller: _tabBarScrollController,
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: tabs.map((t) {
+                final isSelected = _activeTab == t.$1;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: InkWell(
+                    onTap: () => setState(() => _activeTab = t.$1),
+                    borderRadius: BorderRadius.circular(8),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primaryGreen
+                            : (isDark
+                                ? AppColors.darkSurface2.withValues(alpha: 0.4)
+                                : Colors.grey.shade100),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.primaryGreen.withValues(alpha: 0.25),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            t.$3,
+                            size: 15,
+                            color: isSelected
+                                ? Colors.white
+                                : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            t.$2,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
           );
 
           final actions = Wrap(
@@ -548,30 +533,67 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ],
           );
 
-          if (isNarrow) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (isWide) {
+            return Row(
               children: [
-                titleRow,
-                const SizedBox(height: 10),
+                titleWidget,
+                Container(
+                  height: 28,
+                  width: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 14),
+                  color: (isDark ? AppColors.darkBorder : Colors.grey).withValues(alpha: 0.25),
+                ),
+                Expanded(
+                  child: tabSwitcher,
+                ),
+                const SizedBox(width: 14),
                 actions,
               ],
             );
           }
 
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          if (isMedium) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    titleWidget,
+                    actions,
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Divider(
+                  height: 1,
+                  color: (isDark ? AppColors.darkBorder : Colors.grey).withValues(alpha: 0.15),
+                ),
+                const SizedBox(height: 8),
+                tabSwitcher,
+              ],
+            );
+          }
+
+          // Compact mobile view
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              titleRow,
+              titleWidget,
+              const SizedBox(height: 10),
               actions,
+              const SizedBox(height: 10),
+              Divider(
+                height: 1,
+                color: (isDark ? AppColors.darkBorder : Colors.grey).withValues(alpha: 0.15),
+              ),
+              const SizedBox(height: 8),
+              tabSwitcher,
             ],
           );
         },
       ),
     );
   }
-
-  // ── Standalone Section Card Container ─────────────────────────────────────
 
   // ── Standalone Section Card Container ─────────────────────────────────────
 
@@ -802,21 +824,21 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
+        color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.45),
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 15),
+          const Icon(Icons.calendar_month_rounded, color: AppColors.primaryGreen, size: 15),
           const SizedBox(width: 6),
-          const Text(
+          Text(
             'Academic Year:',
             style: TextStyle(
-              color: Colors.white,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -835,8 +857,8 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'SY ${ay.yearRange}${isActive ? ' (Active)' : ''}',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -844,7 +866,11 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   );
                 }).toList();
               },
-              icon: const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+              icon: Icon(
+                Icons.arrow_drop_down,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                size: 20,
+              ),
               items: sortedYears.map((ay) {
                 final isActive = ay.status.toLowerCase() == 'active';
                 return DropdownMenuItem<int>(
