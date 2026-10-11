@@ -1137,7 +1137,7 @@ class _NetworkScanDialogState extends State<_NetworkScanDialog> {
   }
 
   Future<void> _scan() async {
-    final found = await ServerDiscoveryService.resolveServerWithFallback(
+    final found = await ServerDiscoveryService.scanLanOnly(
       onProgress: (msg) {
         if (mounted) setState(() => _status = msg);
       },
@@ -1145,21 +1145,19 @@ class _NetworkScanDialogState extends State<_NetworkScanDialog> {
     if (!mounted) return;
     Navigator.pop(context);
     if (found != null) {
-      final isLan = found.contains('192.168.') ||
-          found.contains('10.') ||
-          found.contains('172.');
       showSuccessDialog(
         context,
-        title: isLan ? 'LAN Server Connected' : 'Tunnel Connected',
-        message: isLan
-            ? 'Connected to local server: $found'
-            : 'Local server not found. Connected to Cloud Tunnel: $found',
+        title: 'LAN Server Connected',
+        message: 'Successfully discovered and connected to local server: $found',
       );
     } else {
       showErrorDialog(
         context,
-        'Server Not Found',
-        'No TIS RMS server found on your Local Network (LAN) and the Cloud Tunnel domain (${ApiConstants.tunnelUrl}) is currently unreachable.',
+        'LAN Server Not Found',
+        'No TIS RMS server was found on your local network (LAN).\n\n'
+        '• Ensure the TIS RMS Server Manager is running on the host computer.\n'
+        '• Ensure this device is connected to the same Wi-Fi / network.\n\n'
+        'Your connection remains active on Cloud Tunnel (${ApiConstants.tunnelUrl}).',
       );
     }
   }

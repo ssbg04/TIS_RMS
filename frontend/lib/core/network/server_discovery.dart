@@ -1,18 +1,23 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_constants.dart';
 
 /// Discovers the TIS RMS server on the local network (LAN) and manages seamless fallback to Cloud Tunnel.
-/// 1. Verifies physical network interfaces, filtering out virtual/bridge/loopback adapters.
-/// 2. Probes local subnet hosts with bounded concurrency (pools of 25) using lightweight raw TCP checks first.
-/// 3. Confirms identity via HTTP X-TIS-RMS response header.
-/// 4. Prioritizes LAN for speed and offline resilience, seamlessly falling back to Cloud Tunnel (https://tis-rms.cc.cd/api).
+/// 1. Instant UDP discovery beacon (<50ms) to detect local server on Wi-Fi/LAN automatically.
+/// 2. Verifies physical network interfaces, filtering out virtual/bridge/loopback adapters.
+/// 3. Probes local subnet hosts with bounded concurrency (pools of 25) using lightweight raw TCP checks first.
+/// 4. Confirms identity via HTTP X-TIS-RMS response header.
+/// 5. Prioritizes LAN for speed and offline resilience, seamlessly falling back to Cloud Tunnel (https://tis-rms.cc.cd/api).
 class ServerDiscoveryService {
   static const int _port = 18484;
+  static const int _discoveryPort = 18485;
   static const String _prefsKey = 'server_url';
   static const Duration _socketTimeout = Duration(milliseconds: 300);
   static const Duration _pingTimeout = Duration(seconds: 2);
+  static const Duration _udpTimeout = Duration(milliseconds: 350);
 
   // ─── Saved URL ────────────────────────────────────────────────────────────
 
@@ -204,18 +209,142 @@ class ServerDiscoveryService {
     return null;
   }
 
+  // ─── UDP Discovery Beacon (Instant <50ms auto-detection) ────────────────────
+
+  /// Broadcasts a lightweight UDP probe ('TIS_RMS_DISCOVER') on port 18485.
+  /// If the TIS RMS backend / Server Manager is running on the LAN, it replies in <50ms.
+  /// Returns the discovered server URL (e.g. "http://192.168.1.50:18484") or null.
+  static Future<String?> quickUdpBeacon({
+    Duration timeout = _udpTimeout,
+  }) async {
+    RawDatagramSocket? socket;
+    Timer? timer;
+    final completer = Completer<String?>();
+
+    try {
+      socket = await RawDatagramSocket.bind(
+        InternetAddress.anyIPv4,
+        0,
+        reuseAddress: true,
+      );
+      socket.broadcastEnabled = true;
+
+      final message = utf8.encode('TIS_RMS_DISCOVER');
+
+      // 1. Broadcast to standard global local subnet broadcast address
+      try {
+        socket.send(message, InternetAddress('255.255.255.255'), _discoveryPort);
+      } catch (_) {}
+
+      // 2. Also broadcast explicitly to all active physical subnet broadcast IPs (e.g. 192.168.1.255)
+      try {
+        final prefixes = await getSubnetPrefixes();
+        for (final prefix in prefixes) {
+          final broadcastIp = '${prefix}255';
+          try {
+            socket.send(message, InternetAddress(broadcastIp), _discoveryPort);
+          } catch (_) {}
+        }
+      } catch (_) {}
+
+      // Listen for UDP response from server
+      socket.listen((RawSocketEvent event) {
+        if (event == RawSocketEvent.read) {
+          final datagram = socket?.receive();
+          if (datagram != null && !completer.isCompleted) {
+            try {
+              final text = utf8.decode(datagram.data).trim();
+              if (text.contains('TIS_RMS_SERVER')) {
+                int port = _port;
+                try {
+                  final Map<String, dynamic> data = jsonDecode(text);
+                  if (data['port'] != null) {
+                    port = int.tryParse(data['port'].toString()) ?? _port;
+                  }
+                } catch (_) {}
+
+                final senderIp = datagram.address.address;
+                final candidateUrl = 'http://$senderIp:$port';
+
+                timer?.cancel();
+                completer.complete(candidateUrl);
+              }
+            } catch (_) {}
+          }
+        }
+      });
+
+      timer = Timer(timeout, () {
+        if (!completer.isCompleted) {
+          completer.complete(null);
+        }
+      });
+
+      final result = await completer.future;
+      if (result != null) {
+        // Fast HTTP verify check (500ms) to ensure API server is fully ready
+        final verified = await ping(result, timeout: const Duration(milliseconds: 500));
+        if (verified) {
+          return result;
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    } finally {
+      timer?.cancel();
+      socket?.close();
+    }
+  }
+
+  // ─── Manual LAN-Only Scanner (Never falls back to Cloud Tunnel) ───────────
+
+  /// Scans specifically for local network endpoints. Bypasses SharedPreferences
+  /// and NEVER returns Cloud Tunnel. Used when user explicitly clicks "Scan Local Network".
+  static Future<String?> scanLanOnly({
+    void Function(String message)? onProgress,
+  }) async {
+    // 1. Fast UDP Discovery Beacon (<400ms)
+    onProgress?.call('Broadcasting LAN discovery beacon…');
+    final udpFound = await quickUdpBeacon(timeout: const Duration(milliseconds: 400));
+    if (udpFound != null) {
+      await save(udpFound);
+      ApiConstants.setBaseUrl(udpFound);
+      return udpFound;
+    }
+
+    // 2. Physical Subnet Probing (Fallback if Wi-Fi router blocks UDP broadcast)
+    onProgress?.call('Scanning local network IP range…');
+    final prefixes = await getSubnetPrefixes();
+    if (prefixes.isNotEmpty) {
+      final subnetFound = await discover(
+        onProgress: (subnet, scanned, total) {
+          onProgress?.call('Scanning LAN ${subnet}x … ($scanned/$total)');
+        },
+      );
+      if (subnetFound != null) {
+        await save(subnetFound);
+        ApiConstants.setBaseUrl(subnetFound);
+        return subnetFound;
+      }
+    }
+
+    return null;
+  }
+
   // ─── Master Resolution: LAN First, Then Seamless Tunnel Fallback ──────────
 
   /// Resolves the optimal server endpoint:
   /// 1. Fast Localhost check (for single-machine setups).
-  /// 2. Fast check of previously working saved LAN URL.
-  /// 3. Fast physical LAN discovery (bounded ~2.5s scan).
-  /// 4. Previously saved Tunnel URL or Cloud Tunnel fallback (https://tis-rms.cc.cd/api).
-  /// 5. VPS & Localhost fallbacks.
+  /// 2. Instant UDP LAN discovery beacon (instant <50ms auto-connect on Wi-Fi).
+  /// 3. Fast check of previously working saved LAN server.
+  /// 4. Subnet port scan fallback.
+  /// 5. Cloud Tunnel fallback (https://tis-rms.cc.cd/api).
+  /// 6. VPS fallback.
   static Future<String?> resolveServerWithFallback({
     void Function(String message)? onProgress,
   }) async {
-    // 1. Fast Localhost Check (< 400ms)
+    // 1. Fast Localhost Check (< 350ms)
     onProgress?.call('Checking local host (127.0.0.1)…');
     final localhostAlive = await ping(
       ApiConstants.localhostUrl,
@@ -227,19 +356,29 @@ class ServerDiscoveryService {
       return ApiConstants.localhostUrl;
     }
 
-    // 2. Fast check of previously working saved server (instant reconnect)
+    // 2. Instant UDP LAN Discovery Beacon (< 350ms)
+    // Instantly finds the local Server Manager backend on school Wi-Fi without manual scanning!
+    onProgress?.call('Probing local network (LAN)…');
+    final udpFound = await quickUdpBeacon(timeout: const Duration(milliseconds: 350));
+    if (udpFound != null) {
+      await save(udpFound);
+      ApiConstants.setBaseUrl(udpFound);
+      return udpFound;
+    }
+
+    // 3. Fast check of previously working saved server (if it's a LAN address)
     final saved = await getSaved();
-    if (saved != null && saved.isNotEmpty) {
-      onProgress?.call('Checking saved server connection…');
-      final alive = await ping(saved, timeout: const Duration(seconds: 1));
+    if (saved != null && saved.isNotEmpty && _isLanUrl(saved)) {
+      onProgress?.call('Checking saved LAN server…');
+      final alive = await ping(saved, timeout: const Duration(milliseconds: 700));
       if (alive) {
         ApiConstants.setBaseUrl(saved);
         return saved;
       }
     }
 
-    // 3. Scan physical Local Network (LAN)
-    onProgress?.call('Scanning local network (LAN)…');
+    // 4. Physical Subnet Scan (if UDP was blocked by router)
+    onProgress?.call('Scanning local network subnets…');
     final prefixes = await getSubnetPrefixes();
     if (prefixes.isNotEmpty) {
       final found = await discover(
@@ -254,7 +393,7 @@ class ServerDiscoveryService {
       }
     }
 
-    // 4. Cloudflare Tunnel Domain Fallback (https://tis-rms.cc.cd/api)
+    // 5. Cloudflare Tunnel Domain Fallback (https://tis-rms.cc.cd/api)
     onProgress?.call('Connecting to Cloud Tunnel…');
     final tunnelAlive = await ping(
       ApiConstants.tunnelUrl,
