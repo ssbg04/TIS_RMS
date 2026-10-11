@@ -87,12 +87,13 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
     'Completed',
     'Missing',
   ];
-  static const _allTabStatusItems = [
+  static const _statusItems = [
     'All Status',
-    'Graduated',
-    'Transferred',
-    'Dropped',
+    'Enrolled',
     'Inactive',
+    'Dropped',
+    'Transferred',
+    'Graduated',
   ];
   static const _fourPsItems = ['All', 'Yes', 'No'];
   static const _pageSizes = [10, 15, 20, 50, 100];
@@ -106,9 +107,6 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
     _pendingGradeLevel = q.gradeLevel.isEmpty ? 'All Grades' : q.gradeLevel;
     _pendingSection = q.section.isEmpty ? 'All Sections' : q.section;
     _pendingStatus = q.status.isEmpty ? 'All Status' : q.status;
-    if (!widget.isEnrolledTab && _pendingStatus == 'Enrolled') {
-      _pendingStatus = 'All Status';
-    }
     _pending4Ps =
         q.is4Ps.isEmpty ? 'All' : (q.is4Ps == 'true' ? 'Yes' : 'No');
     _pendingSortBy = q.sortBy;
@@ -398,22 +396,20 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
 
                   _buildDivider(isDark),
 
-                  // 4. Status Filter - only shown for All Students, with 'Enrolled' removed
-                  if (!widget.isEnrolledTab) ...[
-                    _buildFilterSection(
-                      label: 'Status',
-                      hasActiveFilter: _pendingStatus != 'All Status',
-                      onReset: () => setState(() {
-                        _pendingStatus = 'All Status';
-                      }),
-                      child: _buildFilterChipGroup(
-                        items: _allTabStatusItems,
-                        selectedValue: _pendingStatus,
-                        onSelected: (v) => setState(() => _pendingStatus = v),
-                      ),
+                  // 4. Status Filter
+                  _buildFilterSection(
+                    label: 'Status',
+                    hasActiveFilter: _pendingStatus != 'All Status',
+                    onReset: () => setState(() {
+                      _pendingStatus = 'All Status';
+                    }),
+                    child: _buildFilterChipGroup(
+                      items: _statusItems,
+                      selectedValue: _pendingStatus,
+                      onSelected: (v) => setState(() => _pendingStatus = v),
                     ),
-                    _buildDivider(isDark),
-                  ],
+                  ),
+                  _buildDivider(isDark),
 
                   // 5. 4Ps Beneficiary
                   _buildFilterSection(
@@ -524,8 +520,7 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
                             : 'All School Years';
                         _pendingGradeLevel = 'All Grades';
                         _pendingSection = 'All Sections';
-                        _pendingStatus =
-                            widget.isEnrolledTab ? 'Enrolled' : 'All Status';
+                        _pendingStatus = 'All Status';
                         _pending4Ps = 'All';
                         _pendingSortBy = '';
                         _pendingSortOrder = '';
@@ -572,11 +567,9 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
                             section: _pendingSection == 'All Sections'
                                 ? ''
                                 : _pendingSection,
-                            status: widget.isEnrolledTab
-                                ? 'Enrolled'
-                                : (_pendingStatus == 'All Status'
-                                    ? ''
-                                    : _pendingStatus),
+                            status: _pendingStatus == 'All Status'
+                                ? ''
+                                : _pendingStatus,
                             is4Ps: is4psVal,
                             sortBy: _pendingSortBy,
                             sortOrder: _pendingSortOrder,

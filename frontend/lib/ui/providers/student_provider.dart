@@ -229,10 +229,11 @@ final studentActiveFilterCountProvider = Provider<int>((ref) {
   final tab = ref.watch(studentViewTabProvider);
 
   if (tab == StudentViewTab.enrolled) {
-    // In enrolled tab, status and schoolYear are inherent to the tab, not user overrides
+    // In enrolled tab, status is a user filter; schoolYear is inherent to the tab
     return [
       query.gradeLevel.isNotEmpty,
       query.section.isNotEmpty,
+      query.status.isNotEmpty,
       query.is4Ps.isNotEmpty,
       query.sortBy.isNotEmpty,
       query.limit != 20,

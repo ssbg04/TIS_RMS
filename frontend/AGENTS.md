@@ -1113,16 +1113,18 @@ Files backup/restore - mirror mode or zip -->
 
 # STUDENT SCREEN
 - enrolled tab: 
-  - when no students it has clear filter button, remove it, then in the student list table, add add button at the bottom to add student and nagivation for all students tab to enroll a students]
-  - when I update the student status to inactive, dropped, transferred, graduated stays on this tab, add in filter for inactive, dropped, transferred, graducation
-  - rename the tab as the active academic year
+  - [x] when no students it has clear filter button, remove it, then in the student list table, add add button at the bottom to add student and nagivation for all students tab to enroll a students
+  - [x] when I update the student status to inactive, dropped, transferred, graduated stays on this tab, add in filter for inactive, dropped, transferred, graduation
+  - [x] rename the tab as the active academic year
 - student profile: 
-  - prevent or remove the buttons for not enrolled students upload docs
-  - history add load more and load less, it only show last 10 entries, and resets to default when not active tab
-  - remove the verified badge for files on records
-  - add button to navigate to document screen inside of their folder
-- pagination on windows app
-  - use white font for dark theme and black for white theme for previous, next, and pagination numbers and add background like the numbers
+  - [x] prevent or remove the buttons for not enrolled students upload docs
+  - [x] history add load more and load less, it only show last 10 entries, and resets to default when not active tab
+  - [x] remove the verified badge for files on records
+  - [x] add button to navigate to document screen inside of their folder
+
+
+# Pagination on windows app
+- [x] use white font for dark theme and black for white theme for previous, next, and pagination numbers and add background like the numbers
 
 # ARCHIVE SCREEN
 - [x] Removed Recycle Bin, delete, restore, upload new version, and copy buttons from the Archive Screen (including folder context menus, document context menus, document preview modal, and bulk operations bar).

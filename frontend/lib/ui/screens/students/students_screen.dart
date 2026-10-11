@@ -194,9 +194,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         (y) => y.status.toLowerCase() == 'active',
         orElse: () => years.isNotEmpty ? years.first : AcademicYearModel(id: 0, yearRange: '', status: ''),
       );
-      // Apply enrolled status + current school year
+      // Apply active school year without hardcoding status so all statuses in this SY stay visible
       ref.read(studentQueryProvider.notifier).setFilters(
-        status: 'Enrolled',
+        status: '',
         schoolYear: active.yearRange.isNotEmpty ? active.yearRange : '',
         gradeLevel: '',
         section: '',
@@ -217,7 +217,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   void _onSearchSubmitted(String query) {
     _debounce?.cancel();
-    if (widget.userRole != 'teacher' && query.trim().isNotEmpty && _viewTab != StudentViewTab.all) {
+    if (query.trim().isNotEmpty && _viewTab != StudentViewTab.all) {
       if (mounted) setState(() => _viewTab = StudentViewTab.all);
       ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
       ref.read(studentQueryProvider.notifier).setFilters(
@@ -1065,7 +1065,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           );
           if (active.yearRange.isNotEmpty && currentQuery.schoolYear != active.yearRange) {
             ref.read(studentQueryProvider.notifier).setFilters(
-              status: 'Enrolled',
+              status: currentQuery.status,
               schoolYear: active.yearRange,
             );
           }
@@ -1549,7 +1549,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       ));
     }
 
-    if (_viewTab == StudentViewTab.all && query.status.isNotEmpty) {
+    if (query.status.isNotEmpty) {
       chips.add(_buildFilterChip(
         label: 'Status: ${query.status}',
         onDeleted: () => ref.read(studentQueryProvider.notifier).setStatus(''),
@@ -1676,7 +1676,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     } catch (_) {
       activeYear = years.isNotEmpty ? years.first : null;
     }
-    final yearLabel = activeYear != null ? ' · ${activeYear.yearRange}' : '';
+    final tabLabel = activeYear != null && activeYear.yearRange.isNotEmpty
+        ? (isMobile ? activeYear.yearRange : 'S.Y. ${activeYear.yearRange}')
+        : (isMobile ? 'Active S.Y.' : 'Active School Year');
 
     final isEnrolled = _viewTab == StudentViewTab.enrolled;
 
@@ -1697,26 +1699,26 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           _buildSegmentedTabItem(
             icon: Icons.school_outlined,
             activeIcon: Icons.school_rounded,
-            label: isMobile ? 'Enrolled' : 'Enrolled$yearLabel',
-            isSelected: widget.userRole == 'teacher' ? true : isEnrolled,
+            label: tabLabel,
+            isSelected: isEnrolled,
             isDark: isDark,
             isMobile: isMobile,
             isMobileOrAndroid: isMobileOrAndroid,
-            onTap: widget.userRole == 'teacher' ? () {} : () => _applyViewTab(StudentViewTab.enrolled),
+            onTap: () => _applyViewTab(StudentViewTab.enrolled),
           ),
-          if (widget.userRole != 'teacher') ...[
-            const SizedBox(width: 2),
-            _buildSegmentedTabItem(
-              icon: Icons.people_outline_rounded,
-              activeIcon: Icons.people_alt_rounded,
-              label: isMobile ? 'All' : 'All Students',
-              isSelected: !isEnrolled,
-              isDark: isDark,
-              isMobile: isMobile,
-              isMobileOrAndroid: isMobileOrAndroid,
-              onTap: () => _applyViewTab(StudentViewTab.all),
-            ),
-          ],
+          const SizedBox(width: 2),
+          _buildSegmentedTabItem(
+            icon: Icons.people_outline_rounded,
+            activeIcon: Icons.people_alt_rounded,
+            label: widget.userRole == 'teacher'
+                ? (isMobile ? 'Assigned' : 'All Assigned')
+                : (isMobile ? 'All' : 'All Students'),
+            isSelected: !isEnrolled,
+            isDark: isDark,
+            isMobile: isMobile,
+            isMobileOrAndroid: isMobileOrAndroid,
+            onTap: () => _applyViewTab(StudentViewTab.all),
+          ),
         ],
       ),
     );
@@ -1851,6 +1853,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     if (students.isEmpty) return _buildEmptyState(noSections: noSections);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final showBottomActions = _viewTab == StudentViewTab.enrolled && widget.userRole != 'teacher';
 
     return RefreshIndicator(
       color: AppColors.primaryGreen,
@@ -1868,11 +1871,14 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           top: isDesktop ? 10 : 14,
           bottom: isDesktop ? 20 : (defaultTargetPlatform == TargetPlatform.android ? 8 : 16),
         ),
-        itemCount: students.length,
+        itemCount: students.length + (showBottomActions ? 1 : 0),
         separatorBuilder: (ctx, index) => SizedBox(
           height: isDesktop ? 8 : AppSizes.p12,
         ),
         itemBuilder: (context, i) {
+          if (i == students.length) {
+            return _buildEnrolledBottomActions(isDark, isDesktop);
+          }
           final s = students[i];
           final isSelected = _selectedStudentIds.contains(s.id);
           if (isDesktop) {
@@ -1881,6 +1887,50 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             return _buildMobileCard(context, s, isSelected, isDark);
           }
         },
+      ),
+    );
+  }
+
+  Widget _buildEnrolledBottomActions(bool isDark, bool isDesktop) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          OutlinedButton.icon(
+            onPressed: () => _openModal(),
+            icon: const Icon(Icons.person_add_rounded, size: 18),
+            label: const Text('Add Student'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primaryGreen,
+              side: const BorderSide(color: AppColors.primaryGreen),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => _applyViewTab(StudentViewTab.all),
+            icon: const Icon(Icons.people_alt_rounded, size: 18),
+            label: const Text('Enroll Existing Student (All Students)'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2949,6 +2999,97 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
     final query = ref.watch(studentQueryProvider);
+    final isEnrolledTab = _viewTab == StudentViewTab.enrolled;
+
+    if (isEnrolledTab) {
+      final years = ref.watch(academicYearsListProvider).asData?.value ?? [];
+      AcademicYearModel? activeYear;
+      try {
+        activeYear = years.firstWhere((y) => y.status.toLowerCase() == 'active');
+      } catch (_) {
+        activeYear = years.isNotEmpty ? years.first : null;
+      }
+      final syTitle = activeYear != null && activeYear.yearRange.isNotEmpty
+          ? 'S.Y. ${activeYear.yearRange}'
+          : 'Active School Year';
+
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.school_outlined,
+                  size: 48,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No Students in $syTitle',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                query.status.isNotEmpty || query.gradeLevel.isNotEmpty || query.section.isNotEmpty || query.search.isNotEmpty
+                    ? 'No students match your selected filters in $syTitle.'
+                    : 'There are no students enrolled in $syTitle yet.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+              if (widget.userRole != 'teacher') ...[
+                const SizedBox(height: 20),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => _openModal(),
+                      icon: const Icon(Icons.person_add_rounded, size: 18),
+                      label: const Text('Add Student'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryGreen,
+                        side: const BorderSide(color: AppColors.primaryGreen),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () => _applyViewTab(StudentViewTab.all),
+                      icon: const Icon(Icons.people_alt_rounded, size: 18),
+                      label: const Text('Enroll Existing Student (All Students)'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
     final hasActiveFilter = query.search.isNotEmpty ||
         query.gradeLevel.isNotEmpty ||
         query.section.isNotEmpty ||

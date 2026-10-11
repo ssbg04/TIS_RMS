@@ -12,6 +12,8 @@ import '../../../../domain/repositories/document_repository.dart'
 import '../../../../domain/entities/document_requirement_model.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/document_provider.dart';
+import '../../../providers/navigation_provider.dart';
+import '../../../providers/archives_provider.dart';
 import 'document_preview_modal.dart';
 import 'upload_ocr_modal.dart';
 import 'print_queue_modal.dart';
@@ -368,6 +370,51 @@ class StudentProfileModalBody extends ConsumerStatefulWidget {
 class _StudentProfileModalBodyState
     extends ConsumerState<StudentProfileModalBody> {
   _StudentProfileTab _selectedTab = _StudentProfileTab.overview;
+  int _historyLimit = 10;
+
+  void _navigateToDocumentsFolder(BuildContext context, StudentModel student) {
+    Navigator.of(context).pop();
+    if (student.status == 'Enrolled') {
+      ref.read(activeTabProvider.notifier).setTab('Documents');
+      Future.microtask(() {
+        ref.read(openedFolderProvider.notifier).setFolder(
+              OpenedFolderData(
+                id: student.id,
+                name: student.listDisplayName,
+                lrn: student.lrn,
+              ),
+            );
+      });
+    } else {
+      if (widget.userRole.toLowerCase() == 'teacher') {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Inactive Record'),
+            content: Text(
+              '${student.listDisplayName} is currently marked as ${student.status}. Archived records are only accessible by Administrators.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ref.read(activeTabProvider.notifier).setTab('Archives');
+        Future.microtask(() {
+          ref.read(openedArchiveFolderProvider.notifier).setFolder(
+                OpenedArchiveFolderData(
+                  id: student.id,
+                  name: student.listDisplayName,
+                ),
+              );
+        });
+      }
+    }
+  }
 
   Future<void> _handleAddToPrintQueue(DocumentModel doc) async {
     try {
@@ -513,7 +560,10 @@ class _StudentProfileModalBodyState
               icon: Icons.person_outline_rounded,
               isSelected: _selectedTab == _StudentProfileTab.overview,
               isDark: isDark,
-              onTap: () => setState(() => _selectedTab = _StudentProfileTab.overview),
+              onTap: () => setState(() {
+                _selectedTab = _StudentProfileTab.overview;
+                _historyLimit = 10;
+              }),
             ),
           ),
           const SizedBox(width: 4),
@@ -524,7 +574,10 @@ class _StudentProfileModalBodyState
               count: docCount,
               isSelected: _selectedTab == _StudentProfileTab.documents,
               isDark: isDark,
-              onTap: () => setState(() => _selectedTab = _StudentProfileTab.documents),
+              onTap: () => setState(() {
+                _selectedTab = _StudentProfileTab.documents;
+                _historyLimit = 10;
+              }),
             ),
           ),
           const SizedBox(width: 4),
@@ -791,11 +844,13 @@ class _StudentProfileModalBodyState
           _buildRequirementsStatus(
             context,
             missing,
-            onUploadRequirement: (req) => UploadOcrModal.show(
-              context,
-              prefilledStudentId: student.id,
-              prefilledLrn: student.lrn,
-            ),
+            onUploadRequirement: student.status == 'Enrolled'
+                ? (req) => UploadOcrModal.show(
+                    context,
+                    prefilledStudentId: student.id,
+                    prefilledLrn: student.lrn,
+                  )
+                : null,
           )
         else
           Container(
@@ -847,6 +902,21 @@ class _StudentProfileModalBodyState
                 runSpacing: 4,
                 children: [
                   OutlinedButton.icon(
+                    onPressed: () => _navigateToDocumentsFolder(context, student),
+                    icon: const Icon(Icons.folder_open_rounded, size: 14),
+                    label: Text(
+                      student.status == 'Enrolled' ? 'Open Folder' : 'Open Archive',
+                      style: const TextStyle(fontSize: 11.5),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: AppColors.primaryGreen,
+                      side: const BorderSide(color: AppColors.primaryGreen),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    ),
+                  ),
+                  OutlinedButton.icon(
                     onPressed: () => PrintQueueModal.show(context),
                     icon: const Icon(Icons.print_outlined, size: 14),
                     label: const Text('Print Queue', style: TextStyle(fontSize: 11.5)),
@@ -864,23 +934,24 @@ class _StudentProfileModalBodyState
                           const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () => UploadOcrModal.show(
-                      context,
-                      prefilledStudentId: student.id,
-                      prefilledLrn: student.lrn,
+                  if (student.status == 'Enrolled')
+                    ElevatedButton.icon(
+                      onPressed: () => UploadOcrModal.show(
+                        context,
+                        prefilledStudentId: student.id,
+                        prefilledLrn: student.lrn,
+                      ),
+                      icon: const Icon(Icons.upload_file_rounded, size: 14),
+                      label:
+                          const Text('Upload File', style: TextStyle(fontSize: 11.5)),
+                      style: ElevatedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      ),
                     ),
-                    icon: const Icon(Icons.upload_file_rounded, size: 14),
-                    label:
-                        const Text('Upload File', style: TextStyle(fontSize: 11.5)),
-                    style: ElevatedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    ),
-                  ),
                 ],
               );
 
@@ -962,11 +1033,13 @@ class _StudentProfileModalBodyState
           _buildRequirementsStatus(
             context,
             missing,
-            onUploadRequirement: (req) => UploadOcrModal.show(
-              context,
-              prefilledStudentId: student.id,
-              prefilledLrn: student.lrn,
-            ),
+            onUploadRequirement: student.status == 'Enrolled'
+                ? (req) => UploadOcrModal.show(
+                    context,
+                    prefilledStudentId: student.id,
+                    prefilledLrn: student.lrn,
+                  )
+                : null,
           )
         else
           const Center(
@@ -1159,11 +1232,6 @@ class _StudentProfileModalBodyState
   ) {
     final bool isMobile = MediaQuery.of(context).size.width < 500;
     final isArchived = doc.status.toLowerCase() == 'archived';
-    final statusColor = isArchived ? Colors.grey : AppColors.success;
-    final statusIcon = isArchived
-        ? Icons.archive_outlined
-        : Icons.check_circle_rounded;
-    final statusLabel = isArchived ? 'Archived' : 'Verified';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -1208,32 +1276,34 @@ class _StudentProfileModalBodyState
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: isDark ? 0.2 : 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                        border:
-                            Border.all(color: statusColor.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(statusIcon, size: 9, color: statusColor),
-                          const SizedBox(width: 3),
-                          Text(
-                            statusLabel,
-                            style: TextStyle(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold,
-                              color: statusColor,
+                    if (isArchived) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: isDark ? 0.2 : 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border:
+                              Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.archive_outlined, size: 9, color: Colors.grey),
+                            SizedBox(width: 3),
+                            Text(
+                              'Archived',
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 3),
@@ -1472,10 +1542,59 @@ class _StudentProfileModalBodyState
               );
             }
 
+            final displayed = activities.take(_historyLimit).toList();
+            final hasMore = activities.length > _historyLimit;
+            final canLoadLess = _historyLimit > 10;
+
             return Column(
-              children: activities
-                  .map((a) => _buildActivityItemTile(context, a, isDark))
-                  .toList(),
+              children: [
+                ...displayed
+                    .map((a) => _buildActivityItemTile(context, a, isDark)),
+                if (hasMore || canLoadLess) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (hasMore)
+                        OutlinedButton.icon(
+                          onPressed: () => setState(() {
+                            _historyLimit += 10;
+                          }),
+                          icon: const Icon(Icons.expand_more_rounded, size: 16),
+                          label: Text(
+                            'Load More (${activities.length - _historyLimit} left)',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primaryGreen,
+                            side: const BorderSide(color: AppColors.primaryGreen),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      if (hasMore && canLoadLess) const SizedBox(width: 10),
+                      if (canLoadLess)
+                        TextButton.icon(
+                          onPressed: () => setState(() {
+                            _historyLimit = 10;
+                          }),
+                          icon: const Icon(Icons.expand_less_rounded, size: 16),
+                          label: const Text('Load Less',
+                              style: TextStyle(fontSize: 12)),
+                          style: TextButton.styleFrom(
+                            foregroundColor: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
             );
           },
         ),
@@ -1701,46 +1820,84 @@ class _StudentProfileModalBodyState
                     _buildStatusBadge(student.status),
                   ],
                 ),
-                if (widget.onEditDetails != null) ...[
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: InkWell(
-                      onTap: widget.onEditDetails,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 7),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen
-                              .withValues(alpha: isDark ? 0.20 : 0.10),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    if (widget.onEditDetails != null)
+                      Expanded(
+                        child: InkWell(
+                          onTap: widget.onEditDetails,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.primaryGreen
-                                .withValues(alpha: isDark ? 0.45 : 0.35),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.edit_rounded,
-                                size: 13, color: AppColors.primaryGreen),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Edit Details',
-                              style: TextStyle(
-                                color: AppColors.primaryGreen,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.2,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 7),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryGreen
+                                  .withValues(alpha: isDark ? 0.20 : 0.10),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppColors.primaryGreen
+                                    .withValues(alpha: isDark ? 0.45 : 0.35),
+                                width: 1,
                               ),
                             ),
-                          ],
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.edit_rounded,
+                                    size: 13, color: AppColors.primaryGreen),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Edit Details',
+                                  style: TextStyle(
+                                    color: AppColors.primaryGreen,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (widget.onEditDetails != null) const SizedBox(width: 8),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _navigateToDocumentsFolder(context, student),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 7),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.folder_open_rounded,
+                                  size: 14,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                              const SizedBox(width: 6),
+                              Text(
+                                student.status == 'Enrolled' ? 'View Folder' : 'View Archive',
+                                style: TextStyle(
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ] else ...[
                 Row(
                   children: [
@@ -1839,6 +1996,45 @@ class _StudentProfileModalBodyState
                             ),
                           ),
                         ],
+                        const SizedBox(height: 6),
+                        Tooltip(
+                          message: student.status == 'Enrolled'
+                              ? 'Open Folder in Documents'
+                              : 'Open Folder in Archives',
+                          child: InkWell(
+                            onTap: () => _navigateToDocumentsFolder(context, student),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.folder_open_rounded,
+                                      size: 12,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    student.status == 'Enrolled' ? 'View Folder' : 'View Archive',
+                                    style: TextStyle(
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],

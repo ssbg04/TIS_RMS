@@ -74,20 +74,32 @@ class AppPagination extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // "Previous" text button
-        InkWell(
-          onTap: canPrev ? () => onPageChanged(currentPage - 1) : null,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Text(
-              'Previous',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: canPrev
-                    ? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)
-                    : (isDark ? Colors.white24 : Colors.grey.shade400),
+        // "Previous" text button with background like numbers
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: canPrev ? () => onPageChanged(currentPage - 1) : null,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                ),
+              ),
+              child: Text(
+                'Previous',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: canPrev
+                      ? (isDark ? Colors.white : Colors.black)
+                      : (isDark ? Colors.white24 : Colors.grey.shade400),
+                ),
               ),
             ),
           ),
@@ -99,20 +111,32 @@ class AppPagination extends StatelessWidget {
 
         const SizedBox(width: 8),
 
-        // "Next" text button
-        InkWell(
-          onTap: canNext ? () => onPageChanged(currentPage + 1) : null,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Text(
-              'Next',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: canNext
-                    ? AppColors.primaryGreen
-                    : (isDark ? Colors.white24 : Colors.grey.shade400),
+        // "Next" text button with background like numbers
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: canNext ? () => onPageChanged(currentPage + 1) : null,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                ),
+              ),
+              child: Text(
+                'Next',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: canNext
+                      ? (isDark ? Colors.white : Colors.black)
+                      : (isDark ? Colors.white24 : Colors.grey.shade400),
+                ),
               ),
             ),
           ),
@@ -278,8 +302,8 @@ class AppPagination extends StatelessWidget {
                   color: isActive
                       ? Colors.white
                       : (isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.textPrimary),
+                          ? Colors.white
+                          : Colors.black),
                 ),
               ),
             ),
@@ -386,8 +410,8 @@ class AppPagination extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: isDark
-                    ? AppColors.darkTextPrimary
-                    : AppColors.textPrimary,
+                    ? Colors.white
+                    : Colors.black,
               ),
             ),
             const SizedBox(width: 2),
