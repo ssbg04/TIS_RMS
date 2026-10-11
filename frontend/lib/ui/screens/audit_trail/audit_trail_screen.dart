@@ -9,6 +9,7 @@ import '../../providers/dashboard_provider.dart';
 import '../../../domain/entities/dashboard_models.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/login_sessions_provider.dart';
+import '../../../core/utils/ip_location_helper.dart';
 import '../../shared/modals/view_activity_modal.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/inputs/app_search_bar.dart';
@@ -2041,11 +2042,15 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
                       onTap: () {
+                        final ipLoc = IpLocationHelper.getFastLocation(log.ipAddress);
+                        final ipDesc = log.ipAddress != null
+                            ? (ipLoc != null ? '${log.ipAddress} ($ipLoc)' : log.ipAddress!)
+                            : 'Unknown IP';
                         ViewActivityModal.show(
                           context: context,
                           title: isActive ? 'Active Session' : 'Completed Session',
                           description:
-                              'User @${log.username} (${log.fullName.isNotEmpty ? log.fullName : 'No Name'}) logged in via $platformDisplay (${log.ipAddress ?? 'Unknown IP'}).\n\n'
+                              'User @${log.username} (${log.fullName.isNotEmpty ? log.fullName : 'No Name'}) logged in via $platformDisplay ($ipDesc).\n\n'
                               'Login: ${pht.formatDateTime12H(log.loginAt)}\n'
                               '${log.logoutAt != null ? 'Logout: ${pht.formatDateTime12H(log.logoutAt!)}' : 'Session is currently active.'}',
                           date: pht.formatDateTime12H(log.loginAt),
@@ -2253,6 +2258,39 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                                   .onSurface
                                                   .withValues(alpha: 0.6),
                                               ),
+                                            ),
+                                            FutureBuilder<String>(
+                                              future: IpLocationHelper.resolveLocation(log.ipAddress!),
+                                              initialData: IpLocationHelper.getFastLocation(log.ipAddress!),
+                                              builder: (context, snapshot) {
+                                                final loc = snapshot.data;
+                                                if (loc == null || loc.isEmpty) return const SizedBox.shrink();
+                                                return Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const SizedBox(width: 6),
+                                                    Icon(
+                                                      Icons.location_on_outlined,
+                                                      size: 12,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface
+                                                          .withValues(alpha: 0.5),
+                                                    ),
+                                                    const SizedBox(width: 2),
+                                                    Text(
+                                                      loc,
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface
+                                                          .withValues(alpha: 0.6),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
                                             ),
                                           ],
                                         ),

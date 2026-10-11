@@ -9,6 +9,7 @@ import 'student_provider.dart' hide academicYearsProvider;
 import 'navigation_provider.dart';
 import 'reports_provider.dart';
 import 'connected_users_provider.dart';
+import 'dashboard_provider.dart';
 import '../../core/services/foreground_sync_service.dart';
 import '../../core/services/fcm_service.dart';
 
@@ -39,6 +40,8 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
         password,
         rememberMe: rememberMe,
       );
+      ref.invalidate(dashboardDataProvider);
+      ref.invalidate(dashboardKpisProvider);
       state = AsyncData(user);
       ref.read(heartbeatServiceProvider).start(user);
       ForegroundSyncService.start();
@@ -99,6 +102,9 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     ref.invalidate(missingDocsFilterExpandedProvider);
     ref.invalidate(yearlyComparisonSelectedYearsProvider);
     ref.invalidate(yearlyComparisonSelectedStatusesProvider);
+
+    ref.invalidate(dashboardDataProvider);
+    ref.invalidate(dashboardKpisProvider);
   }
 
   Future<void> refreshUser() async {

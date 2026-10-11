@@ -232,6 +232,7 @@ class StatusDistributionEntry {
 
 class StudentDocCount {
   final int id;
+  final String? lrn;
   final String name;
   final int docCount;
   final int uploadedCount;
@@ -242,8 +243,12 @@ class StudentDocCount {
   final int? gradeLevel;
   final String category;
 
+  String get listDisplayName => name;
+  String get firstName => name.trim().split(' ').first;
+
   const StudentDocCount({
     required this.id,
+    this.lrn,
     required this.name,
     required this.docCount,
     this.uploadedCount = 0,
@@ -271,6 +276,7 @@ class StudentDocCount {
 
     return StudentDocCount(
       id: (j['id'] as num?)?.toInt() ?? 0,
+      lrn: j['lrn'] as String?,
       name: j['name'] as String? ?? '',
       docCount: uploaded,
       uploadedCount: uploaded,
@@ -280,6 +286,55 @@ class StudentDocCount {
       percent: pct,
       gradeLevel: (j['gradeLevel'] as num?)?.toInt(),
       category: j['category'] as String? ?? 'JHS',
+    );
+  }
+}
+
+class MissingRequirementGroup {
+  final String name;
+  final String category;
+  final int count;
+  final List<StudentDocCount> students;
+
+  const MissingRequirementGroup({
+    required this.name,
+    this.category = 'JHS',
+    required this.count,
+    this.students = const [],
+  });
+
+  factory MissingRequirementGroup.fromJson(Map<String, dynamic> j) {
+    return MissingRequirementGroup(
+      name: j['name'] as String? ?? '',
+      category: j['category'] as String? ?? 'JHS',
+      count: (j['count'] as num?)?.toInt() ?? 0,
+      students: (j['students'] as List<dynamic>? ?? [])
+          .map((e) => StudentDocCount.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class NeedsAttentionData {
+  final int totalAlerts;
+  final List<MissingRequirementGroup> missingRequirements;
+  final List<StudentDocCount> urgentStudents;
+
+  const NeedsAttentionData({
+    required this.totalAlerts,
+    this.missingRequirements = const [],
+    this.urgentStudents = const [],
+  });
+
+  factory NeedsAttentionData.fromJson(Map<String, dynamic> j) {
+    return NeedsAttentionData(
+      totalAlerts: (j['totalAlerts'] as num?)?.toInt() ?? 0,
+      missingRequirements: (j['missingRequirements'] as List<dynamic>? ?? [])
+          .map((e) => MissingRequirementGroup.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      urgentStudents: (j['urgentStudents'] as List<dynamic>? ?? [])
+          .map((e) => StudentDocCount.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -376,6 +431,7 @@ class DashboardKpis {
   final List<StatusDistributionEntry> statusDistribution;
   final List<StudentDocCount> topStudents;
   final List<StudentDocCount> bottomStudents;
+  final NeedsAttentionData? needsAttention;
   final List<DocTypeEntry> docTypeBreakdown;
   final Map<String, List<DocTypeGradeEntry>> docTypeByGrade;
   final List<UploadTrendEntry> uploadTrend;
@@ -388,6 +444,7 @@ class DashboardKpis {
     required this.statusDistribution,
     required this.topStudents,
     required this.bottomStudents,
+    this.needsAttention,
     required this.docTypeBreakdown,
     this.docTypeByGrade = const {},
     required this.uploadTrend,
@@ -423,6 +480,9 @@ class DashboardKpis {
       bottomStudents: (j['bottomStudents'] as List<dynamic>? ?? [])
           .map((e) => StudentDocCount.fromJson(e as Map<String, dynamic>))
           .toList(),
+      needsAttention: j['needsAttention'] != null
+          ? NeedsAttentionData.fromJson(j['needsAttention'] as Map<String, dynamic>)
+          : null,
       docTypeBreakdown: (j['docTypeBreakdown'] as List<dynamic>? ?? [])
           .map((e) => DocTypeEntry.fromJson(e as Map<String, dynamic>))
           .toList(),

@@ -24,6 +24,7 @@ class AuthRepository {
           'password': password,
           'platform': ApiConstants.clientPlatform,
           'device_name': ApiConstants.clientDeviceName,
+          'remember_me': rememberMe,
         },
       );
 

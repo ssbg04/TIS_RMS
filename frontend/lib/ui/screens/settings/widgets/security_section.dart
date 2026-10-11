@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/utils/ip_location_helper.dart';
 import '../../../../domain/entities/user_model.dart';
 import '../../../providers/sessions_provider.dart';
 import 'change_password_modal.dart';
@@ -28,6 +29,9 @@ class SecuritySection extends ConsumerStatefulWidget {
 }
 
 class _SecuritySectionState extends ConsumerState<SecuritySection> {
+  bool _isDevicesExpanded = false;
+  static const int _devicesDisplayLimit = 3;
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -206,8 +210,9 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
     final sessionsAsync = ref.watch(sessionsProvider);
     return sessionsAsync.maybeWhen(
       data: (sessions) {
-        if (sessions.isEmpty) return const SizedBox.shrink();
-        final count = sessions.length;
+        final rememberedSessions = sessions.where((s) => s['remember_me'] != false).toList();
+        if (rememberedSessions.isEmpty) return const SizedBox.shrink();
+        final count = rememberedSessions.length;
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
@@ -234,17 +239,49 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
 
     return sessionsAsync.when(
       data: (sessions) {
-        if (sessions.isEmpty) {
+        // Only show devices that have enabled "remember me"
+        final rememberedSessions = sessions.where((s) => s['remember_me'] != false).toList();
+        if (rememberedSessions.isEmpty) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Text('No active sessions found.', style: TextStyle(color: Colors.grey)),
+            child: Text('No active devices found with "Remember Me" enabled.', style: TextStyle(color: Colors.grey)),
           );
         }
+
+        final hasMore = rememberedSessions.length > _devicesDisplayLimit;
+        final visibleSessions = (_isDevicesExpanded || !hasMore)
+            ? rememberedSessions
+            : rememberedSessions.take(_devicesDisplayLimit).toList();
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ...sessions.map((session) => _buildSessionItem(context, ref, session)),
-            if (sessions.length > 1) ...[
+            ...visibleSessions.map((session) => _buildSessionItem(context, ref, session)),
+            if (hasMore) ...[
+              const SizedBox(height: 6),
+              Center(
+                child: TextButton.icon(
+                  onPressed: () {
+                    setState(() => _isDevicesExpanded = !_isDevicesExpanded);
+                  },
+                  icon: Icon(
+                    _isDevicesExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                  ),
+                  label: Text(
+                    _isDevicesExpanded
+                        ? 'Load less'
+                        : 'Load more devices (${rememberedSessions.length - _devicesDisplayLimit} more)',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primaryGreen,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  ),
+                ),
+              ),
+            ],
+            if (rememberedSessions.length > 1) ...[
               const SizedBox(height: 12),
               Align(
                 alignment: isNarrow ? Alignment.centerLeft : Alignment.centerRight,
@@ -432,6 +469,33 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
                       fontSize: 11,
                       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
+                  ),
+                  FutureBuilder<String>(
+                    future: IpLocationHelper.resolveLocation(ipAddress),
+                    initialData: IpLocationHelper.getFastLocation(ipAddress),
+                    builder: (context, snapshot) {
+                      final loc = snapshot.data;
+                      if (loc == null || loc.isEmpty) return const SizedBox.shrink();
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 12,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            loc,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
                 Text(

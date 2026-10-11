@@ -32,6 +32,7 @@ import '../../../core/services/app_update_service.dart';
 import '../capstone_members/capstone_members_screen.dart';
 import '../documentation/documentation_screen.dart';
 import '../setup/setup_wizard_screen.dart';
+import 'widgets/report_issue_modal.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -1870,38 +1871,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ),
                                     const SizedBox(height: AppSizes.p16),
 
-                                    // Light / Dark Theme selector (disabled/inactive when System is toggled on)
-                                    AnimatedOpacity(
-                                      duration: const Duration(milliseconds: 200),
-                                      opacity: isSystem ? 0.38 : 1.0,
-                                      child: IgnorePointer(
-                                        ignoring: isSystem,
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: _buildThemeOptionCard(
-                                                label: 'Light',
-                                                icon: Icons.light_mode_rounded,
-                                                value: 'light',
-                                                currentValue: currentKey,
-                                                isActive: !isSystem,
-                                                onSelect: () => themeNotifier.setThemeMode('light'),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: _buildThemeOptionCard(
-                                                label: 'Dark',
-                                                icon: Icons.dark_mode_rounded,
-                                                value: 'dark',
-                                                currentValue: currentKey,
-                                                isActive: !isSystem,
-                                                onSelect: () => themeNotifier.setThemeMode('dark'),
-                                              ),
-                                            ),
-                                          ],
+                                    // Light / Dark Theme selector
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildThemeOptionCard(
+                                            label: 'Light',
+                                            icon: Icons.light_mode_rounded,
+                                            value: 'light',
+                                            currentValue: isSystem ? null : currentKey,
+                                            isActive: !isSystem,
+                                            onSelect: () => themeNotifier.setThemeMode('light'),
+                                          ),
                                         ),
-                                      ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: _buildThemeOptionCard(
+                                            label: 'Dark',
+                                            icon: Icons.dark_mode_rounded,
+                                            value: 'dark',
+                                            currentValue: isSystem ? null : currentKey,
+                                            isActive: !isSystem,
+                                            onSelect: () => themeNotifier.setThemeMode('dark'),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 );
@@ -2379,63 +2373,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         ),
                                       ),
                                       OutlinedButton.icon(
-                                        onPressed: () async {
-                                          const url = 'https://github.com/ssbg04/TIS_RMS/issues';
-                                          final uri = Uri.parse(url);
-                                          bool launched = false;
-                                          try {
-                                            launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                            if (!launched) {
-                                              launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
-                                            }
-                                          } catch (_) {}
-                                          if (!launched) {
-                                            await Clipboard.setData(const ClipboardData(text: url));
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Issue tracker link copied to clipboard: https://github.com/ssbg04/TIS_RMS/issues'),
-                                                  backgroundColor: AppColors.primaryGreen,
-                                                ),
-                                              );
-                                            }
-                                          }
-                                        },
+                                        onPressed: () => ReportIssueModal.show(context),
                                         icon: const Icon(Icons.bug_report_outlined, size: 15),
                                         label: const Text('Report an Issue'),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                                          side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        ),
-                                      ),
-                                      OutlinedButton.icon(
-                                        onPressed: () async {
-                                          const url = 'https://github.com/ssbg04/TIS_RMS';
-                                          final uri = Uri.parse(url);
-                                          bool launched = false;
-                                          try {
-                                            launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                            if (!launched) {
-                                              launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
-                                            }
-                                          } catch (_) {}
-                                          if (!launched) {
-                                            await Clipboard.setData(const ClipboardData(text: url));
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('GitHub repository link copied to clipboard: https://github.com/ssbg04/TIS_RMS'),
-                                                  backgroundColor: AppColors.primaryGreen,
-                                                ),
-                                              );
-                                            }
-                                          }
-                                        },
-                                        icon: const Icon(Icons.code_rounded, size: 15),
-                                        label: const Text('GitHub Repository'),
                                         style: OutlinedButton.styleFrom(
                                           foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
                                           side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
@@ -2999,7 +2939,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required String label,
     required IconData icon,
     required String value,
-    required String currentValue,
+    required String? currentValue,
     required bool isActive,
     required VoidCallback onSelect,
   }) {
@@ -3007,7 +2947,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final isSelected = isActive && (value == currentValue);
 
     return InkWell(
-      onTap: isActive ? onSelect : null,
+      onTap: onSelect,
       borderRadius: BorderRadius.circular(12),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -3430,6 +3370,19 @@ class _EditScheduleDatesDialogState
                                     ),
                                   ),
                                 ),
+                                if (_startDate != null)
+                                  InkWell(
+                                    onTap: () => setState(() => _startDate = null),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(2.0),
+                                      child: Icon(
+                                        Icons.close_rounded,
+                                        size: 16,
+                                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ],
@@ -3489,6 +3442,19 @@ class _EditScheduleDatesDialogState
                                     ),
                                   ),
                                 ),
+                                if (_endDate != null)
+                                  InkWell(
+                                    onTap: () => setState(() => _endDate = null),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(2.0),
+                                      child: Icon(
+                                        Icons.close_rounded,
+                                        size: 16,
+                                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ],
@@ -3708,6 +3674,7 @@ class _GracePeriodSettingsSection extends ConsumerStatefulWidget {
 
 class _GracePeriodSettingsSectionState extends ConsumerState<_GracePeriodSettingsSection> {
   DateTime? _selectedCutoffDate;
+  DateTime? _initialCutoffDate;
   bool _isSaving = false;
 
   @override
@@ -3731,6 +3698,7 @@ class _GracePeriodSettingsSectionState extends ConsumerState<_GracePeriodSetting
       final parsed = DateTime.tryParse(dtStr);
       if (parsed != null) {
         _selectedCutoffDate = parsed;
+        _initialCutoffDate = parsed;
         return;
       }
     }
@@ -3746,10 +3714,12 @@ class _GracePeriodSettingsSectionState extends ConsumerState<_GracePeriodSetting
       final start = DateTime.tryParse(active!.startDate!);
       if (start != null) {
         _selectedCutoffDate = start.add(Duration(days: graceDays));
+        _initialCutoffDate = _selectedCutoffDate;
         return;
       }
     }
     _selectedCutoffDate = DateTime.now().add(Duration(days: graceDays));
+    _initialCutoffDate = _selectedCutoffDate;
   }
 
   String _formatDisplayDate(DateTime? dt) {
@@ -3817,6 +3787,9 @@ class _GracePeriodSettingsSectionState extends ConsumerState<_GracePeriodSetting
       );
 
       if (mounted) {
+        setState(() {
+          _initialCutoffDate = _selectedCutoffDate;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -3863,6 +3836,12 @@ class _GracePeriodSettingsSectionState extends ConsumerState<_GracePeriodSetting
         diffDays = _selectedCutoffDate!.difference(DateTime.now()).inDays;
       }
     }
+
+    final bool isCutoffChanged = _selectedCutoffDate != null &&
+        (_initialCutoffDate == null ||
+            _selectedCutoffDate!.year != _initialCutoffDate!.year ||
+            _selectedCutoffDate!.month != _initialCutoffDate!.month ||
+            _selectedCutoffDate!.day != _initialCutoffDate!.day);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -4075,36 +4054,38 @@ class _GracePeriodSettingsSectionState extends ConsumerState<_GracePeriodSetting
               );
             },
           ),
-          const SizedBox(height: 12),
+          if (isCutoffChanged) ...[
+            const SizedBox(height: 12),
 
-          // Save Button
-          Align(
-            alignment: Alignment.centerLeft,
-            child: ElevatedButton.icon(
-              onPressed: _isSaving ? null : () => _saveCutoffDate(activeYear),
-              icon: _isSaving
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.save_outlined, size: 16),
-              label: Text(
-                _isSaving ? 'Saving...' : 'Save Cutoff Date',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: 0,
+            // Save Button
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ElevatedButton.icon(
+                onPressed: _isSaving ? null : () => _saveCutoffDate(activeYear),
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.save_outlined, size: 16),
+                label: Text(
+                  _isSaving ? 'Saving...' : 'Save Cutoff Date',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ],
     );

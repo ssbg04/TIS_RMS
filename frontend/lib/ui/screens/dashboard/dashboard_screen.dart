@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:ui';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -92,7 +91,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.invalidate(dashboardDataProvider);
       ref.read(notificationsProvider.notifier).refreshNotifications();
 
       if (ref.read(activeTabProvider) == 'Dashboard') {
@@ -325,6 +323,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final user = ref.watch(authProvider).value;
     final isAdmin = user?.role == 'admin';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final notificationsAsync = ref.watch(notificationsProvider);
+    final unreadCount =
+        notificationsAsync.value?.where((n) => !n.isRead).length ?? 0;
 
     final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
         defaultTargetPlatform == TargetPlatform.android;
@@ -361,22 +362,82 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: EdgeInsets.fromLTRB(
                       isMobileOrAndroid ? 16 : 24,
-                      isMobileOrAndroid ? 16 : 90,
+                      isMobileOrAndroid ? 16 : 20,
                       isMobileOrAndroid ? 16 : 24,
-                      isMobileOrAndroid ? 24 : 76,
+                      isMobileOrAndroid ? 24 : 32,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Dashboard Overview',
-                          style: TextStyle(
-                            fontSize:
-                                MediaQuery.of(context).size.width > 600
-                                ? 28
-                                : 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Dashboard Overview',
+                              style: TextStyle(
+                                fontSize:
+                                    MediaQuery.of(context).size.width > 600
+                                    ? 28
+                                    : 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (!isMobileOrAndroid)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Tooltip(
+                                    richMessage: const TextSpan(
+                                      text: 'Search Students ',
+                                      children: [
+                                        TextSpan(
+                                          text: '(Ctrl+F)',
+                                          style: TextStyle(fontStyle: FontStyle.italic),
+                                        ),
+                                      ],
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(Icons.search, size: 26),
+                                      onPressed: () => _showSearchDialog(context),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Builder(
+                                    builder: (ctx) => Stack(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.notifications_outlined, size: 26),
+                                          onPressed: () => _showNotifications(ctx),
+                                        ),
+                                        if (unreadCount > 0)
+                                          Positioned(
+                                            right: 6,
+                                            top: 6,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: const BoxDecoration(
+                                                color: Colors.redAccent,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Text(
+                                                unreadCount.toString(),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  ProfileDropdownMenu(user: user, onRefresh: _handleRefresh),
+                                ],
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         if (isAdmin && data.stats.totalStudents == 0 && !_setupBannerDismissed) ...[
@@ -418,7 +479,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             }
                           },
                         ),
-                        if (isAdmin || data.stats.hasAssignedSections) ...[
+                        if (isAdmin) ...[
                           const SizedBox(height: 32),
                           const DashboardKpisSection(),
                         ],
@@ -428,44 +489,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ),
               ),
-              // Top Fade Overlay (revealed when content scrolls underneath)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: isMobileOrAndroid ? 24 : 40,
-                child: IgnorePointer(
-                  child: AnimatedOpacity(
-                    opacity: _showTopFade ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: isDark
-                              ? [
-                                  AppColors.darkPageBackground.withValues(alpha: 0.9),
-                                  AppColors.darkPageBackground.withValues(alpha: 0.0),
-                                ]
-                              : [
-                                  Colors.white.withValues(alpha: 0.9),
-                                  Colors.white.withValues(alpha: 0.0),
-                                ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              // Sticky Blur Top Bar (Desktop only, as Android Top AppBar handles actions)
-              if (!isMobileOrAndroid)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: _buildTopBar(context, user),
-                ),
               // Bottom Bar Fade Overlay (revealed when more content is scrollable below)
               Positioned(
                 bottom: 0,
@@ -830,108 +853,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         _searchFocusNode.requestFocus();
       }
     });
-  }
-
-  // ── TOP BAR ──────────────────────────────────────────────────────────────
-  Widget _buildTopBar(BuildContext context, UserModel? user) {
-    final notificationsAsync = ref.watch(notificationsProvider);
-    final unreadCount =
-        notificationsAsync.value?.where((n) => !n.isRead).length ?? 0;
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return ShaderMask(
-      shaderCallback: (rect) {
-        return const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.black, Colors.transparent],
-          stops: [0.6, 1.0],
-        ).createShader(rect);
-      },
-      blendMode: BlendMode.dstIn,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: isDark
-                    ? [
-                        AppColors.darkPageBackground.withValues(alpha: 0.85),
-                        AppColors.darkPageBackground.withValues(alpha: 0.15),
-                      ]
-                    : [
-                        Colors.white.withValues(alpha: 0.85),
-                        Colors.white.withValues(alpha: 0.15),
-                      ],
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Spacer(),
-                Row(
-                  children: [
-                    Tooltip(
-                      richMessage: const TextSpan(
-                        text: 'Search Students ',
-                        children: [
-                          TextSpan(
-                            text: '(Ctrl+F)',
-                            style: TextStyle(fontStyle: FontStyle.italic),
-                          ),
-                        ],
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.search, size: 32),
-                        onPressed: () => _showSearchDialog(context),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Builder(
-                      builder: (ctx) => Stack(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.notifications, size: 32),
-                            onPressed: () => _showNotifications(ctx),
-                          ),
-                          if (unreadCount > 0)
-                            Positioned(
-                              right: 8,
-                              top: 8,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.redAccent,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  unreadCount.toString(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    ProfileDropdownMenu(user: user, onRefresh: _handleRefresh),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   // ── STAT GRID ─────────────────────────────────────────────────────────────

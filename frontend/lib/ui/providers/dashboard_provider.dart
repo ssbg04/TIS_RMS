@@ -21,11 +21,14 @@ class DashboardData {
   });
 }
 
-final dashboardDataProvider = FutureProvider<DashboardData>((ref) async {
-  final repository = ref.read(dashboardRepositoryProvider);
+final dashboardDataProvider = FutureProvider.autoDispose<DashboardData>((ref) async {
+  final user = ref.watch(authProvider).value;
+  if (user == null) {
+    throw Exception('User not authenticated');
+  }
+  final repository = ref.watch(dashboardRepositoryProvider);
   final activityRepo = ActivityRepository();
-  final user = ref.read(authProvider).value;
-  final isTeacher = user?.role == 'teacher';
+  final isTeacher = user.role == 'teacher';
 
   final stats = await repository.getStats();
   final activities = await repository.getRecentActivities(
@@ -47,8 +50,12 @@ final dashboardDataProvider = FutureProvider<DashboardData>((ref) async {
 });
 
 // ── KPI chart data (all 7 chart datasets) ──────────────────────────────────
-final dashboardKpisProvider = FutureProvider<DashboardKpis>((ref) async {
-  final repository = ref.read(dashboardRepositoryProvider);
+final dashboardKpisProvider = FutureProvider.autoDispose<DashboardKpis>((ref) async {
+  final user = ref.watch(authProvider).value;
+  if (user == null) {
+    throw Exception('User not authenticated');
+  }
+  final repository = ref.watch(dashboardRepositoryProvider);
   return repository.getKpis();
 });
 

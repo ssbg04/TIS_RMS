@@ -1,19 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../providers/dashboard_provider.dart';
-import '../../../providers/student_provider.dart';
 import '../../../providers/navigation_provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/dashboard_provider.dart';
 import '../../documents/widgets/student_profile_modal.dart';
 import '../../documents/widgets/upload_ocr_modal.dart';
-import '../../../../domain/entities/student_model.dart';
+import '../../../../domain/entities/dashboard_models.dart';
 
-/// "Needs Attention" operational card for Dashboard (Priority 4).
-/// Shows missing SF9, missing SF10, documents requiring verification,
-/// and immediate action links directly to student targets.
+/// "Needs Attention" operational card for Dashboard.
+/// Dynamically monitors missing mandatory document requirements from the backend
+/// and provides immediate action links directly to student targets.
 class NeedsAttentionCard extends ConsumerWidget {
   const NeedsAttentionCard({super.key});
+
+  IconData _getRequirementIcon(String name) {
+    final upper = name.toUpperCase();
+    if (upper.contains('SF9') || upper.contains('REPORT CARD') || upper.contains('FORM 9')) {
+      return Icons.assignment_late_outlined;
+    }
+    if (upper.contains('SF10') || upper.contains('FORM 137') || upper.contains('FORM 10')) {
+      return Icons.description_outlined;
+    }
+    if (upper.contains('PSA') || upper.contains('BIRTH')) {
+      return Icons.badge_outlined;
+    }
+    if (upper.contains('GOOD MORAL')) {
+      return Icons.verified_outlined;
+    }
+    if (upper.contains('MEDICAL')) {
+      return Icons.medical_services_outlined;
+    }
+    if (upper.contains('CERTIFICATE') || upper.contains('ENROLLMENT')) {
+      return Icons.card_membership_outlined;
+    }
+    return Icons.insert_drive_file_outlined;
+  }
+
+  Color _getRequirementColor(String name) {
+    final upper = name.toUpperCase();
+    if (upper.contains('SF9') || upper.contains('FORM 9')) {
+      return Colors.orange.shade800;
+    }
+    if (upper.contains('SF10') || upper.contains('FORM 137') || upper.contains('FORM 10')) {
+      return Colors.amber.shade800;
+    }
+    if (upper.contains('PSA') || upper.contains('BIRTH')) {
+      return const Color(0xFF0284C7); // Sky Blue
+    }
+    if (upper.contains('GOOD MORAL')) {
+      return const Color(0xFF16A34A); // Green
+    }
+    if (upper.contains('MEDICAL')) {
+      return const Color(0xFFDC2626); // Red
+    }
+    return const Color(0xFF7C3AED); // Purple
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,48 +64,76 @@ class NeedsAttentionCard extends ConsumerWidget {
     final userRole = user?.role ?? 'teacher';
 
     final kpisAsync = ref.watch(dashboardKpisProvider);
-    final studentsAsync = ref.watch(enrolledStudentsForRequirementsProvider);
 
-    final enrolledStudents = studentsAsync.asData?.value ?? [];
-    final kpis = kpisAsync.asData?.value;
-
-    // 1. Calculate missing SF9 count
-    final missingSf9Students = enrolledStudents.where((s) {
-      return s.missingDocuments.any(
-        (d) => d.toUpperCase().contains('SF9') || d.toUpperCase().contains('FORM 9'),
+    if (kpisAsync.isLoading) {
+      return Container(
+        height: 140,
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            width: 1,
+          ),
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
       );
-    }).toList();
-    final sf9Count = missingSf9Students.isNotEmpty
-        ? missingSf9Students.length
-        : (kpis?.bottomStudents
-                .where((s) => s.missingRequirements.any((d) => d.toUpperCase().contains('SF9')))
-                .length ??
-            0);
+    }
 
-    // 2. Calculate missing SF10 count
-    final missingSf10Students = enrolledStudents.where((s) {
-      return s.missingDocuments.any(
-        (d) => d.toUpperCase().contains('SF10') || d.toUpperCase().contains('FORM 10'),
+    if (kpisAsync.hasError) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 28, color: Colors.orange.shade800),
+              const SizedBox(height: 8),
+              Text(
+                'Unable to load operational alerts',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextButton(
+                onPressed: () => ref.invalidate(dashboardKpisProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
       );
-    }).toList();
-    final sf10Count = missingSf10Students.isNotEmpty
-        ? missingSf10Students.length
-        : (kpis?.bottomStudents
-                .where((s) => s.missingRequirements.any((d) => d.toUpperCase().contains('SF10')))
-                .length ??
-            0);
+    }
 
-    final totalAlerts = sf9Count + sf10Count;
+    final kpis = kpisAsync.value;
+    final needsAttention = kpis?.needsAttention;
 
-    // Top students needing immediate attention (most missing docs)
-    final urgentStudents = enrolledStudents
-        .where((s) => s.missingDocumentsCount > 0 || s.missingDocuments.isNotEmpty)
-        .toList()
-      ..sort((a, b) {
-        final countA = a.missingDocumentsCount > 0 ? a.missingDocumentsCount : a.missingDocuments.length;
-        final countB = b.missingDocumentsCount > 0 ? b.missingDocumentsCount : b.missingDocuments.length;
-        return countB.compareTo(countA);
-      });
+    // missing requirements from backend needsAttention
+    final List<MissingRequirementGroup> missingGroups = needsAttention?.missingRequirements ?? [];
+    final totalAlerts = needsAttention?.totalAlerts ??
+        missingGroups.fold<int>(0, (sum, g) => sum + g.count);
+
+    // Urgent students needing immediate attention
+    final List<StudentDocCount> urgentStudents = needsAttention?.urgentStudents.isNotEmpty == true
+        ? needsAttention!.urgentStudents
+        : (kpis?.bottomStudents.where((s) => s.missingCount > 0).take(5).toList() ?? []);
     final displayedStudents = urgentStudents.take(3).toList();
 
     return Container(
@@ -184,48 +254,27 @@ class NeedsAttentionCard extends ConsumerWidget {
           ),
           const Divider(height: 1),
 
-          // ── Operational Alert Rows ──
+          // ── Operational Alert Requirement Chips (Approach A) ──
           if (totalAlerts > 0) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Column(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  // SF9 alert
-                  _buildAlertRow(
-                    context: context,
-                    icon: Icons.assignment_late_outlined,
-                    iconColor: Colors.orange.shade800,
-                    label: '$sf9Count missing SF9',
-                    sublabel: 'Learner Progress Report Card missing for enrolled students',
-                    actionLabel: 'View',
-                    isDark: isDark,
-                    onAction: () => _openMissingDocSheet(
-                      context,
-                      title: 'Students Missing SF9',
-                      students: missingSf9Students,
-                      userRole: userRole,
+                  for (final item in missingGroups)
+                    _buildRequirementChip(
+                      context: context,
+                      item: item,
                       isDark: isDark,
+                      onTap: () => _openMissingDocSheet(
+                        context,
+                        title: 'Students Missing ${item.name}',
+                        students: item.students,
+                        userRole: userRole,
+                        isDark: isDark,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // SF10 alert
-                  _buildAlertRow(
-                    context: context,
-                    icon: Icons.description_outlined,
-                    iconColor: Colors.amber.shade800,
-                    label: '$sf10Count missing SF10',
-                    sublabel: 'Learner Permanent Academic Record missing',
-                    actionLabel: 'View',
-                    isDark: isDark,
-                    onAction: () => _openMissingDocSheet(
-                      context,
-                      title: 'Students Missing SF10',
-                      students: missingSf10Students,
-                      userRole: userRole,
-                      isDark: isDark,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -289,7 +338,7 @@ class NeedsAttentionCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'No missing SF9/SF10 or pending verification queues detected.',
+                      'No missing mandatory documents detected.',
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
@@ -305,85 +354,70 @@ class NeedsAttentionCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildAlertRow({
+  Widget _buildRequirementChip({
     required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String sublabel,
-    required String actionLabel,
+    required MissingRequirementGroup item,
     required bool isDark,
-    required VoidCallback onAction,
+    required VoidCallback onTap,
   }) {
+    final icon = _getRequirementIcon(item.name);
+    final color = _getRequirementColor(item.name);
+
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onAction,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: isDark ? 0.12 : 0.06),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: iconColor.withValues(alpha: isDark ? 0.25 : 0.18),
-              width: 0.8,
+      child: Tooltip(
+        message: 'Click to view ${item.count} student${item.count == 1 ? '' : 's'} missing ${item.name}',
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: isDark ? 0.15 : 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: color.withValues(alpha: isDark ? 0.35 : 0.25),
+                width: 1,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 18, color: iconColor),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      sublabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  '${item.count} missing ${item.name}',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: iconColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      actionLabel,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 2),
-                    const Icon(Icons.arrow_forward, size: 11, color: Colors.white),
-                  ],
+                      SizedBox(width: 2),
+                      Icon(Icons.arrow_forward, size: 10, color: Colors.white),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -392,12 +426,15 @@ class NeedsAttentionCard extends ConsumerWidget {
 
   Widget _buildStudentTile({
     required BuildContext context,
-    required StudentModel student,
+    required StudentDocCount student,
     required String userRole,
     required bool isDark,
   }) {
-    final missingList = student.missingDocuments.take(2).toList();
-    final extraCount = student.missingDocuments.length - missingList.length;
+    final missingList = student.missingRequirements.take(2).toList();
+    final extraCount = student.missingRequirements.length - missingList.length;
+    final initial = student.name.trim().isNotEmpty
+        ? student.name.trim()[0].toUpperCase()
+        : 'S';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -415,7 +452,7 @@ class NeedsAttentionCard extends ConsumerWidget {
             radius: 14,
             backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.15),
             child: Text(
-              student.firstName.isNotEmpty ? student.firstName[0].toUpperCase() : 'S',
+              initial,
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -429,7 +466,7 @@ class NeedsAttentionCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  student.listDisplayName,
+                  student.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -510,18 +547,19 @@ class NeedsAttentionCard extends ConsumerWidget {
   }
 
   String _formatDocTag(String doc) {
-    final upper = doc.toUpperCase();
+    final clean = doc.replaceAll(RegExp(r'^\[.*?\]\s*'), '').trim();
+    final upper = clean.toUpperCase();
     if (upper.contains('SF9') || upper.contains('FORM 9')) return 'SF9';
-    if (upper.contains('SF10') || upper.contains('FORM 10')) return 'SF10';
+    if (upper.contains('SF10') || upper.contains('FORM 10') || upper.contains('FORM 137')) return 'SF10';
     if (upper.contains('PSA') || upper.contains('BIRTH')) return 'PSA';
     if (upper.contains('GOOD MORAL')) return 'Good Moral';
-    return doc.length > 15 ? '${doc.substring(0, 14)}…' : doc;
+    return clean.length > 15 ? '${clean.substring(0, 14)}…' : clean;
   }
 
   void _openMissingDocSheet(
     BuildContext context, {
     required String title,
-    required List<StudentModel> students,
+    required List<StudentDocCount> students,
     required String userRole,
     required bool isDark,
   }) {
@@ -618,7 +656,7 @@ class NeedsAttentionCard extends ConsumerWidget {
                       return ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         title: Text(
-                          s.listDisplayName,
+                          s.name,
                           style: TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w600,
@@ -626,7 +664,7 @@ class NeedsAttentionCard extends ConsumerWidget {
                           ),
                         ),
                         subtitle: Text(
-                          'LRN: ${s.lrn}',
+                          'LRN: ${s.lrn != null && s.lrn!.isNotEmpty ? s.lrn : 'N/A'}${s.gradeLevel != null ? ' • Grade ${s.gradeLevel}' : ''}',
                           style: TextStyle(
                             fontSize: 11.5,
                             color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,

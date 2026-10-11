@@ -1096,18 +1096,20 @@ Files backup/restore - mirror mode or zip -->
 
 
 # Settings screen
-- academic & graduation section: save cutoff date only show when the date of cutoff is changed, in edit schedule dates start and end date no x button
-- remove github repository button
-- for report an issue make it "emailto:[EMAIL_ADDRESS]" use my email lead developer, add modal to report issues with title, description, category (bug, feature, question), urgency (high, medium, low), screenshots or attachments, and send button, then opens email client ready to send
-- it has bug on system theme if I toggle system theme I cannot click light or dark mode
-- security screen if more than 3-5 devices add load more button at the bottom to load more devices and load less at the bottom of all listed devices, make the only show the devices that have enabled "remember me" on that device, so if the device is not enabled "remember me" it will not show on the list
+- [x] Academic & graduation section: save cutoff date only shows when cutoff date is changed; added 'X' (clear) buttons to start and end date pickers in edit schedule dates dialog.
+- [x] Remove GitHub repository button from Developer & Support section.
+- [x] Report an Issue modal: created dedicated modal sending to lead developer (`crischarlesgarcia345@gmail.com`) with title, description, category (bug, feature, question), urgency (high, medium, low), attachments, and send button opening email client ready to send (or clipboard fallback).
+- [x] Fixed system theme toggle bug: Light and Dark mode options are now always clickable and correctly deactivate system theme when chosen.
+- [x] Security screen active devices: only displays devices with "Remember Me" enabled; added Load More / Load Less button when more than 3 devices are present.
+- [x] IP address location: added network / GeoIP location resolution next to IP addresses on both the Security screen and the Audit Trail / History screen (Sessions tab).
 
-# DASHBOARD
-- after using admin account and login as teacher, it occurs that dashboard of admin shows on milli seconds inside of teacher account fix it 
-- remove space at top of the dashboard "Dashboard Overview" in windows app it has space remove it 
-- remove the top students by documents and needs attention at the bottom 
-- fix the "4 missing" even i click no students listed
-- dynamic missing document requirement chips (Approach A): dynamically count and display all missing enabled mandatory requirements (SF9, SF10, PSA, etc.) sorted by highest missing count instead of hardcoding SF9/SF10 only
+# DASHBOARD SCREEN
+- [x] Fixed admin dashboard flash on teacher login: converted dashboard providers to autoDispose watching authProvider and actively invalidated caches on login/switch.
+- [x] Removed excess top spacing above "Dashboard Overview" on Windows desktop app (aligned search, notifications, and profile menu to header row and reduced top inset).
+- [x] Removed "Top Students by Documents" and "Needs Attention" cards from the bottom of the dashboard.
+- [x] Fixed "4 missing" empty list bug: student count and student modal list are derived synchronously and directly from matching students.
+- [x] Implemented dynamic missing document requirement chips (Approach A): dynamically evaluates and sorts missing counts across all enabled mandatory requirements (SF9, SF10, PSA, etc.) descending by missing frequency.
+- [x] Needs Attention section fix: synchronized backend KPI endpoint (`/api/dashboard/kpis`) to return exact mandatory missing document requirements, counts, and urgent student records for both Admin and Teacher roles; updated frontend models and `NeedsAttentionCard` to consume this synced dataset with direct profile and upload actions. 
 
 # STUDENT SCREEN
 - enrolled tab: 
@@ -1124,36 +1126,6 @@ Files backup/restore - mirror mode or zip -->
 
 # ARCHIVE SCREEN
 - remove the recycle bin and delete, restore, upload new version buttons
-
-
-# IMPLEMENTATION ROADMAP (EXECUTION ORDER)
-
-## Phase 1: Critical Bugs & Session/Data State (Implement First)
-- [ ] Fix admin dashboard flashing on teacher login (invalidate & reset role cache on auth change)
-- [ ] Fix "4 missing" count showing non-enrolled students (scope requirements query strictly to active academic year)
-- [ ] Fix Enrolled tab keeping inactive, dropped, transferred, or graduated students after status update
-
-## Phase 2: Student Screen & Profile Core Workflows
-- [ ] Enrolled tab: Rename tab to active academic year (e.g. S.Y. 2024–2025)
-- [ ] Enrolled tab: Remove clear filter button when empty; add bottom "Add Student" button and navigation CTA to All Students tab
-- [ ] Enrolled tab: Add status filters for inactive, dropped, transferred, and graduated students
-- [ ] Student profile: Prevent/remove upload docs buttons for non-enrolled students
-- [ ] Student profile: Activity history display last 10 entries with "Load More" / "Load Less" (resets when tab is not active)
-- [ ] Student profile: Remove verified badge for files on records
-- [ ] Student profile: Add button to navigate directly to document screen inside student folder
-
-## Phase 3: Settings Screen Fixes & Issue Reporting
-- [ ] Fix system theme toggle bug (ensure manual light/dark mode selection remains clickable)
-- [ ] Academic & graduation: Save cutoff date button only shows when cutoff date is changed; remove 'x' buttons from schedule start/end date pickers
-- [ ] Security screen: Filter device list to only show devices with "Remember Me" enabled; add "Load More" / "Load Less" if > 3–5 devices
-- [ ] Report an issue modal: Add modal with Title, Description, Category, Urgency, Attachments, and Send button that opens email client (`mailto:`) to lead developer
-
-## Phase 4: UI Polish, Styling & Cleanups (Implement Last)
-- [ ] Dashboard: Remove top whitespace above "Dashboard Overview" on Windows desktop app
-- [ ] Dashboard: Remove top students by documents and bottom needs attention (or implement dynamic Approach A missing chips)
-- [ ] Settings: Remove GitHub repository button
-- [ ] Windows app pagination: Apply white text for dark theme, black text for light theme, with button background styling
-- [ ] Archive screen: Remove recycle bin, delete, restore, and upload new version buttons
 
 
 ---
