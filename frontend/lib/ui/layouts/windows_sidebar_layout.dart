@@ -65,6 +65,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
   Timer? _tabLoadingTimer;
   late bool _isMinimized;
   bool _isTabLoading = false;
+  bool _isLogoHovered = false;
 
   @override
   void initState() {
@@ -519,46 +520,87 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                             ),
                             child: Column(
                               children: [
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const NeverScrollableScrollPhysics(),
-                          child: SizedBox(
-                            width: 260,
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                16,
-                                12,
-                                10,
-                              ),
-                              child: Row(
-                                children: [
-                                  Tooltip(
-                                    message: _isMinimized
-                                        ? 'Expand Sidebar'
-                                        : 'TIS RMS',
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        if (_isMinimized) {
-                                          setState(() => _isMinimized = false);
-                                        }
-                                      },
-                                      onLongPressStart: (_) {
-                                        _holdTimer = Timer(
-                                          const Duration(seconds: 3),
-                                          () {
-                                            _showCapstoneMembers(context);
-                                          },
-                                        );
-                                      },
-                                      onLongPressEnd: (_) =>
-                                          _holdTimer?.cancel(),
-                                      onLongPressCancel: () =>
-                                          _holdTimer?.cancel(),
-                                      child: Container(
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: _isMinimized ? 16 : 14,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              // App Logo acts as the interactive Expand trigger when minimized
+                              Tooltip(
+                                message: _isMinimized
+                                    ? 'Expand Sidebar (Click to expand)'
+                                    : 'TIS Record Management System',
+                                waitDuration: const Duration(milliseconds: 300),
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  onEnter: (_) =>
+                                      setState(() => _isLogoHovered = true),
+                                  onExit: (_) =>
+                                      setState(() => _isLogoHovered = false),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      if (_isMinimized) {
+                                        setState(() => _isMinimized = false);
+                                      }
+                                    },
+                                    onLongPressStart: (_) {
+                                      _holdTimer = Timer(
+                                        const Duration(seconds: 3),
+                                        () {
+                                          _showCapstoneMembers(context);
+                                        },
+                                      );
+                                    },
+                                    onLongPressEnd: (_) =>
+                                        _holdTimer?.cancel(),
+                                    onLongPressCancel: () =>
+                                        _holdTimer?.cancel(),
+                                    child: AnimatedScale(
+                                      scale: (_isMinimized && _isLogoHovered)
+                                          ? 1.08
+                                          : 1.0,
+                                      duration:
+                                          const Duration(milliseconds: 200),
+                                      curve: Curves.easeOutCubic,
+                                      child: AnimatedContainer(
+                                        duration:
+                                            const Duration(milliseconds: 200),
+                                        padding: const EdgeInsets.all(4),
                                         decoration: BoxDecoration(
                                           borderRadius:
-                                              BorderRadius.circular(6),
+                                              BorderRadius.circular(8),
+                                          color: _isMinimized
+                                              ? (_isLogoHovered
+                                                  ? AppColors.primaryGreen
+                                                      .withValues(
+                                                          alpha: isDark
+                                                              ? 0.25
+                                                              : 0.15)
+                                                  : (isDark
+                                                      ? Colors.white
+                                                          .withValues(
+                                                              alpha: 0.08)
+                                                      : Colors.black
+                                                          .withValues(
+                                                              alpha: 0.05)))
+                                              : Colors.transparent,
+                                          border: Border.all(
+                                            color: _isMinimized
+                                                ? (_isLogoHovered
+                                                    ? AppColors.primaryGreen
+                                                        .withValues(alpha: 0.45)
+                                                    : (isDark
+                                                        ? Colors.white
+                                                            .withValues(
+                                                                alpha: 0.12)
+                                                        : Colors.black
+                                                            .withValues(
+                                                                alpha: 0.08)))
+                                                : Colors.transparent,
+                                            width: 1,
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
                                               color: Colors.black.withValues(
@@ -582,62 +624,56 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: AnimatedOpacity(
-                                      duration: const Duration(
-                                        milliseconds: 200,
-                                      ),
-                                      opacity: _isMinimized ? 0.0 : 1.0,
-                                      child: Text(
-                                        'TIS RMS',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface,
-                                          letterSpacing: 0.9,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
-                                  AnimatedOpacity(
-                                    duration: const Duration(
-                                      milliseconds: 200,
-                                    ),
-                                    opacity: _isMinimized ? 0.0 : 1.0,
-                                    child: IconButton(
-                                      icon: Icon(
-                                        Icons.menu,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.65),
-                                        size: 20,
-                                      ),
-                                      hoverColor: isDark
-                                          ? Colors.white.withValues(alpha: 0.06)
-                                          : Colors.black.withValues(alpha: 0.05),
-                                      style: IconButton.styleFrom(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                        ),
-                                      ),
-                                      onPressed: () {
-                                        if (!_isMinimized) {
-                                          setState(() => _isMinimized = true);
-                                        }
-                                      },
-                                      tooltip: 'Collapse Sidebar',
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
+                              if (!_isMinimized) ...[
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'TIS RMS',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                      letterSpacing: 0.9,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: AnimatedRotation(
+                                    turns: _isMinimized ? 0.5 : 0.0,
+                                    duration:
+                                        const Duration(milliseconds: 320),
+                                    curve: Curves.easeInOutCubic,
+                                    child: Icon(
+                                      Icons.menu,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.65),
+                                      size: 20,
+                                    ),
+                                  ),
+                                  hoverColor: isDark
+                                      ? Colors.white.withValues(alpha: 0.06)
+                                      : Colors.black.withValues(alpha: 0.05),
+                                  style: IconButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    setState(() => _isMinimized = true);
+                                  },
+                                  tooltip: 'Collapse Sidebar',
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                         const SizedBox(height: 6),
