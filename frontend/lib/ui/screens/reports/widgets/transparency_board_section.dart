@@ -349,18 +349,18 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           selectedYearId: selectedYearId,
           isDark: isDark,
         ),
-        const SizedBox(height: AppSizes.p16),
+        const SizedBox(height: 10),
 
         // ── Simple, Clean Tab Switcher ────────────────────────────────────
         _buildTabSwitcher(context, isDark),
-        const SizedBox(height: AppSizes.p16),
+        const SizedBox(height: 10),
 
         // ── Section 1: Data on Enrollment ─────────────────────────────────
         if (_activeTab == _TransparencyTab.all ||
             _activeTab == _TransparencyTab.enrollment) ...[
           _buildEnrollmentCard(context, data, isDark),
           if (_activeTab == _TransparencyTab.all)
-            const SizedBox(height: AppSizes.p20),
+            const SizedBox(height: 14),
         ],
 
         // ── Section 2: Dropouts & Transferees ─────────────────────────────
@@ -368,7 +368,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             _activeTab == _TransparencyTab.dropoutsTransferees) ...[
           _buildDropoutTransfereeCard(context, data, isDark),
           if (_activeTab == _TransparencyTab.all)
-            const SizedBox(height: AppSizes.p20),
+            const SizedBox(height: 14),
         ],
 
         // ── Section 3: 4Ps Beneficiaries ──────────────────────────────────
@@ -422,7 +422,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 borderRadius: BorderRadius.circular(8),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppColors.primaryGreen
@@ -481,7 +481,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizes.p20,
-        vertical: 14,
+        vertical: 8,
       ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -602,7 +602,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           ),
         ],
       ),
-      padding: const EdgeInsets.all(AppSizes.p20),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -660,7 +660,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               description: description,
               isDark: isDark,
             ),
-          const SizedBox(height: AppSizes.p16),
+          const SizedBox(height: 10),
           content,
         ],
       ),
@@ -1093,21 +1093,21 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
         ),
-        const SizedBox(height: AppSizes.p12),
+        const SizedBox(height: 6),
         LayoutBuilder(
           builder: (context, constraints) {
             final isNarrow = constraints.maxWidth < 720;
             return SizedBox(
-              height: isNarrow ? 400 : 360,
+              height: isNarrow ? 380 : 340,
               child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
             );
           },
         ),
-        const SizedBox(height: AppSizes.p24),
+        const SizedBox(height: 14),
         Divider(
           color: (isDark ? AppColors.darkBorder : Colors.grey).withValues(alpha: 0.25),
         ),
-        const SizedBox(height: AppSizes.p16),
+        const SizedBox(height: 10),
         Text(
           previousYear != null
               ? 'Data on Enrollment (SY ${previousYear.yearRange} vs. SY ${latestYear.yearRange})'
@@ -1838,13 +1838,13 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
         ),
-        const SizedBox(height: AppSizes.p12),
+        const SizedBox(height: 6),
         _buildDropoutTransfereeBarChart(context, years, isDark: isDark),
-        const SizedBox(height: AppSizes.p24),
+        const SizedBox(height: 14),
         Divider(
           color: (isDark ? AppColors.darkBorder : Colors.grey).withValues(alpha: 0.25),
         ),
-        const SizedBox(height: AppSizes.p16),
+        const SizedBox(height: 10),
         // Dropouts sub-section
           Row(
             children: [
@@ -2057,13 +2057,13 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
         ),
-        const SizedBox(height: AppSizes.p12),
+        const SizedBox(height: 6),
         _buildEquity4PsBarChart(context, years, isDark: isDark),
-        const SizedBox(height: AppSizes.p24),
+        const SizedBox(height: 14),
         Divider(
           color: (isDark ? AppColors.darkBorder : Colors.grey).withValues(alpha: 0.25),
         ),
-        const SizedBox(height: AppSizes.p16),
+        const SizedBox(height: 10),
         Wrap(
           alignment: WrapAlignment.spaceBetween,
           crossAxisAlignment: WrapCrossAlignment.center,

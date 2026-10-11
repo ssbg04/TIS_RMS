@@ -273,16 +273,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           child: SingleChildScrollView(
             controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.all(isAndroid ? 14 : AppSizes.p24),
+            padding: EdgeInsets.symmetric(
+              horizontal: isAndroid ? 14 : 16,
+              vertical: isAndroid ? 10 : 10,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildViewModeToggle(),
-                const SizedBox(height: AppSizes.p20),
+                const SizedBox(height: 10),
 
                 if (_selectedViewMode == 0 || _selectedViewMode == 2) ...[
                   const TransparencyBoardSection(),
-                  const SizedBox(height: AppSizes.p32),
+                  const SizedBox(height: 14),
                 ],
 
                 if (_selectedViewMode == 1 || _selectedViewMode == 2) ...[
@@ -307,17 +310,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildComplianceHeader(context, data),
-                            const SizedBox(height: AppSizes.p20),
+                            const SizedBox(height: 10),
 
                             // 1. Filter Panel (collapsible) - hidden on Android
                             if (!isAndroid) ...[
                               _buildFilterPanel(context),
-                              const SizedBox(height: AppSizes.p20),
+                              const SizedBox(height: 10),
                             ],
 
                             // 2. Focused Compliance KPI Cards (Bento on Windows, normal responsive grid on mobile)
                             _buildMetricsGrid(data, isWindowsApp: isWindowsApp),
-                            const SizedBox(height: AppSizes.p24),
+                            const SizedBox(height: 12),
 
                             // 3. Analytics Bento Block 1: Grade Compliance & Missing Requirements Breakdown
                             if (isWindowsApp)
@@ -355,7 +358,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   ),
                                 ],
                               ),
-                            const SizedBox(height: AppSizes.p24),
+                            const SizedBox(height: 14),
 
                             // 4. Analytics Bento Block 2: Status Breakdown & Historical Trends
                             if (isWindowsApp)
@@ -369,7 +372,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       isDesktop: true,
                                     ),
                                   ),
-                                  const SizedBox(width: AppSizes.p20),
+                                  const SizedBox(width: 14),
                                   Expanded(
                                     flex: 6,
                                     child: _buildYearlyComparisonChart(
@@ -385,11 +388,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     data.studentCounts,
                                     isDesktop: false,
                                   ),
-                                  const SizedBox(height: AppSizes.p16),
+                                  const SizedBox(height: 12),
                                   _buildYearlyComparisonChart(isDesktop: false),
                                 ],
                               ),
-                            const SizedBox(height: AppSizes.p24),
+                            const SizedBox(height: 14),
 
                             // 5. Interactive Student Compliance Table (Full Width)
                             _buildComplianceTable(data),
@@ -485,7 +488,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       curve: Curves.easeInOut,
                       padding: EdgeInsets.symmetric(
                         horizontal: isCompact ? 6 : 14,
-                        vertical: isCompact ? 10 : 10,
+                        vertical: isCompact ? 7 : 7,
                       ),
                       decoration: BoxDecoration(
                         color: isSelected ? tab.accentColor : Colors.transparent,
@@ -3003,7 +3006,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(AppSizes.p24),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 14,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -3054,65 +3060,75 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                // ── Search Field ───────────────────────────────────────────
-                TextField(
-                  controller: _searchController,
-                  onChanged: (val) => setState(() {
-                    _searchQuery = val;
-                    _currentPage = 0;
-                  }),
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? AppColors.darkTextPrimary : null,
+                // ── Search Field (High-visibility for all themes) ───────────
+                Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : const Color(0xFFCBD5E1),
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.25 : 0.05,
+                        ),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
-                  decoration: InputDecoration(
-                    hintText: 'Search by student name or LRN...',
-                    hintStyle: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (val) => setState(() {
+                      _searchQuery = val;
+                      _currentPage = 0;
+                    }),
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      size: 18,
-                      color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
-                    ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.close_rounded,
-                              size: 16,
-                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
-                            ),
-                            onPressed: () => setState(() {
-                              _searchController.clear();
-                              _searchQuery = '';
-                              _currentPage = 0;
-                            }),
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                    decoration: InputDecoration(
+                      hintText: 'Search by student name or LRN...',
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
                       ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                      ),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
-                      borderSide: BorderSide(
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        size: 20,
                         color: AppColors.primaryGreen,
-                        width: 1.5,
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textSecondary,
+                              ),
+                              splashRadius: 16,
+                              onPressed: () => setState(() {
+                                _searchController.clear();
+                                _searchQuery = '';
+                                _currentPage = 0;
+                              }),
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
                       ),
                     ),
                   ),

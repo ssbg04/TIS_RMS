@@ -161,15 +161,15 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (!isFirstItem) const SizedBox(height: 8),
+                      if (!isFirstItem) const SizedBox(height: 6),
                       AnimatedOpacity(
                         duration: const Duration(milliseconds: 200),
                         opacity: _isMinimized ? 0.0 : 1.0,
                         child: Padding(
                           padding: const EdgeInsets.only(
                             left: 16,
-                            bottom: 8,
-                            top: 8,
+                            bottom: 6,
+                            top: 4,
                           ),
                           child: Text(
                             category.toUpperCase(),
@@ -177,7 +177,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.6),
+                                  .withValues(alpha: 0.6),
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.0,
@@ -189,13 +189,13 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                   ),
           ),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          padding: const EdgeInsets.symmetric(vertical: 2.0),
           child: Tooltip(
             message: _isMinimized ? tab['label'] as String : '',
             waitDuration: const Duration(milliseconds: 500),
             child: Material(
               color: isSelected
-                  ? AppColors.primaryGreen.withOpacity(0.12)
+                  ? AppColors.primaryGreen.withValues(alpha: 0.12)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               clipBehavior: Clip.antiAlias,
@@ -229,8 +229,8 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                     width: 236,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 12.0,
+                        horizontal: 14.0,
+                        vertical: 9.0,
                       ),
                       child: Row(
                         children: [
@@ -244,10 +244,10 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                 : Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.6),
-                            size: 22,
+                                    .withValues(alpha: 0.6),
+                            size: 20,
                           ),
-                          const SizedBox(width: 20),
+                          const SizedBox(width: 16),
                           Expanded(
                             child: AnimatedOpacity(
                               duration: const Duration(milliseconds: 200),
@@ -264,7 +264,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                       : Theme.of(context)
                                           .colorScheme
                                           .onSurface
-                                          .withOpacity(0.8),
+                                          .withValues(alpha: 0.8),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -364,10 +364,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
 
     _visitedIndices.add(currentIndex);
 
-    final overviewTabs = tabs
-        .where((t) => t['category'] == 'MAIN')
-        .toList();
-    final accountTabs = tabs.where((t) => t['category'] == 'ADMINISTRATION').toList();
+
 
     return PopScope(
       canPop: false,
@@ -469,17 +466,18 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                             width: 260,
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(
-                                24,
-                                32,
-                                16,
                                 20,
+                                20,
+                                14,
+                                12,
                               ),
                               child: Row(
                                 children: [
                                   GestureDetector(
                                     onTap: () {
-                                      if (_isMinimized)
+                                      if (_isMinimized) {
                                         setState(() => _isMinimized = false);
+                                      }
                                     },
                                     onLongPressStart: (_) {
                                       _holdTimer = Timer(
@@ -497,8 +495,8 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                         borderRadius: BorderRadius.circular(8),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(
-                                              0.05,
+                                            color: Colors.black.withValues(
+                                              alpha: 0.05,
                                             ),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
@@ -547,11 +545,12 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withOpacity(0.6),
+                                            .withValues(alpha: 0.6),
                                       ),
                                       onPressed: () {
-                                        if (!_isMinimized)
+                                        if (!_isMinimized) {
                                           setState(() => _isMinimized = true);
+                                        }
                                       },
                                       tooltip: 'Minimize Sidebar',
                                     ),
@@ -563,61 +562,30 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                         ),
                         const SizedBox(height: 8),
 
-                        // Navigation Items
+                        // Navigation Items: Single Unified Scrollable List
                         Expanded(
-                          child: Column(
-                            children: [
-                              Expanded(
-                                child: ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                  itemCount: overviewTabs.length,
-                                  itemBuilder: (context, index) {
-                                    final tab = overviewTabs[index];
-                                    final isSelected =
-                                        tab['label'] ==
-                                        tabs[currentIndex]['label'];
-                                    final isCategoryHeader =
-                                        index == 0 ||
-                                        overviewTabs[index - 1]['category'] !=
-                                            tab['category'];
-                                    return _buildNavItem(
-                                      tab,
-                                      isSelected,
-                                      isCategoryHeader,
-                                      isFirstItem: index == 0,
-                                    );
-                                  },
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                child: Column(
-                                  children: accountTabs.asMap().entries.map((
-                                    entry,
-                                  ) {
-                                    final index = entry.key;
-                                    final tab = entry.value;
-                                    final isSelected =
-                                        tab['label'] ==
-                                        tabs[currentIndex]['label'];
-                                    final isCategoryHeader =
-                                        index == 0 ||
-                                        accountTabs[index - 1]['category'] !=
-                                            tab['category'];
-                                    return _buildNavItem(
-                                      tab,
-                                      isSelected,
-                                      isCategoryHeader,
-                                      isFirstItem: false,
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                            ],
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            itemCount: tabs.length,
+                            itemBuilder: (context, index) {
+                              final tab = tabs[index];
+                              final isSelected =
+                                  tab['label'] ==
+                                  tabs[currentIndex]['label'];
+                              final isCategoryHeader =
+                                  index == 0 ||
+                                  tabs[index - 1]['category'] !=
+                                      tab['category'];
+                              return _buildNavItem(
+                                tab,
+                                isSelected,
+                                isCategoryHeader,
+                                isFirstItem: index == 0,
+                              );
+                            },
                           ),
                         ),
 
@@ -644,15 +612,16 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                             width: 260,
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 20.0,
-                                vertical: 16.0,
+                                horizontal: 18.0,
+                                vertical: 12.0,
                               ),
                               child: Row(
                                 children: [
                                   GestureDetector(
                                     onTap: () {
-                                      if (_isMinimized)
+                                      if (_isMinimized) {
                                         setState(() => _isMinimized = false);
+                                      }
                                     },
                                     child: Builder(
                                       builder: (context) {
@@ -716,7 +685,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                               color: Theme.of(context)
                                                   .colorScheme
                                                   .onSurface
-                                                  .withOpacity(0.6),
+                                                  .withValues(alpha: 0.6),
                                             ),
                                           ),
                                         ],
@@ -751,12 +720,13 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withOpacity(0.6),
+                                            .withValues(alpha: 0.6),
                                       ),
                                       tooltip: 'Logout',
                                       onPressed: () {
-                                        if (!_isMinimized)
+                                        if (!_isMinimized) {
                                           showLogoutConfirmationDialog(context);
+                                        }
                                       },
                                     ),
                                   ),
@@ -881,8 +851,8 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
               child: ListView.separated(
                 itemCount: 5,
                 physics: const NeverScrollableScrollPhysics(),
-                separatorBuilder: (_, __) => const SizedBox(height: 16),
-                itemBuilder: (_, __) => Container(
+                separatorBuilder: (_, _) => const SizedBox(height: 16),
+                itemBuilder: (_, _) => Container(
                   height: 60,
                   decoration: BoxDecoration(
                     color: secondaryColor,

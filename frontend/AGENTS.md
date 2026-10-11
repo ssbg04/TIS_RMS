@@ -1129,7 +1129,9 @@ Files backup/restore - mirror mode or zip -->
 # ARCHIVE SCREEN
 - [x] Removed Recycle Bin, delete, restore, upload new version, and copy buttons from the Archive Screen (including folder context menus, document context menus, document preview modal, and bulk operations bar).
 
-
+# REPORTS SCREEN
+- [x] compliance tab student document compliance search bar not visible make it visible for all theme 
+- [x] make the space consume, make the analytics prominently visible with minimal scrolling
 
 ---
 

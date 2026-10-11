@@ -100,7 +100,7 @@ class ShowOnlyMissingDocsNotifier extends Notifier<bool> {
 
 // ── Filter Panel Visibility ───────────────────────────────────────────────────
 final filterPanelExpandedProvider = NotifierProvider<_BoolNotifier, bool>(
-  () => _BoolNotifier(initial: true),
+  () => _BoolNotifier(initial: false),
 );
 
 // ── Missing Docs Filter Visibility ───────────────────────────────────────────
