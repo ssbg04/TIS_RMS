@@ -54,6 +54,7 @@ frontend/build/
 frontend/android/build/
 frontend/.flutter-plugins
 frontend/.flutter-plugins-dependencies
+frontend/vc_redist.x64.exe
 # Backup logs
 backend/data/backup_info.json
 backend/data/backup_logs.txt

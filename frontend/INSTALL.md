@@ -76,8 +76,8 @@ flutter build windows --release --obfuscate --split-debug-info=build/windows/sym
 The installer script [`frontend/TIS_RMS_Client.iss`](file:///f:/SumbrerongBato/tis_rms_server/frontend/TIS_RMS_Client.iss) packages the app into an ultra-compact standalone setup file (`TIS_RMS_Client_Setup_v<version>.exe` ~**16.7 MB**).
 
 #### Features:
-- **Small File Size (~17 MB)**: Uses `lzma2/ultra64` solid 64MB dictionary compression.
-- **Automated System-Wide VC++ & .NET Runtime Setup**: Automatically detects whether a compatible Visual Studio 2022 (v14.30+) x64 runtime is installed in Windows (`System32`) and silently installs Microsoft's official `vc_redist.x64.exe` if missing or outdated. Also purges legacy app-local CRT DLLs to prevent ABI mismatch crashes.
+- **Small File Size**: Uses `lzma2/ultra64` solid compression.
+- **Bundled Offline VC++ Runtime Setup**: Packages Microsoft's official `vc_redist.x64.exe` inside the installer. During installation, it detects whether a compatible Visual Studio 2022 (v14.30+) x64 runtime is installed in Windows (`System32`) and silently runs the bundled installer if missing or outdated, reporting errors if installation fails. Also purges legacy app-local CRT DLLs to prevent ABI mismatch crashes.
 - **Selectable Destination Path**: Lets the user choose where to install (defaults to `C:\Program Files\TIS RMS Client`).
 - **Desktop Shortcut Checkbox**: Optional checkbox on the tasks page to create a desktop shortcut with the official school icon logo.
 - **Start Menu & Uninstaller**: Registers a Start Menu program group and includes a clean uninstaller in Windows *Apps & Features* / *Settings*.
@@ -85,7 +85,10 @@ The installer script [`frontend/TIS_RMS_Client.iss`](file:///f:/SumbrerongBato/t
 
 #### Compiling with Inno Setup CLI:
 ```powershell
-# Using Inno Setup Command Line Compiler (ISCC)
+# 1. Download official vc_redist.x64.exe into frontend/ (if not already downloaded)
+Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "frontend\vc_redist.x64.exe"
+
+# 2. Compile using Inno Setup Command Line Compiler (ISCC)
 & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" frontend\TIS_RMS_Client.iss
 ```
 *The compiled installer will be saved to `installers/TIS_RMS_Client_Setup_v<version>.exe` (e.g., `installers/TIS_RMS_Client_Setup_v1.0.0.exe`).*

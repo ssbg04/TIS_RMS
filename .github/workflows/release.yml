@@ -342,6 +342,33 @@ jobs:
           Get-ChildItem -Path "$releaseDir\*.dll" | Select-Object Name, Length
 
       # ------------------------------------------------------------
+      # Visual C++ Redistributable Dependency
+      # ------------------------------------------------------------
+      - name: Download Microsoft Visual C++ Redistributable
+        working-directory: frontend
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $vcRedistUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+          $vcRedistFile = "vc_redist.x64.exe"
+
+          Write-Host "Downloading Microsoft Visual C++ 2015-2022 Redistributable (x64) from $vcRedistUrl..."
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -Uri $vcRedistUrl -OutFile $vcRedistFile
+
+          if (-not (Test-Path $vcRedistFile)) {
+            throw "Downloaded vc_redist.x64.exe was not found."
+          }
+
+          $fileSize = (Get-Item $vcRedistFile).Length
+          Write-Host "vc_redist.x64.exe downloaded successfully. Size: $fileSize bytes."
+
+          if ($fileSize -lt 10000000) {
+            throw "Downloaded vc_redist.x64.exe appears incomplete or corrupted (size: $fileSize bytes)."
+          }
+
+      # ------------------------------------------------------------
       # Windows Installer
       # ------------------------------------------------------------
       - name: Compile Inno Setup Windows Installer

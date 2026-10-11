@@ -50,3 +50,6 @@ app.*.map.json
 /android/key.properties
 .kotlin/
 /android/.kotlin/
+
+# Visual C++ Redistributable binary (downloaded dynamically during CI / local build)
+vc_redist.x64.exe

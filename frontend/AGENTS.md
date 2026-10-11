@@ -1054,7 +1054,7 @@ Files backup/restore - mirror mode or zip -->
 - [x] in-app documentation viewing (bundled offline HTML user guide, local loopback server, embedded WebView for Windows & Android without redirecting to browser)
 -->
 
-# UI/UX RECOMMENDATIONS ROADMAP (TIS RMS UI-UX Recommendations.md)
+<!-- # UI/UX RECOMMENDATIONS ROADMAP (TIS RMS UI-UX Recommendations.md)
 
 ## Priority 1: Student Profile as Central Workspace
 - [x] Refactor student profile into primary operational hub: Overview, Documents checklist, and Activity History tabs.
@@ -1092,7 +1092,7 @@ Files backup/restore - mirror mode or zip -->
 - [x] Add lightweight persistent server connection status pill (Connected / Offline).
 
 ## Priority 10: Adaptive Tablet / Desktop Navigation
-- [x] Implement adaptive Navigation Rail for tablet viewports and maintain persistent sidebar on desktop.
+- [x] Implement adaptive Navigation Rail for tablet viewports and maintain persistent sidebar on desktop. -->
 
 ---
 

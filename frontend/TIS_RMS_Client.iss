@@ -63,6 +63,8 @@ Source: "build\windows\x64\runner\Release\*.exe"; DestDir: "{app}"; Flags: ignor
 Source: "build\windows\x64\runner\Release\*.dll"; DestDir: "{app}"; Flags: ignoreversion; Excludes: "msvcp140*.dll,vcruntime140*.dll,concrt140.dll,vccorlib140.dll"
 Source: "build\windows\x64\runner\Release\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#MyAppIcon}"; DestDir: "{app}"; DestName: "app_icon.ico"; Flags: ignoreversion
+; Bundled official Microsoft Visual C++ 2015-2022 Redistributable (x64)
+Source: "vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: dontcopy
 
 [InstallDelete]
 ; Clean up any legacy app-local MSVC CRT DLLs from older installations so app always uses C:\Windows\System32
@@ -118,17 +120,74 @@ begin
             RegKeyExists(HKLM, 'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App');
 end;
 
+// Installs bundled Microsoft Visual C++ Redistributable silently and verifies installation
+procedure InstallVCRedist;
+var
+  ResultCode: Integer;
+  VCRedistPath: String;
+  PrevStatus: String;
+begin
+  if not IsVCRedistCompatible then
+  begin
+    PrevStatus := WizardForm.StatusLabel.Caption;
+    WizardForm.StatusLabel.Caption := 'Installing Microsoft Visual C++ 2015-2022 Redistributable...';
+    try
+      try
+        ExtractTemporaryFile('vc_redist.x64.exe');
+        VCRedistPath := ExpandConstant('{tmp}\vc_redist.x64.exe');
+
+        // Run bundled installer silently (/install /quiet /norestart)
+        if not Exec(VCRedistPath, '/install /quiet /norestart', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+        begin
+          SuppressibleMsgBox(
+            'Failed to execute bundled Microsoft Visual C++ Redistributable installer.' + #13#10 +
+            'System Error Code: ' + IntToStr(ResultCode) + #13#10#13#10 +
+            'The application requires this runtime component to function properly. Please install vc_redist.x64.exe manually.',
+            mbError, MB_OK, MB_OK
+          );
+        end
+        else
+        begin
+          // Exit codes: 0 = SUCCESS, 3010 = SUCCESS_REBOOT_REQUIRED, 1641 = SUCCESS_REBOOT_INITIATED, 1638 = ANOTHER_VERSION_ALREADY_INSTALLED
+          if (ResultCode <> 0) and (ResultCode <> 3010) and (ResultCode <> 1641) and (ResultCode <> 1638) then
+          begin
+            SuppressibleMsgBox(
+              'Microsoft Visual C++ 2015-2022 Redistributable installation failed.' + #13#10 +
+              'Installer Exit Code: ' + IntToStr(ResultCode) + #13#10#13#10 +
+              'The application requires this runtime component to function properly. Please install vc_redist.x64.exe manually.',
+              mbError, MB_OK, MB_OK
+            );
+          end
+          else if (not IsVCRedistCompatible) and (ResultCode <> 3010) then
+          begin
+            SuppressibleMsgBox(
+              'Microsoft Visual C++ 2015-2022 Redistributable completed, but runtime verification in the system registry failed.' + #13#10#13#10 +
+              'The application requires this runtime component to function properly. Please install vc_redist.x64.exe manually.',
+              mbError, MB_OK, MB_OK
+            );
+          end;
+        end;
+      except
+        SuppressibleMsgBox(
+          'An error occurred while preparing the Visual C++ Redistributable: ' + GetExceptionMessage + #13#10#13#10 +
+          'Please install Microsoft Visual C++ 2015-2022 Redistributable (x64) manually.',
+          mbError, MB_OK, MB_OK
+        );
+      end;
+    finally
+      WizardForm.StatusLabel.Caption := PrevStatus;
+    end;
+  end;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
 begin
   if CurStep = ssPostInstall then
   begin
-    // If Microsoft Visual C++ 2015-2022 Redistributable (x64) is not installed or outdated (< VS 2022), automatically install it silently
-    if not IsVCRedistCompatible then
-    begin
-      Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference = ''SilentlyContinue''; try { if (Get-Command winget -ErrorAction SilentlyContinue) { winget install --id Microsoft.VCRedist.2015+.x64 --silent --accept-package-agreements --accept-source-agreements } else { $url = ''https://aka.ms/vs/17/release/vc_redist.x64.exe''; $out = ''$env:TEMP\vc_redist.x64.exe''; Invoke-WebRequest -Uri $url -OutFile $out; Start-Process -FilePath $out -ArgumentList ''/install /quiet /norestart'' -Wait } } catch {}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    end;
+    // Check and install Microsoft Visual C++ 2015-2022 Redistributable
+    InstallVCRedist;
 
     // If .NET Desktop Runtime is not installed, automatically install it silently
     if not IsDotNetRuntimeInstalled then
