@@ -197,9 +197,14 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
               color: isSelected
                   ? AppColors.primaryGreen.withValues(alpha: 0.12)
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                hoverColor: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.05),
                 onTap: () {
                   setState(() {
                     _isTabLoading = true;
@@ -222,59 +227,84 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                       .setTab(tab['label'] as String);
                   _reloadTabContent(tab['label'] as String);
                 },
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: SizedBox(
-                    width: 236,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14.0,
-                        vertical: 9.0,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            (isSelected
-                                    ? tab['activeIcon'] ?? tab['icon']
-                                    : tab['icon'])
-                                as IconData,
-                            color: isSelected
-                                ? AppColors.primaryGreen
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.6),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 200),
-                              opacity: _isMinimized ? 0.0 : 1.0,
-                              child: Text(
-                                tab['label'] as String,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w500,
-                                  color: isSelected
-                                      ? AppColors.primaryGreen
-                                      : Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.8),
+                child: SizedBox(
+                  height: 42,
+                  child: _isMinimized
+                      ? Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            if (isSelected)
+                              Positioned(
+                                left: 0,
+                                child: Container(
+                                  width: 3.5,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGreen,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              ),
+                            Center(
+                              child: Icon(
+                                (isSelected
+                                        ? tab['activeIcon'] ?? tab['icon']
+                                        : tab['icon'])
+                                    as IconData,
+                                color: isSelected
+                                    ? AppColors.primaryGreen
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.65),
+                                size: 22,
                               ),
                             ),
+                          ],
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14.0,
+                            vertical: 9.0,
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                (isSelected
+                                        ? tab['activeIcon'] ?? tab['icon']
+                                        : tab['icon'])
+                                    as IconData,
+                                color: isSelected
+                                    ? AppColors.primaryGreen
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.65),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  tab['label'] as String,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? AppColors.primaryGreen
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.8),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -445,9 +475,9 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                   // WINDOWS SIDEBAR (Fixed Width: 260px)
                   // ==========================================
                   AnimatedContainer(
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeInOut,
-                    width: _isMinimized ? 80 : 260,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOutCubic,
+                    width: _isMinimized ? 72 : 260,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       border: Border(
@@ -459,114 +489,156 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                     ),
                     child: Column(
                       children: [
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const NeverScrollableScrollPhysics(),
-                          child: SizedBox(
-                            width: 260,
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                20,
-                                20,
-                                14,
-                                12,
-                              ),
-                              child: Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      if (_isMinimized) {
-                                        setState(() => _isMinimized = false);
-                                      }
-                                    },
-                                    onLongPressStart: (_) {
-                                      _holdTimer = Timer(
-                                        const Duration(seconds: 3),
-                                        () {
-                                          _showCapstoneMembers(context);
+                        // ==========================================
+                        // SIDEBAR HEADER: EXPAND BUTTON (MINIMIZED) OR LOGO + TITLE + COLLAPSE
+                        // ==========================================
+                        _isMinimized
+                            ? Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14.0,
+                                ),
+                                child: Center(
+                                  child: Tooltip(
+                                    message: 'Expand Sidebar',
+                                    waitDuration:
+                                        const Duration(milliseconds: 300),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(8),
+                                        hoverColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.08),
+                                        onTap: () {
+                                          setState(() => _isMinimized = false);
                                         },
-                                      );
-                                    },
-                                    onLongPressEnd: (_) => _holdTimer?.cancel(),
-                                    onLongPressCancel: () =>
-                                        _holdTimer?.cancel(),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.05,
-                                            ),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
+                                        child: Container(
+                                          width: 40,
+                                          height: 40,
+                                          alignment: Alignment.center,
+                                          child: Icon(
+                                            Icons.view_sidebar_outlined,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.8),
+                                            size: 22,
                                           ),
-                                        ],
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.asset(
-                                          'assets/images/logo.webp',
-                                          width: 36,
-                                          height: 36,
-                                          fit: BoxFit.contain,
                                         ),
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: AnimatedOpacity(
-                                      duration: const Duration(
-                                        milliseconds: 200,
+                                ),
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  18,
+                                  14,
+                                  12,
+                                  12,
+                                ),
+                                child: Row(
+                                  children: [
+                                    GestureDetector(
+                                      onLongPressStart: (_) {
+                                        _holdTimer = Timer(
+                                          const Duration(seconds: 3),
+                                          () {
+                                            _showCapstoneMembers(context);
+                                          },
+                                        );
+                                      },
+                                      onLongPressEnd: (_) =>
+                                          _holdTimer?.cancel(),
+                                      onLongPressCancel: () =>
+                                          _holdTimer?.cancel(),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.05,
+                                              ),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          child: Image.asset(
+                                            'assets/images/logo.webp',
+                                            width: 32,
+                                            height: 32,
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
                                       ),
-                                      opacity: _isMinimized ? 0.0 : 1.0,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
                                       child: Text(
                                         'TIS RMS',
                                         style: TextStyle(
-                                          fontSize: 18,
+                                          fontSize: 17,
                                           fontWeight: FontWeight.bold,
                                           color: Theme.of(context)
                                               .colorScheme
                                               .onSurface,
-                                          letterSpacing: 1.2,
+                                          letterSpacing: 1.1,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                  ),
-                                  AnimatedOpacity(
-                                    duration: const Duration(milliseconds: 200),
-                                    opacity: _isMinimized ? 0.0 : 1.0,
-                                    child: IconButton(
-                                      icon: Icon(
-                                        Icons.menu,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.6),
+                                    Tooltip(
+                                      message: 'Collapse Sidebar',
+                                      waitDuration:
+                                          const Duration(milliseconds: 300),
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          hoverColor: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.08),
+                                          onTap: () {
+                                            setState(() => _isMinimized = true);
+                                          },
+                                          child: Container(
+                                            width: 36,
+                                            height: 36,
+                                            alignment: Alignment.center,
+                                            child: Icon(
+                                              Icons.view_sidebar_rounded,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.65),
+                                              size: 21,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                      onPressed: () {
-                                        if (!_isMinimized) {
-                                          setState(() => _isMinimized = true);
-                                        }
-                                      },
-                                      tooltip: 'Minimize Sidebar',
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
 
                         // Navigation Items: Single Unified Scrollable List
                         Expanded(
                           child: ListView.builder(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: _isMinimized ? 12 : 12,
                               vertical: 4,
                             ),
                             itemCount: tabs.length,
@@ -592,7 +664,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                         // Persistent Server Connection Status Pill
                         Padding(
                           padding: EdgeInsets.symmetric(
-                            horizontal: _isMinimized ? 12 : 20,
+                            horizontal: _isMinimized ? 8 : 20,
                             vertical: 8,
                           ),
                           child: Center(
@@ -605,38 +677,31 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                           height: 1,
                           color: Theme.of(context).dividerColor,
                         ),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const NeverScrollableScrollPhysics(),
-                          child: SizedBox(
-                            width: 260,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18.0,
-                                vertical: 12.0,
-                              ),
-                              child: Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      if (_isMinimized) {
-                                        setState(() => _isMinimized = false);
-                                      }
-                                    },
+                        _isMinimized
+                            ? Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12.0),
+                                child: Center(
+                                  child: Tooltip(
+                                    message: ref
+                                            .watch(authProvider)
+                                            .value
+                                            ?.fullName ??
+                                        'User Profile',
+                                    waitDuration:
+                                        const Duration(milliseconds: 300),
                                     child: Builder(
                                       builder: (context) {
-                                        final user = ref
-                                            .watch(authProvider)
-                                            .value;
-                                        final initials =
-                                            user != null &&
+                                        final user =
+                                            ref.watch(authProvider).value;
+                                        final initials = user != null &&
                                                 user.firstName.isNotEmpty &&
                                                 user.lastName.isNotEmpty
                                             ? '${user.firstName[0]}${user.lastName[0]}'
-                                                  .toUpperCase()
+                                                .toUpperCase()
                                             : 'SA';
                                         return CircleAvatar(
-                                          radius: 20,
+                                          radius: 18,
                                           backgroundColor:
                                               AppColors.primaryGreen,
                                           child: Text(
@@ -644,23 +709,53 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 16,
+                                              fontSize: 13,
                                             ),
                                           ),
                                         );
                                       },
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: AnimatedOpacity(
-                                      duration: const Duration(
-                                        milliseconds: 200,
-                                      ),
-                                      opacity: _isMinimized ? 0.0 : 1.0,
+                                ),
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14.0,
+                                  vertical: 12.0,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Builder(
+                                      builder: (context) {
+                                        final user =
+                                            ref.watch(authProvider).value;
+                                        final initials = user != null &&
+                                                user.firstName.isNotEmpty &&
+                                                user.lastName.isNotEmpty
+                                            ? '${user.firstName[0]}${user.lastName[0]}'
+                                                .toUpperCase()
+                                            : 'SA';
+                                        return CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor:
+                                              AppColors.primaryGreen,
+                                          child: Text(
+                                            initials,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
                                             ref
@@ -670,7 +765,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                                 'Unknown User',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 14,
+                                              fontSize: 13,
                                               color: Theme.of(context)
                                                   .colorScheme
                                                   .onSurface,
@@ -681,7 +776,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                           Text(
                                             widget.userRole.toUpperCase(),
                                             style: TextStyle(
-                                              fontSize: 12,
+                                              fontSize: 11,
                                               color: Theme.of(context)
                                                   .colorScheme
                                                   .onSurface
@@ -691,50 +786,39 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                         ],
                                       ),
                                     ),
-                                  ),
-                                  AnimatedOpacity(
-                                    duration: const Duration(milliseconds: 200),
-                                    opacity: _isMinimized ? 0.0 : 1.0,
-                                    child: IconButton(
+                                    IconButton(
                                       icon: Icon(
                                         Icons.menu_book_outlined,
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
                                             .withValues(alpha: 0.6),
+                                        size: 19,
                                       ),
                                       tooltip: 'User Guide & Documentation',
+                                      visualDensity: VisualDensity.compact,
                                       onPressed: () {
-                                        if (!_isMinimized) {
-                                          DocumentationScreen.open(context);
-                                        }
+                                        DocumentationScreen.open(context);
                                       },
                                     ),
-                                  ),
-                                  AnimatedOpacity(
-                                    duration: const Duration(milliseconds: 200),
-                                    opacity: _isMinimized ? 0.0 : 1.0,
-                                    child: IconButton(
+                                    IconButton(
                                       icon: Icon(
                                         Icons.logout,
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
                                             .withValues(alpha: 0.6),
+                                        size: 19,
                                       ),
                                       tooltip: 'Logout',
+                                      visualDensity: VisualDensity.compact,
                                       onPressed: () {
-                                        if (!_isMinimized) {
-                                          showLogoutConfirmationDialog(context);
-                                        }
+                                        showLogoutConfirmationDialog(context);
                                       },
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
