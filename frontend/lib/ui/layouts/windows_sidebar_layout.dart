@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
@@ -59,24 +58,17 @@ class WindowsSidebarLayout extends ConsumerStatefulWidget {
       _WindowsSidebarLayoutState();
 }
 
-class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
-    with SingleTickerProviderStateMixin {
+class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
   final Set<int> _visitedIndices = {};
   Timer? _holdTimer;
   Timer? _tabLoadingTimer;
   late bool _isMinimized;
   bool _isTabLoading = false;
-  late AnimationController _menuAnimController;
 
   @override
   void initState() {
     super.initState();
     _isMinimized = widget.initialMinimized;
-    _menuAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 250),
-      value: _isMinimized ? 0.0 : 1.0,
-    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(heartbeatServiceProvider).onConnectionLost = () {
         if (mounted) {
@@ -94,21 +86,9 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
 
   @override
   void dispose() {
-    _menuAnimController.dispose();
     _holdTimer?.cancel();
     _tabLoadingTimer?.cancel();
     super.dispose();
-  }
-
-  void _toggleSidebar() {
-    setState(() {
-      _isMinimized = !_isMinimized;
-      if (_isMinimized) {
-        _menuAnimController.reverse();
-      } else {
-        _menuAnimController.forward();
-      }
-    });
   }
 
   void _reloadTabContent(String label) {
@@ -161,68 +141,10 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
     );
   }
 
-  Widget _buildExpandButton(bool isDark) {
-    return Tooltip(
-      message: _isMinimized ? 'Expand Sidebar' : 'Collapse Sidebar',
-      waitDuration: const Duration(milliseconds: 300),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          hoverColor: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.black.withValues(alpha: 0.06),
-          onTap: _toggleSidebar,
-          child: Container(
-            width: 38,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 240),
-              transitionBuilder: (child, animation) {
-                final inAnimation = Tween<Offset>(
-                  begin: Offset(_isMinimized ? -0.15 : 0.15, 0.0),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutCubic,
-                  ),
-                );
-                return SlideTransition(
-                  position: inAnimation,
-                  child: FadeTransition(opacity: animation, child: child),
-                );
-              },
-              child: Icon(
-                _isMinimized
-                    ? Icons.view_sidebar_outlined
-                    : Icons.view_sidebar_rounded,
-                key: ValueKey(_isMinimized),
-                color: _isMinimized
-                    ? Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.80)
-                    : AppColors.primaryGreen,
-                size: 21,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildNavItem(
     Map<String, Object> tab,
     bool isSelected,
     bool isCategoryHeader, {
-    required bool isDark,
     bool isFirstItem = false,
   }) {
     final String? category = tab['category'] as String?;
@@ -232,30 +154,34 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
       children: [
         if (isCategoryHeader && category != null)
           AnimatedSize(
-            duration: const Duration(milliseconds: 250),
+            duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             child: _isMinimized
-                ? const SizedBox.shrink()
+                ? const SizedBox(width: double.infinity, height: 0)
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (!isFirstItem) const SizedBox(height: 10),
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          left: 14,
-                          bottom: 6,
-                          top: 4,
-                        ),
-                        child: Text(
-                          category.toUpperCase(),
-                          style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.55),
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.0,
+                      if (!isFirstItem) const SizedBox(height: 6),
+                      AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: _isMinimized ? 0.0 : 1.0,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            left: 16,
+                            bottom: 6,
+                            top: 4,
+                          ),
+                          child: Text(
+                            category.toUpperCase(),
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
                           ),
                         ),
                       ),
@@ -269,17 +195,11 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
             waitDuration: const Duration(milliseconds: 500),
             child: Material(
               color: isSelected
-                  ? (isDark
-                      ? AppColors.primaryGreen.withValues(alpha: 0.16)
-                      : AppColors.primaryGreen.withValues(alpha: 0.10))
+                  ? AppColors.primaryGreen.withValues(alpha: 0.12)
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(12),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
-                borderRadius: BorderRadius.circular(6),
-                hoverColor: isDark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.black.withValues(alpha: 0.04),
                 onTap: () {
                   setState(() {
                     _isTabLoading = true;
@@ -302,103 +222,59 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                       .setTab(tab['label'] as String);
                   _reloadTabContent(tab['label'] as String);
                 },
-                child: SizedBox(
-                  height: 42,
-                  child: _isMinimized
-                      // ==========================================
-                      // COLLAPSED STATE: PERFECTLY CENTERED ICON
-                      // ==========================================
-                      ? Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            if (isSelected)
-                              Positioned(
-                                left: 0,
-                                child: Container(
-                                  width: 3.5,
-                                  height: 20,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen,
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                ),
-                              ),
-                            Center(
-                              child: Icon(
-                                (isSelected
-                                        ? tab['activeIcon'] ?? tab['icon']
-                                        : tab['icon'])
-                                    as IconData,
-                                color: isSelected
-                                    ? AppColors.primaryGreen
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.72),
-                                size: 22,
-                              ),
-                            ),
-                          ],
-                        )
-                      // ==========================================
-                      // EXPANDED STATE: ROW WITH PILL, ICON, LABEL
-                      // ==========================================
-                      : Row(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(left: 3),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                curve: Curves.easeOutCubic,
-                                width: 3.5,
-                                height: isSelected ? 20 : 0,
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? AppColors.primaryGreen
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Icon(
-                              (isSelected
-                                      ? tab['activeIcon'] ?? tab['icon']
-                                      : tab['icon'])
-                                  as IconData,
-                              color: isSelected
-                                  ? AppColors.primaryGreen
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.72),
-                              size: 22,
-                            ),
-                            const SizedBox(width: 13),
-                            Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: SizedBox(
+                    width: 236,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14.0,
+                        vertical: 9.0,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            (isSelected
+                                    ? tab['activeIcon'] ?? tab['icon']
+                                    : tab['icon'])
+                                as IconData,
+                            color: isSelected
+                                ? AppColors.primaryGreen
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.6),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: _isMinimized ? 0.0 : 1.0,
                               child: Text(
                                 tab['label'] as String,
                                 style: TextStyle(
-                                  fontSize: 14.5,
+                                  fontSize: 14,
                                   fontWeight: isSelected
                                       ? FontWeight.w600
                                       : FontWeight.w500,
                                   color: isSelected
-                                      ? (isDark
-                                          ? Colors.white
-                                          : const Color(0xFF1B1B1B))
+                                      ? AppColors.primaryGreen
                                       : Theme.of(context)
                                           .colorScheme
                                           .onSurface
-                                          .withValues(alpha: 0.82),
+                                          .withValues(alpha: 0.8),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -410,7 +286,6 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final allTabs = [
       {
         'category': 'MAIN',
@@ -543,172 +418,155 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: AbstractBackground(
-          blurSigma: 0.0,
-          child: Column(
-            children: [
-              if (!kIsWeb &&
-                  (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
-                ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                    child: Container(
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: (isDark
-                                ? const Color(0xFF181818)
-                                : const Color(0xFFF3F3F3))
-                            .withValues(alpha: isDark ? 0.60 : 0.45),
-                        border: Border(
-                          bottom: BorderSide(
-                            color: (isDark
-                                    ? Colors.white.withValues(alpha: 0.08)
-                                    : Colors.black.withValues(alpha: 0.08)),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      child: WindowCaption(
-                        brightness:
-                            isDark ? Brightness.dark : Brightness.light,
-                        backgroundColor: Colors.transparent,
-                        title: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(3),
-                              child: Image.asset(
-                                'assets/images/logo.webp',
-                                width: 16,
-                                height: 16,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'TIS Record Management System',
-                              style: TextStyle(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.9)
-                                    : const Color(0xFF1F1F1F),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Column(
+          children: [
+            if (!kIsWeb &&
+                (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+              SizedBox(
+                height: 32,
+                child: WindowCaption(
+                  brightness: Brightness.dark,
+                  backgroundColor: AppColors.primaryGreen,
+                  title: const Text(
+                    'TIS Record Management System',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
-              Expanded(
-                child: Row(
-                  children: [
-                    // ==========================================
-                    // WINDOWS SIDEBAR (Fixed Width: 260px)
-                    // ==========================================
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOutCubic,
-                      width: _isMinimized ? 72 : 260,
-                      child: ClipRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: (isDark
-                                      ? const Color(0xFF181818)
-                                      : const Color(0xFFF3F3F3))
-                                  .withValues(alpha: isDark ? 0.60 : 0.45),
-                              border: Border(
-                                right: BorderSide(
-                                  color: (isDark
-                                          ? Colors.white.withValues(alpha: 0.08)
-                                          : Colors.black.withValues(alpha: 0.08)),
-                                  width: 1,
-                                ),
+              ),
+            Expanded(
+              child: Row(
+                children: [
+                  // ==========================================
+                  // WINDOWS SIDEBAR (Fixed Width: 260px)
+                  // ==========================================
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeInOut,
+                    width: _isMinimized ? 80 : 260,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      border: Border(
+                        right: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: SizedBox(
+                            width: 260,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                20,
+                                14,
+                                12,
                               ),
-                            ),
-                            child: Column(
-                              children: [
-                        Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: _isMinimized ? 17 : 14,
-                            vertical: 12,
-                          ),
-                          child: _isMinimized
-                              ? Center(
-                                  child: _buildExpandButton(isDark),
-                                )
-                              : Row(
-                                  children: [
-                                    _buildExpandButton(isDark),
-                                    const SizedBox(width: 10),
-                                    GestureDetector(
-                                      onLongPressStart: (_) {
-                                        _holdTimer = Timer(
-                                          const Duration(seconds: 3),
-                                          () {
-                                            _showCapstoneMembers(context);
-                                          },
-                                        );
-                                      },
-                                      onLongPressEnd: (_) =>
-                                          _holdTimer?.cancel(),
-                                      onLongPressCancel: () =>
-                                          _holdTimer?.cancel(),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.04,
-                                              ),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
+                              child: Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      if (_isMinimized) {
+                                        setState(() => _isMinimized = false);
+                                      }
+                                    },
+                                    onLongPressStart: (_) {
+                                      _holdTimer = Timer(
+                                        const Duration(seconds: 3),
+                                        () {
+                                          _showCapstoneMembers(context);
+                                        },
+                                      );
+                                    },
+                                    onLongPressEnd: (_) => _holdTimer?.cancel(),
+                                    onLongPressCancel: () =>
+                                        _holdTimer?.cancel(),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.05,
                                             ),
-                                          ],
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                          child: Image.asset(
-                                            'assets/images/logo.webp',
-                                            width: 30,
-                                            height: 30,
-                                            fit: BoxFit.contain,
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
                                           ),
+                                        ],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.asset(
+                                          'assets/images/logo.webp',
+                                          width: 36,
+                                          height: 36,
+                                          fit: BoxFit.contain,
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: AnimatedOpacity(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      opacity: _isMinimized ? 0.0 : 1.0,
                                       child: Text(
                                         'TIS RMS',
                                         style: TextStyle(
-                                          fontSize: 16.5,
-                                          fontWeight: FontWeight.w700,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
                                           color: Theme.of(context)
                                               .colorScheme
                                               .onSurface,
-                                          letterSpacing: 0.9,
+                                          letterSpacing: 1.2,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  AnimatedOpacity(
+                                    duration: const Duration(milliseconds: 200),
+                                    opacity: _isMinimized ? 0.0 : 1.0,
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.menu,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.6),
+                                      ),
+                                      onPressed: () {
+                                        if (!_isMinimized) {
+                                          setState(() => _isMinimized = true);
+                                        }
+                                      },
+                                      tooltip: 'Minimize Sidebar',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
 
                         // Navigation Items: Single Unified Scrollable List
                         Expanded(
                           child: ListView.builder(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
+                              horizontal: 12,
                               vertical: 4,
                             ),
                             itemCount: tabs.length,
@@ -725,7 +583,6 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                                 tab,
                                 isSelected,
                                 isCategoryHeader,
-                                isDark: isDark,
                                 isFirstItem: index == 0,
                               );
                             },
@@ -746,222 +603,172 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                         // Bottom Section: User Profile & Logout
                         Divider(
                           height: 1,
-                          color: isDark
-                              ? const Color(0xFF2D2D2D)
-                              : const Color(0xFFE5E5E5),
+                          color: Theme.of(context).dividerColor,
                         ),
-                        Container(
-                          margin: EdgeInsets.symmetric(
-                            horizontal: _isMinimized ? 12.0 : 8.0,
-                            vertical: 8.0,
-                          ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: _isMinimized ? 0.0 : 8.0,
-                            vertical: 6.0,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.03)
-                                : Colors.black.withValues(alpha: 0.02),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.06)
-                                  : Colors.black.withValues(alpha: 0.05),
-                              width: 1,
-                            ),
-                          ),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const NeverScrollableScrollPhysics(),
                           child: SizedBox(
-                            width: _isMinimized ? 48 : 228,
-                            child: _isMinimized
-                                ? Center(
-                                    child: Tooltip(
-                                      message: ref
-                                              .watch(authProvider)
-                                              .value
-                                              ?.fullName ??
-                                          'User Profile',
-                                      waitDuration:
-                                          const Duration(milliseconds: 300),
-                                      child: Builder(
-                                        builder: (context) {
-                                          final user = ref
-                                              .watch(authProvider)
-                                              .value;
-                                          final initials = user != null &&
-                                                  user.firstName.isNotEmpty &&
-                                                  user.lastName.isNotEmpty
-                                              ? '${user.firstName[0]}${user.lastName[0]}'
+                            width: 260,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18.0,
+                                vertical: 12.0,
+                              ),
+                              child: Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      if (_isMinimized) {
+                                        setState(() => _isMinimized = false);
+                                      }
+                                    },
+                                    child: Builder(
+                                      builder: (context) {
+                                        final user = ref
+                                            .watch(authProvider)
+                                            .value;
+                                        final initials =
+                                            user != null &&
+                                                user.firstName.isNotEmpty &&
+                                                user.lastName.isNotEmpty
+                                            ? '${user.firstName[0]}${user.lastName[0]}'
                                                   .toUpperCase()
-                                              : 'SA';
-                                          return CircleAvatar(
-                                            radius: 17,
-                                            backgroundColor:
-                                                AppColors.primaryGreen,
-                                            child: Text(
-                                              initials,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 13,
-                                              ),
+                                            : 'SA';
+                                        return CircleAvatar(
+                                          radius: 20,
+                                          backgroundColor:
+                                              AppColors.primaryGreen,
+                                          child: Text(
+                                            initials,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
                                             ),
-                                          );
-                                        },
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: AnimatedOpacity(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      opacity: _isMinimized ? 0.0 : 1.0,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            ref
+                                                    .watch(authProvider)
+                                                    .value
+                                                    ?.fullName ??
+                                                'Unknown User',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Text(
+                                            widget.userRole.toUpperCase(),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.6),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  )
-                                : Row(
-                                    children: [
-                                      Builder(
-                                        builder: (context) {
-                                          final user = ref
-                                              .watch(authProvider)
-                                              .value;
-                                          final initials = user != null &&
-                                                  user.firstName.isNotEmpty &&
-                                                  user.lastName.isNotEmpty
-                                              ? '${user.firstName[0]}${user.lastName[0]}'
-                                                  .toUpperCase()
-                                              : 'SA';
-                                          return CircleAvatar(
-                                            radius: 17,
-                                            backgroundColor:
-                                                AppColors.primaryGreen,
-                                            child: Text(
-                                              initials,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              ref
-                                                      .watch(authProvider)
-                                                      .value
-                                                      ?.fullName ??
-                                                  'Unknown User',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 13,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            Text(
-                                              widget.userRole.toUpperCase(),
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w500,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface
-                                                    .withValues(alpha: 0.55),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.menu_book_outlined,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                              .withValues(alpha: 0.65),
-                                          size: 18,
-                                        ),
-                                        tooltip: 'User Guide & Documentation',
-                                        hoverColor: isDark
-                                            ? Colors.white.withValues(alpha: 0.06)
-                                            : Colors.black.withValues(alpha: 0.05),
-                                        visualDensity: VisualDensity.compact,
-                                        padding: const EdgeInsets.all(6),
-                                        constraints: const BoxConstraints(
-                                          minWidth: 30,
-                                          minHeight: 30,
-                                        ),
-                                        onPressed: () {
-                                          DocumentationScreen.open(context);
-                                        },
-                                      ),
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.logout,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                              .withValues(alpha: 0.65),
-                                          size: 18,
-                                        ),
-                                        tooltip: 'Logout',
-                                        hoverColor: isDark
-                                            ? Colors.white.withValues(alpha: 0.06)
-                                            : Colors.black.withValues(alpha: 0.05),
-                                        visualDensity: VisualDensity.compact,
-                                        padding: const EdgeInsets.all(6),
-                                        constraints: const BoxConstraints(
-                                          minWidth: 30,
-                                          minHeight: 30,
-                                        ),
-                                        onPressed: () {
-                                          showLogoutConfirmationDialog(context);
-                                        },
-                                      ),
-                                    ],
                                   ),
+                                  AnimatedOpacity(
+                                    duration: const Duration(milliseconds: 200),
+                                    opacity: _isMinimized ? 0.0 : 1.0,
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.menu_book_outlined,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.6),
+                                      ),
+                                      tooltip: 'User Guide & Documentation',
+                                      onPressed: () {
+                                        if (!_isMinimized) {
+                                          DocumentationScreen.open(context);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  AnimatedOpacity(
+                                    duration: const Duration(milliseconds: 200),
+                                    opacity: _isMinimized ? 0.0 : 1.0,
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.logout,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.6),
+                                      ),
+                                      tooltip: 'Logout',
+                                      onPressed: () {
+                                        if (!_isMinimized) {
+                                          showLogoutConfirmationDialog(context);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ),
-            ),
 
-            // ==========================================
-            // MAIN CONTENT AREA
-            // ==========================================
-            Expanded(
-              child: Stack(
-                children: [
-                  IndexedStack(
-                    index: currentIndex,
-                    children: tabs.asMap().entries.map((entry) {
-                      return _visitedIndices.contains(entry.key)
-                          ? entry.value['screen'] as Widget
-                          : const SizedBox.shrink();
-                    }).toList(),
-                  ),
-                  if (_isTabLoading)
-                    Container(
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      width: double.infinity,
-                      height: double.infinity,
-                      child: const _PageSkeletonLoader(),
+                  // ==========================================
+                  // MAIN CONTENT AREA
+                  // ==========================================
+                  Expanded(
+                    child: AbstractBackground(
+                      child: Stack(
+                        children: [
+                          IndexedStack(
+                            index: currentIndex,
+                            children: tabs.asMap().entries.map((entry) {
+                              return _visitedIndices.contains(entry.key)
+                                  ? entry.value['screen'] as Widget
+                                  : const SizedBox.shrink();
+                            }).toList(),
+                          ),
+                          if (_isTabLoading)
+                            Container(
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                              width: double.infinity,
+                              height: double.infinity,
+                              child: const _PageSkeletonLoader(),
+                            ),
+                        ],
+                      ),
                     ),
+                  ),
                 ],
               ),
             ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );
