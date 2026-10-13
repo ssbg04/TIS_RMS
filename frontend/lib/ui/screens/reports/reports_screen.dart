@@ -3691,7 +3691,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
-      height: isDesktop ? 300 : null,
+      height: isDesktop ? 360 : null,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: _cardDecoration(),
       child: Column(
@@ -4092,13 +4092,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
-      height: isDesktop ? 300 : null,
+      height: isDesktop ? 360 : null,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // â”€â”€ Chart Title & Filter Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -4266,14 +4265,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
               final chartContent = LayoutBuilder(
                 builder: (context, constraints) {
-                  final bool hasScroll = constraints.maxWidth < (data.length * 150.0);
+                  final double minYearWidth = isDesktop ? 100.0 : 130.0;
+                  final double requiredWidth = data.length * minYearWidth;
+                  final bool hasScroll = constraints.maxWidth < requiredWidth;
                   final double chartWidth = hasScroll
-                      ? (data.length * 150.0)
+                      ? requiredWidth
                       : constraints.maxWidth;
+                  final double scrollExtras = hasScroll ? 36.0 : 0.0;
                   final double chartHeight = isDesktop
-                      ? (hasScroll
-                          ? (constraints.maxHeight - 48).clamp(140.0, 220.0)
-                          : constraints.maxHeight.clamp(160.0, 220.0))
+                      ? (constraints.maxHeight - scrollExtras).clamp(80.0, 220.0)
                       : 250;
                   final Widget chartWidget = SizedBox(
                     width: chartWidth,
@@ -4417,15 +4417,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     return Center(child: chartWidget);
                   }
 
+                  final scrollableChart = SingleChildScrollView(
+                    controller: _chartHorizontalScrollController,
+                    scrollDirection: Axis.horizontal,
+                    child: chartWidget,
+                  );
+
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SingleChildScrollView(
-                        controller: _chartHorizontalScrollController,
-                        scrollDirection: Axis.horizontal,
-                        child: chartWidget,
-                      ),
+                      if (isDesktop)
+                        Expanded(child: scrollableChart)
+                      else
+                        scrollableChart,
                       const SizedBox(height: 4),
                       _CustomHorizontalScrollBar(
                         controller: _chartHorizontalScrollController,

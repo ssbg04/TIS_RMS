@@ -1132,6 +1132,10 @@ Files backup/restore - mirror mode or zip -->
 # REPORTS SCREEN
 - [x] compliance tab student document compliance search bar not visible make it visible for all theme 
 - [x] make the space consume, make the analytics prominently visible with minimal scrolling
+- [x] fix layout overflow in compliance tab yearly comparison chart on Windows app (adjusted card height to 360, dynamic chart height calculation, and wrapped scrollable chart in Expanded on desktop)
+
+# STUDENT SCREEN
+- [x] fix students tab showing all students on re-click: preserved active academic year in studentQueryProvider reset and fail-safe fallback in studentPageProvider for enrolled tab
 
 ---
 

@@ -5,7 +5,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/network/api_constants.dart';
 import '../../domain/repositories/student_repository.dart';
 import '../../domain/entities/student_model.dart';
+import '../../domain/entities/setup_models.dart';
 import '../../domain/entities/dashboard_models.dart' show RecentActivity;
+import 'setup_provider.dart';
 
 // ============================================================
 // Academic Years Model
@@ -207,7 +209,21 @@ class StudentQueryNotifier extends Notifier<StudentQueryParams> {
     );
   }
 
-  void reset() => state = const StudentQueryParams();
+  void reset({String? schoolYear}) {
+    String sy = schoolYear ?? '';
+    if (sy.isEmpty) {
+      final tab = ref.read(studentViewTabProvider);
+      if (tab == StudentViewTab.enrolled) {
+        final years = ref.read(academicYearsListProvider).asData?.value ?? [];
+        try {
+          sy = years.firstWhere((y) => y.status.toLowerCase() == 'active').yearRange;
+        } catch (_) {
+          if (years.isNotEmpty) sy = years.first.yearRange;
+        }
+      }
+    }
+    state = StudentQueryParams(schoolYear: sy);
+  }
 }
 
 // ============================================================
@@ -258,6 +274,7 @@ final studentPageProvider = FutureProvider.autoDispose<StudentPage>((
   ref,
 ) async {
   final query = ref.watch(studentQueryProvider);
+  final tab = ref.watch(studentViewTabProvider);
   final repo = ref.read(studentRepositoryProvider);
 
   final sub = repo.onStudentChanged.listen((_) {
@@ -266,6 +283,25 @@ final studentPageProvider = FutureProvider.autoDispose<StudentPage>((
 
   ref.onDispose(() => sub.cancel());
 
+  String effectiveSchoolYear = query.schoolYear;
+  if (tab == StudentViewTab.enrolled &&
+      effectiveSchoolYear.isEmpty &&
+      query.search.isEmpty) {
+    List<AcademicYearModel> years =
+        ref.watch(academicYearsListProvider).asData?.value ?? [];
+    if (years.isEmpty) {
+      try {
+        years = await ref.watch(academicYearsListProvider.future);
+      } catch (_) {}
+    }
+    try {
+      effectiveSchoolYear =
+          years.firstWhere((y) => y.status.toLowerCase() == 'active').yearRange;
+    } catch (_) {
+      if (years.isNotEmpty) effectiveSchoolYear = years.first.yearRange;
+    }
+  }
+
   return repo.getStudents(
     search: query.search,
     page: query.page,
@@ -273,7 +309,7 @@ final studentPageProvider = FutureProvider.autoDispose<StudentPage>((
     gradeLevel: query.gradeLevel,
     status: query.status,
     section: query.section,
-    schoolYear: query.schoolYear,
+    schoolYear: effectiveSchoolYear,
     is4ps: query.is4Ps,
     lrn: query.lrn,
     sortBy: query.sortBy,

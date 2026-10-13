@@ -1053,6 +1053,18 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       }
     });
 
+    ref.listen<StudentViewTab>(studentViewTabProvider, (previous, next) {
+      if (mounted && _viewTab != next) {
+        setState(() => _viewTab = next);
+      }
+    });
+
+    ref.listen<StudentQueryParams>(studentQueryProvider, (previous, next) {
+      if (next.search.isEmpty && _searchController.text.isNotEmpty) {
+        _searchController.clear();
+      }
+    });
+
     ref.listen<AsyncValue<List<AcademicYearModel>>>(academicYearsListProvider, (prev, next) {
       if (!mounted) return;
       final years = next.asData?.value;
