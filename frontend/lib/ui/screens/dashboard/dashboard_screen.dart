@@ -457,35 +457,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         const SizedBox(height: 24),
                         _buildStatGrid(data.stats, user),
                         const SizedBox(height: 28),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            if (constraints.maxWidth >= 900) {
-                              return const IntrinsicHeight(
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    Expanded(flex: 6, child: NeedsAttentionCard()),
-                                    SizedBox(width: 20),
-                                    Expanded(flex: 5, child: RecentActivityFeed()),
-                                  ],
-                                ),
-                              );
-                            } else {
-                              return const Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  NeedsAttentionCard(),
-                                  SizedBox(height: 20),
-                                  RecentActivityFeed(),
-                                ],
-                              );
-                            }
-                          },
-                        ),
+                        const NeedsAttentionCard(),
                         if (isAdmin) ...[
                           const SizedBox(height: 32),
                           const DashboardKpisSection(),
                         ],
+                        const SizedBox(height: 32),
+                        const RecentActivityFeed(),
                         const SizedBox(height: 48),
                       ],
                     ),

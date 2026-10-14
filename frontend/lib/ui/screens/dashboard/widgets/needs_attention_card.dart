@@ -14,49 +14,6 @@ import '../../../../domain/entities/dashboard_models.dart';
 class NeedsAttentionCard extends ConsumerWidget {
   const NeedsAttentionCard({super.key});
 
-  IconData _getRequirementIcon(String name) {
-    final upper = name.toUpperCase();
-    if (upper.contains('SF9') || upper.contains('REPORT CARD') || upper.contains('FORM 9')) {
-      return Icons.assignment_late_outlined;
-    }
-    if (upper.contains('SF10') || upper.contains('FORM 137') || upper.contains('FORM 10')) {
-      return Icons.description_outlined;
-    }
-    if (upper.contains('PSA') || upper.contains('BIRTH')) {
-      return Icons.badge_outlined;
-    }
-    if (upper.contains('GOOD MORAL')) {
-      return Icons.verified_outlined;
-    }
-    if (upper.contains('MEDICAL')) {
-      return Icons.medical_services_outlined;
-    }
-    if (upper.contains('CERTIFICATE') || upper.contains('ENROLLMENT')) {
-      return Icons.card_membership_outlined;
-    }
-    return Icons.insert_drive_file_outlined;
-  }
-
-  Color _getRequirementColor(String name) {
-    final upper = name.toUpperCase();
-    if (upper.contains('SF9') || upper.contains('FORM 9')) {
-      return Colors.orange.shade800;
-    }
-    if (upper.contains('SF10') || upper.contains('FORM 137') || upper.contains('FORM 10')) {
-      return Colors.amber.shade800;
-    }
-    if (upper.contains('PSA') || upper.contains('BIRTH')) {
-      return const Color(0xFF0284C7); // Sky Blue
-    }
-    if (upper.contains('GOOD MORAL')) {
-      return const Color(0xFF16A34A); // Green
-    }
-    if (upper.contains('MEDICAL')) {
-      return const Color(0xFFDC2626); // Red
-    }
-    return const Color(0xFF7C3AED); // Purple
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -65,7 +22,7 @@ class NeedsAttentionCard extends ConsumerWidget {
 
     final needsAttentionAsync = ref.watch(dashboardNeedsAttentionProvider);
 
-    if (needsAttentionAsync.isLoading) {
+    if (needsAttentionAsync.isLoading && !needsAttentionAsync.hasValue) {
       return Container(
         height: 140,
         decoration: BoxDecoration(
@@ -86,7 +43,7 @@ class NeedsAttentionCard extends ConsumerWidget {
       );
     }
 
-    if (needsAttentionAsync.hasError) {
+    if (needsAttentionAsync.hasError && !needsAttentionAsync.hasValue) {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -358,59 +315,69 @@ class NeedsAttentionCard extends ConsumerWidget {
     required bool isDark,
     required VoidCallback onTap,
   }) {
-    final icon = _getRequirementIcon(item.name);
-    final color = _getRequirementColor(item.name);
+    final countLabel = item.count <= 1
+        ? '1 student missing ${item.name}'
+        : '${item.count} students missing ${item.name}';
+    final accentColor = isDark ? Colors.amber.shade400 : const Color(0xFFB45309);
+    final bgColor = isDark
+        ? AppColors.darkSurface2
+        : const Color(0xFFFFFBEB);
+    final borderColor = isDark
+        ? AppColors.darkBorder
+        : const Color(0xFFFDE68A);
 
     return Material(
       color: Colors.transparent,
       child: Tooltip(
-        message: 'Click to view ${item.count} student${item.count == 1 ? '' : 's'} missing ${item.name}',
+        message: 'Click to view ${item.count} ${item.count <= 1 ? "student" : "students"} missing ${item.name}',
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(10),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: isDark ? 0.15 : 0.08),
+              color: bgColor,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: color.withValues(alpha: isDark ? 0.35 : 0.25),
+                color: borderColor,
                 width: 1,
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 16, color: color),
+                Icon(Icons.description_outlined, size: 16, color: accentColor),
                 const SizedBox(width: 8),
                 Text(
-                  '${item.count} missing ${item.name}',
+                  countLabel,
                   style: TextStyle(
                     fontSize: 12.5,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: isDark ? Colors.white : AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
-                    color: color,
+                    color: isDark
+                        ? Colors.amber.shade900.withValues(alpha: 0.35)
+                        : const Color(0xFFFEF3C7),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'View',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: accentColor,
                         ),
                       ),
-                      SizedBox(width: 2),
-                      Icon(Icons.arrow_forward, size: 10, color: Colors.white),
+                      const SizedBox(width: 3),
+                      Icon(Icons.arrow_forward_rounded, size: 11, color: accentColor),
                     ],
                   ),
                 ),
@@ -481,19 +448,29 @@ class NeedsAttentionCard extends ConsumerWidget {
                   children: [
                     for (final doc in missingList)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.12),
+                          color: isDark
+                              ? Colors.amber.shade900.withValues(alpha: 0.25)
+                              : const Color(0xFFFEF3C7),
                           borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.amber.shade800.withValues(alpha: 0.3)
+                                : const Color(0xFFFDE68A),
+                            width: 0.8,
+                          ),
                         ),
                         child: Text(
-                          '! ${_formatDocTag(doc)}',
+                          _formatDocTag(doc),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red.shade800,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? Colors.amber.shade300
+                                : const Color(0xFF92400E),
                           ),
                         ),
                       ),
@@ -617,7 +594,7 @@ class NeedsAttentionCard extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            '${students.length} students currently missing this record',
+                            '${students.length} ${students.length <= 1 ? "student" : "students"} currently missing this record',
                             style: TextStyle(
                               fontSize: 12,
                               color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,

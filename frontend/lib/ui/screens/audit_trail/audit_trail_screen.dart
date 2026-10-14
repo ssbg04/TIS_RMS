@@ -66,6 +66,8 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
               _shortcutFocusNode.requestFocus();
             }
           });
+        } else {
+          _clearFilters();
         }
       });
     });
@@ -81,18 +83,15 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
   }
 
   void _clearFilters() {
+    if (!mounted) return;
     setState(() {
       _fromDate = null;
       _toDate = null;
       _searchController.clear();
     });
-    if (_selectedTab == AuditTab.activities) {
-      ref.read(activityQueryProvider.notifier).reset();
-    } else if (_selectedTab == AuditTab.users) {
-      ref.read(userHistoryQueryProvider.notifier).reset();
-    } else {
-      ref.read(loginSessionsQueryProvider.notifier).reset();
-    }
+    ref.read(activityQueryProvider.notifier).reset();
+    ref.read(userHistoryQueryProvider.notifier).reset();
+    ref.read(loginSessionsQueryProvider.notifier).reset();
   }
 
 
@@ -833,15 +832,19 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                 labelPadding: const EdgeInsets.symmetric(horizontal: 4),
               ),
             ),
-          TextButton(
-            onPressed: _clearFilters,
-            style: TextButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              foregroundColor: Colors.redAccent,
+          if (_fromDate != null ||
+              _toDate != null ||
+              (currentAction.isNotEmpty && currentAction != 'All') ||
+              (currentRole.isNotEmpty && currentRole != 'All'))
+            TextButton(
+              onPressed: _clearFilters,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                foregroundColor: Colors.redAccent,
+              ),
+              child: const Text('Reset', style: TextStyle(fontSize: 11)),
             ),
-            child: const Text('Reset', style: TextStyle(fontSize: 11)),
-          ),
         ],
       ),
     );
@@ -994,24 +997,17 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
 
                         // Search Icon
                         Tooltip(
-                          message: currentSearch.isNotEmpty ? 'Clear Search' : 'Search',
+                          message: 'Search',
                           child: IconButton(
                             icon: Icon(
-                              currentSearch.isNotEmpty ? Icons.close : Icons.search,
+                              Icons.search,
                               size: 20,
                               color: isDark ? AppColors.darkTextPrimary : Colors.black87,
                             ),
                             visualDensity: VisualDensity.compact,
                             padding: const EdgeInsets.all(6),
                             constraints: const BoxConstraints(),
-                            onPressed: () {
-                              if (currentSearch.isNotEmpty) {
-                                _searchController.clear();
-                                _applySearch('');
-                              } else {
-                                _showSearchDialog(context);
-                              }
-                            },
+                            onPressed: () => _showSearchDialog(context),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1071,27 +1067,16 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
 
                         // Search Icon (same as other screens)
                         Tooltip(
-                          message: currentSearch.isNotEmpty
-                              ? 'Clear Search'
-                              : 'Search (Ctrl+F)',
+                          message: 'Search (Ctrl+F)',
                           child: IconButton(
                             icon: Icon(
-                              currentSearch.isNotEmpty
-                                  ? Icons.close
-                                  : Icons.search,
+                              Icons.search,
                               size: 22,
                               color: isDark
                                   ? AppColors.darkTextPrimary
                                   : Colors.black87,
                             ),
-                            onPressed: () {
-                              if (currentSearch.isNotEmpty) {
-                                _searchController.clear();
-                                _applySearch('');
-                              } else {
-                                _showSearchDialog(context);
-                              }
-                            },
+                            onPressed: () => _showSearchDialog(context),
                           ),
                         ),
 
@@ -1165,8 +1150,8 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
         if (_selectedTab != tab) {
           setState(() {
             _selectedTab = tab;
-            _searchController.clear();
           });
+          _clearFilters();
         }
       },
       child: AnimatedContainer(

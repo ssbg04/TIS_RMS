@@ -1137,6 +1137,20 @@ Files backup/restore - mirror mode or zip -->
 # STUDENT SCREEN
 - [x] fix students tab showing all students on re-click: preserved active academic year in studentQueryProvider reset and fail-safe fallback in studentPageProvider for enrolled tab
 
+# DASHBOARD SCREEN
+- [x] move the recent activities to the last 
+- [x] use user friendly labels on needs attention, like 3 students missing SF10, 4 students missing SF9, etc if the count is not more than 1 use student a singular form
+- [x] do not use many colors in needs attention and icons make it professional
+- [x] fix that the needs attention when fetching from websocket the UI shows a loading icon
+
+# STUDENT SCREEN
+- [x] in active year tab, it has add student and enroll existing student, only appear when there is no students enrolled
+- [x] in windows app the "grade and section" and document completion counter is not aligned
+
+# ACTIVITY HISTORY SCREEN
+- [x] it has too many x button after a search it has search bar x button but not working search bar and reset button, and the search icon that animates to x and clears the search
+
+
 ---
 
 

@@ -1865,7 +1865,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     if (students.isEmpty) return _buildEmptyState(noSections: noSections);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final showBottomActions = _viewTab == StudentViewTab.enrolled && widget.userRole != 'teacher';
 
     return RefreshIndicator(
       color: AppColors.primaryGreen,
@@ -1883,14 +1882,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           top: isDesktop ? 10 : 14,
           bottom: isDesktop ? 20 : (defaultTargetPlatform == TargetPlatform.android ? 8 : 16),
         ),
-        itemCount: students.length + (showBottomActions ? 1 : 0),
+        itemCount: students.length,
         separatorBuilder: (ctx, index) => SizedBox(
           height: isDesktop ? 8 : AppSizes.p12,
         ),
         itemBuilder: (context, i) {
-          if (i == students.length) {
-            return _buildEnrolledBottomActions(isDark, isDesktop);
-          }
           final s = students[i];
           final isSelected = _selectedStudentIds.contains(s.id);
           if (isDesktop) {
@@ -1903,49 +1899,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
 
-  Widget _buildEnrolledBottomActions(bool isDark, bool isDesktop) {
-    return Container(
-      margin: const EdgeInsets.only(top: 8, bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-        ),
-      ),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 8,
-        alignment: WrapAlignment.center,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          OutlinedButton.icon(
-            onPressed: () => _openModal(),
-            icon: const Icon(Icons.person_add_rounded, size: 18),
-            label: const Text('Add Student'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryGreen,
-              side: const BorderSide(color: AppColors.primaryGreen),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => _applyViewTab(StudentViewTab.all),
-            icon: const Icon(Icons.people_alt_rounded, size: 18),
-            label: const Text('Enroll Existing Student (All Students)'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildDesktopCard(
     BuildContext context,
@@ -2078,9 +2031,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   ),
                   const SizedBox(width: 14),
 
-                  // Name & LRN (flex 3)
+                  // Name & LRN
                   Expanded(
-                    flex: 3,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -2112,11 +2064,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
 
-                  // Grade & Section (flex 2)
-                  Expanded(
-                    flex: 2,
+                  // Grade & Section (aligned fixed-width column)
+                  SizedBox(
+                    width: 170,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -2128,7 +2080,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               : AppColors.textSecondary,
                         ),
                         const SizedBox(width: 6),
-                        Flexible(
+                        Expanded(
                           child: Text(
                             s.gradeSection,
                             maxLines: 1,
@@ -2145,11 +2097,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
 
-                  // Document completion counter (flex 2)
-                  Expanded(
-                    flex: 2,
+                  // Document completion counter (aligned fixed-width column)
+                  SizedBox(
+                    width: 195,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -2248,64 +2200,70 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 14),
 
-                  // 4Ps & Status
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (s.is4ps) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: (isDark
-                                    ? const Color(0xFF8B8ED8)
-                                    : AppColors.fourPs)
-                                .withValues(alpha: isDark ? 0.2 : 0.08),
-                            borderRadius: BorderRadius.circular(5),
-                            border: Border.all(
+                  // 4Ps & Status (aligned fixed-width column)
+                  SizedBox(
+                    width: 130,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (s.is4ps) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
                               color: (isDark
                                       ? const Color(0xFF8B8ED8)
                                       : AppColors.fourPs)
-                                  .withValues(alpha: isDark ? 0.6 : 0.35),
+                                  .withValues(alpha: isDark ? 0.2 : 0.08),
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(
+                                color: (isDark
+                                        ? const Color(0xFF8B8ED8)
+                                        : AppColors.fourPs)
+                                    .withValues(alpha: isDark ? 0.6 : 0.35),
+                              ),
+                            ),
+                            child: Text(
+                              '4Ps',
+                              style: TextStyle(
+                                color: isDark
+                                    ? const Color(0xFF8B8ED8)
+                                    : AppColors.fourPs,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            '4Ps',
-                            style: TextStyle(
-                              color: isDark
-                                  ? const Color(0xFF8B8ED8)
-                                  : AppColors.fourPs,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
+                          const SizedBox(width: 6),
+                        ],
+                        _StatusChip(status: s.status),
                       ],
-                      _StatusChip(status: s.status),
-                    ],
+                    ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
 
                   // Open Profile chevron / more options
-                  Tooltip(
-                    message: 'View Profile',
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.chevron_right_rounded,
-                        size: 18,
+                  SizedBox(
+                    width: 28,
+                    child: Tooltip(
+                      message: 'View Profile',
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                        ),
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                        padding: const EdgeInsets.all(4),
+                        constraints:
+                            const BoxConstraints(minWidth: 28, minHeight: 28),
+                        onPressed: () => _viewProfile(s),
                       ),
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.textSecondary,
-                      padding: const EdgeInsets.all(4),
-                      constraints:
-                          const BoxConstraints(minWidth: 28, minHeight: 28),
-                      onPressed: () => _viewProfile(s),
                     ),
                   ),
                 ],

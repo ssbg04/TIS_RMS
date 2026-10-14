@@ -541,7 +541,6 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
                         onPressed: () {
                           _controller.clear();
                           widget.onChanged?.call('');
-                          widget.onSubmitted?.call('');
                           setState(() {
                             _hasText = false;
                           });
