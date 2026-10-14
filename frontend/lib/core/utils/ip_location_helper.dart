@@ -15,15 +15,20 @@ class IpLocationHelper {
       return 'Local Machine';
     }
 
-    // Check private RFC1918 & link-local ranges
-    if (cleanIp.startsWith('192.168.') ||
-        cleanIp.startsWith('10.') ||
-        cleanIp.startsWith('169.254.')) {
+    final lowerIp = cleanIp.toLowerCase();
+
+    // Check private RFC1918, RFC4193, & link-local ranges (both IPv4 and IPv6)
+    if (lowerIp.startsWith('192.168.') ||
+        lowerIp.startsWith('10.') ||
+        lowerIp.startsWith('169.254.') ||
+        lowerIp.startsWith('fe80:') ||
+        lowerIp.startsWith('fc') ||
+        lowerIp.startsWith('fd')) {
       return 'Local Network (LAN)';
     }
 
-    if (cleanIp.startsWith('172.')) {
-      final parts = cleanIp.split('.');
+    if (lowerIp.startsWith('172.')) {
+      final parts = lowerIp.split('.');
       if (parts.length >= 2) {
         final second = int.tryParse(parts[1]);
         if (second != null && second >= 16 && second <= 31) {

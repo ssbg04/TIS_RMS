@@ -159,6 +159,8 @@ class NeedsAttentionCard extends ConsumerWidget {
                               ),
                               child: Text(
                                 '$totalAlerts items',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -174,6 +176,8 @@ class NeedsAttentionCard extends ConsumerWidget {
                         totalAlerts > 0
                             ? 'Operational items requiring action'
                             : 'All document requirements compliant',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
@@ -213,24 +217,29 @@ class NeedsAttentionCard extends ConsumerWidget {
           if (totalAlerts > 0) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final item in missingGroups)
-                    _buildRequirementChip(
-                      context: context,
-                      item: item,
-                      isDark: isDark,
-                      onTap: () => _openMissingDocSheet(
-                        context,
-                        title: 'Students Missing ${item.name}',
-                        students: item.students,
-                        userRole: userRole,
-                        isDark: isDark,
-                      ),
-                    ),
-                ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final item in missingGroups)
+                        _buildRequirementChip(
+                          context: context,
+                          item: item,
+                          isDark: isDark,
+                          maxWidth: constraints.maxWidth,
+                          onTap: () => _openMissingDocSheet(
+                            context,
+                            title: 'Students Missing ${item.name}',
+                            students: item.students,
+                            userRole: userRole,
+                            isDark: isDark,
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ),
 
@@ -314,6 +323,7 @@ class NeedsAttentionCard extends ConsumerWidget {
     required MissingRequirementGroup item,
     required bool isDark,
     required VoidCallback onTap,
+    double? maxWidth,
   }) {
     final countLabel = item.count <= 1
         ? '1 student missing ${item.name}'
@@ -334,6 +344,7 @@ class NeedsAttentionCard extends ConsumerWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(10),
           child: Container(
+            constraints: maxWidth != null ? BoxConstraints(maxWidth: maxWidth) : null,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: bgColor,
@@ -348,15 +359,19 @@ class NeedsAttentionCard extends ConsumerWidget {
               children: [
                 Icon(Icons.description_outlined, size: 16, color: accentColor),
                 const SizedBox(width: 8),
-                Text(
-                  countLabel,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : AppColors.textPrimary,
+                Flexible(
+                  child: Text(
+                    countLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
@@ -587,6 +602,8 @@ class NeedsAttentionCard extends ConsumerWidget {
                         children: [
                           Text(
                             title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,

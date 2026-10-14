@@ -2026,8 +2026,12 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      onTap: () {
-                        final ipLoc = IpLocationHelper.getFastLocation(log.ipAddress);
+                      onTap: () async {
+                        String? ipLoc = IpLocationHelper.getFastLocation(log.ipAddress);
+                        if (ipLoc == null && log.ipAddress != null && log.ipAddress!.isNotEmpty) {
+                          ipLoc = await IpLocationHelper.resolveLocation(log.ipAddress);
+                        }
+                        if (!context.mounted) return;
                         final ipDesc = log.ipAddress != null
                             ? (ipLoc != null ? '${log.ipAddress} ($ipLoc)' : log.ipAddress!)
                             : 'Unknown IP';
@@ -2195,7 +2199,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                   Wrap(
                                     crossAxisAlignment: WrapCrossAlignment.center,
                                     spacing: 12,
-                                    runSpacing: 4,
+                                    runSpacing: 6,
                                     children: [
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -2221,64 +2225,85 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                           ),
                                         ],
                                       ),
-                                      if (log.ipAddress != null && log.ipAddress!.isNotEmpty)
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.lan_outlined,
-                                              size: 13,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withValues(alpha: 0.5),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              log.ipAddress!,
-                                              style: TextStyle(
-                                                fontSize: 12,
+                                      if (log.ipAddress != null && log.ipAddress!.isNotEmpty) ...[
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(maxWidth: 320),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.lan_outlined,
+                                                size: 13,
                                                 color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withValues(alpha: 0.6),
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.5),
                                               ),
-                                            ),
-                                            FutureBuilder<String>(
-                                              future: IpLocationHelper.resolveLocation(log.ipAddress!),
-                                              initialData: IpLocationHelper.getFastLocation(log.ipAddress!),
-                                              builder: (context, snapshot) {
-                                                final loc = snapshot.data;
-                                                if (loc == null || loc.isEmpty) return const SizedBox.shrink();
-                                                return Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    const SizedBox(width: 6),
-                                                    Icon(
-                                                      Icons.location_on_outlined,
-                                                      size: 12,
+                                              const SizedBox(width: 4),
+                                              Flexible(
+                                                child: Tooltip(
+                                                  message: log.ipAddress!,
+                                                  child: Text(
+                                                    log.ipAddress!,
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontFamily: 'monospace',
                                                       color: Theme.of(context)
                                                           .colorScheme
                                                           .onSurface
-                                                          .withValues(alpha: 0.5),
-                                                    ),
-                                                    const SizedBox(width: 2),
-                                                    Text(
-                                                      loc,
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurface
                                                           .withValues(alpha: 0.6),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        FutureBuilder<String>(
+                                          future: IpLocationHelper.resolveLocation(log.ipAddress!),
+                                          initialData: IpLocationHelper.getFastLocation(log.ipAddress!),
+                                          builder: (context, snapshot) {
+                                            final loc = snapshot.data;
+                                            if (loc == null || loc.isEmpty) return const SizedBox.shrink();
+                                            return ConstrainedBox(
+                                              constraints: const BoxConstraints(maxWidth: 240),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.location_on_outlined,
+                                                    size: 12,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface
+                                                        .withValues(alpha: 0.5),
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  Flexible(
+                                                    child: Tooltip(
+                                                      message: loc,
+                                                      child: Text(
+                                                        loc,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          color: Theme.of(context)
+                                                              .colorScheme
+                                                              .onSurface
+                                                              .withValues(alpha: 0.65),
+                                                        ),
                                                       ),
                                                     ),
-                                                  ],
-                                                );
-                                              },
-                                            ),
-                                          ],
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
                                         ),
+                                      ],
                                       if (log.logoutAt != null)
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
