@@ -45,7 +45,6 @@ class OcrEnrollmentValidationModal extends ConsumerStatefulWidget {
   final _ValidationMode _mode;
 
   const OcrEnrollmentValidationModal._({
-    super.key,
     this.studentId,
     required this.records,
     required _ValidationMode mode,
@@ -113,7 +112,14 @@ class _OcrEnrollmentValidationModalState
             ? gradeNum
             : 7,
       );
-    }).toList();
+    }).toList()
+      ..sort((a, b) {
+        final syA = a.record.schoolYear.trim();
+        final syB = b.record.schoolYear.trim();
+        final cmp = syA.compareTo(syB);
+        if (cmp != 0) return cmp;
+        return a.gradeLevel.compareTo(b.gradeLevel);
+      });
     _initDefaults();
   }
 

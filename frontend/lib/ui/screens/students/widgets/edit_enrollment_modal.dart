@@ -373,7 +373,13 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
     final enrollments =
         studentDetail?.enrollments ?? <EnrollmentModel>[];
     final sortedEnrollments = List<EnrollmentModel>.from(enrollments)
-      ..sort((a, b) => b.gradeLevel.compareTo(a.gradeLevel));
+      ..sort((a, b) {
+        final ayA = (a.yearRange ?? '').toString();
+        final ayB = (b.yearRange ?? '').toString();
+        final cmpYear = ayA.compareTo(ayB);
+        if (cmpYear != 0) return cmpYear;
+        return a.gradeLevel.compareTo(b.gradeLevel);
+      });
 
     // 1. Determine active/effective Academic Year
     final activeYears =

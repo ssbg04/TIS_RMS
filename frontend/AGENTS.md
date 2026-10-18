@@ -1150,6 +1150,12 @@ Files backup/restore - mirror mode or zip -->
 # ACTIVITY HISTORY SCREEN
 - [x] it has too many x button after a search it has search bar x button but not working search bar and reset button, and the search icon that animates to x and clears the search
 
+# WINDOWS RUNNER
+- [x] prevent multiple app windows from opening (single-instance mutex and focus existing window)
+
+# ENROLLMENTS & STUDENT SCREEN
+- [x] sort enrollments chronologically ascending by school year and grade level across student profile, edit student, edit enrollment, and OCR review
+- [x] progression and regression validation: prevent grade skipping and downgrading across academic year chronology
 
 ---
 

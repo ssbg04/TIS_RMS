@@ -751,9 +751,13 @@ class _StudentProfileModalBodyState
         if (student.enrollments != null && student.enrollments!.isNotEmpty) ...[
           ...(() {
             final sorted = List.from(student.enrollments!);
-            sorted.sort(
-              (a, b) => (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0),
-            );
+            sorted.sort((a, b) {
+              final ayA = (a.yearRange ?? '').toString();
+              final ayB = (b.yearRange ?? '').toString();
+              final cmpYear = ayA.compareTo(ayB);
+              if (cmpYear != 0) return cmpYear;
+              return (a.gradeLevel ?? 0).compareTo(b.gradeLevel ?? 0);
+            });
 
             final seen = <String>{};
             final uniqueEnrollments = [];

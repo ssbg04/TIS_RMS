@@ -7,6 +7,29 @@
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  // Prevent multiple instances from running at the same time.
+  HANDLE single_instance_mutex =
+      ::CreateMutex(nullptr, TRUE, L"TIS_RMS_SingleInstance_Mutex");
+  if (::GetLastError() == ERROR_ALREADY_EXISTS) {
+    // Bring the already-running instance to the foreground.
+    HWND existing_window = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW",
+                                        L"TIS Record Management System");
+    if (!existing_window) {
+      existing_window =
+          ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", nullptr);
+    }
+    if (existing_window) {
+      if (::IsIconic(existing_window)) {
+        ::ShowWindow(existing_window, SW_RESTORE);
+      }
+      ::SetForegroundWindow(existing_window);
+    }
+    if (single_instance_mutex) {
+      ::CloseHandle(single_instance_mutex);
+    }
+    return EXIT_SUCCESS;
+  }
+
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
@@ -28,6 +51,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
   if (!window.Create(L"TIS Record Management System", origin, size)) {
+    if (single_instance_mutex) {
+      ::ReleaseMutex(single_instance_mutex);
+      ::CloseHandle(single_instance_mutex);
+    }
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
@@ -39,5 +66,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   }
 
   ::CoUninitialize();
+  if (single_instance_mutex) {
+    ::ReleaseMutex(single_instance_mutex);
+    ::CloseHandle(single_instance_mutex);
+  }
   return EXIT_SUCCESS;
 }

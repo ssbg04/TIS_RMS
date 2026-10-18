@@ -770,9 +770,13 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
         _loadedEnrollments = enrollments;
 
         final sorted = List.from(enrollments);
-        sorted.sort(
-          (a, b) => (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0),
-        );
+        sorted.sort((a, b) {
+          final ayA = (a.yearRange ?? '').toString();
+          final ayB = (b.yearRange ?? '').toString();
+          final cmpYear = ayA.compareTo(ayB);
+          if (cmpYear != 0) return cmpYear;
+          return (a.gradeLevel ?? 0).compareTo(b.gradeLevel ?? 0);
+        });
 
         final isMobile = MediaQuery.of(context).size.width < 600;
 
