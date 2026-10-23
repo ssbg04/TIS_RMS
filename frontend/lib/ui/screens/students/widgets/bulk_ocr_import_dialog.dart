@@ -77,7 +77,7 @@ class _OcrItem {
     required this.filePath,
     required this.fileName,
     this.status = _FileStatus.pending,
-    this.lrn = '308035',
+    this.lrn = '',
     this.firstName = '',
     this.middleName = '',
     this.lastName = '',
@@ -3882,7 +3882,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
     return SizedBox(
       width: 160,
       child: TextFormField(
-        initialValue: item.lrn.isNotEmpty ? item.lrn : '308035',
+        initialValue: item.lrn,
         keyboardType: TextInputType.number,
         maxLength: 12,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],

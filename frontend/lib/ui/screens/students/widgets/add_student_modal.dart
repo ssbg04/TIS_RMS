@@ -73,7 +73,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   void initState() {
     super.initState();
     _selectedGradeLevel = 7;
-    _lrnController = TextEditingController(text: '308035');
+    _lrnController = TextEditingController();
     _firstNameController = TextEditingController();
     _middleNameController = TextEditingController();
     _lastNameController = TextEditingController();
@@ -99,8 +99,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   }
 
   bool get _hasAnyData {
-    return (_lrnController.text.isNotEmpty &&
-            _lrnController.text != '308035') ||
+    return _lrnController.text.isNotEmpty ||
         _firstNameController.text.isNotEmpty ||
         _lastNameController.text.isNotEmpty;
   }
@@ -758,7 +757,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                     _errorMessage = null;
                                     _ocrScannedFile = null;
                                     _ocrSavedEnrollments.clear();
-                                    _lrnController.text = '308035';
+                                    _lrnController.clear();
                                     _firstNameController.clear();
                                     _middleNameController.clear();
                                     _lastNameController.clear();
