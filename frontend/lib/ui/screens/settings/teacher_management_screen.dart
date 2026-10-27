@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../shared/inputs/custom_text_field.dart';
@@ -881,9 +880,9 @@ class AcademicYearsOverviewModal extends ConsumerWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          onPressed: () => BulkAcademicImportModal.show(context),
-                          icon: const Icon(Icons.upload_file, size: 16),
-                          label: const Text('Bulk Import', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          onPressed: () => AutoGenerateAcademicYearsModal.show(context),
+                          icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+                          label: const Text('Auto-Generate', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -2151,6 +2150,11 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
                     ),
                   ),
                 ),
+              const Text(
+                'Year Range',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
               CustomTextField(
                 hintText: 'Year Range (e.g. 2025-2026)',
                 controller: _yearRangeController,
@@ -2241,90 +2245,138 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
                 ),
               ),
               const SizedBox(height: AppSizes.p16),
-              // Date Range Picker (1 picker only using calendar_date_picker2)
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                  ),
-                  color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () async {
-                    final initialDates = <DateTime>[];
-                    if (_startDate != null) initialDates.add(_startDate!);
-                    if (_endDate != null) initialDates.add(_endDate!);
+              const Text(
+                'Academic Year Dates',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 400;
 
-                    final results = await showCalendarDatePicker2Dialog(
-                      context: context,
-                      config: CalendarDatePicker2WithActionButtonsConfig(
-                        calendarType: CalendarDatePicker2Type.range,
+                  Widget buildDateField({
+                    required String label,
+                    required DateTime? date,
+                    required VoidCallback onTap,
+                    required VoidCallback onClear,
+                  }) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                            ),
+                            color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: onTap,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 16,
+                                    color: AppColors.primaryGreen,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      date != null ? _formatYmd(date)! : 'Select date',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: date != null ? FontWeight.w600 : FontWeight.normal,
+                                        color: date != null
+                                            ? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)
+                                            : (isDark ? AppColors.darkTextMuted : AppColors.textMuted),
+                                      ),
+                                    ),
+                                  ),
+                                  if (date != null)
+                                    GestureDetector(
+                                      onTap: onClear,
+                                      child: const Icon(Icons.clear, size: 16, color: Colors.grey),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  final startField = buildDateField(
+                    label: 'Start Date (Optional)',
+                    date: _startDate,
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _startDate ?? DateTime.now(),
                         firstDate: DateTime(1990),
                         lastDate: DateTime(2100),
-                        selectedDayHighlightColor: AppColors.primaryGreen,
-                        okButton: const Text('APPLY', style: TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold)),
-                        cancelButton: const Text('CANCEL', style: TextStyle(color: AppColors.textSecondary)),
-                      ),
-                      dialogSize: const Size(325, 400),
-                      value: initialDates,
-                      borderRadius: BorderRadius.circular(16),
-                    );
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _startDate = picked;
+                          if (_endDate != null && _endDate!.isBefore(picked)) {
+                            _endDate = null;
+                          }
+                        });
+                      }
+                    },
+                    onClear: () => setState(() => _startDate = null),
+                  );
 
-                    if (results != null && results.isNotEmpty) {
-                      setState(() {
-                        _startDate = results.first;
-                        _endDate = results.length > 1 ? results.last : results.first;
-                      });
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    child: Row(
+                  final endField = buildDateField(
+                    label: 'End Date (Optional)',
+                    date: _endDate,
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _endDate ?? (_startDate ?? DateTime.now()),
+                        firstDate: _startDate ?? DateTime(1990),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() => _endDate = picked);
+                      }
+                    },
+                    onClear: () => setState(() => _endDate = null),
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Icon(
-                          Icons.date_range_outlined,
-                          size: 20,
-                          color: AppColors.primaryGreen,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            (_startDate != null && _endDate != null)
-                                ? '${_formatYmd(_startDate)}  to  ${_formatYmd(_endDate)}'
-                                : _startDate != null
-                                    ? 'Start: ${_formatYmd(_startDate)} (Select End Date)'
-                                    : 'Select Academic Year Dates (Optional)',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: (_startDate != null || _endDate != null)
-                                  ? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)
-                                  : (isDark ? AppColors.darkTextMuted : AppColors.textMuted),
-                              fontWeight: (_startDate != null || _endDate != null)
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (_startDate != null || _endDate != null)
-                          IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            tooltip: 'Clear dates',
-                            onPressed: () {
-                              setState(() {
-                                _startDate = null;
-                                _endDate = null;
-                              });
-                            },
-                          ),
+                        startField,
+                        const SizedBox(height: 10),
+                        endField,
                       ],
-                    ),
-                  ),
-                ),
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: startField),
+                      const SizedBox(width: 12),
+                      Expanded(child: endField),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
               Row(
@@ -2425,6 +2477,378 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+}
+
+// ============================================================
+// AUTO-GENERATE ACADEMIC YEARS MODAL
+// ============================================================
+class AutoGenerateAcademicYearsModal extends ConsumerStatefulWidget {
+  const AutoGenerateAcademicYearsModal({super.key});
+
+  static Future<void> show(BuildContext context) {
+    return showDialog(
+      context: context,
+      builder: (_) => const AutoGenerateAcademicYearsModal(),
+    );
+  }
+
+  @override
+  ConsumerState<AutoGenerateAcademicYearsModal> createState() =>
+      _AutoGenerateAcademicYearsModalState();
+}
+
+class _AutoGenerateAcademicYearsModalState
+    extends ConsumerState<AutoGenerateAcademicYearsModal> {
+  late int _startYear;
+  late int _endYear;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final currentYear = DateTime.now().year;
+    _startYear = (currentYear - 5).clamp(2000, currentYear);
+    _endYear = currentYear;
+  }
+
+  List<String> _getGeneratedYearRanges() {
+    final ranges = <String>[];
+    if (_startYear > _endYear) return ranges;
+    for (int y = _startYear; y <= _endYear; y++) {
+      ranges.add('$y-${y + 1}');
+    }
+    return ranges;
+  }
+
+  Future<void> _handleGenerate(List<AcademicYearModel> existingYears) async {
+    final generatedRanges = _getGeneratedYearRanges();
+    if (generatedRanges.isEmpty) return;
+
+    final existingSet = existingYears.map((y) => y.yearRange.trim()).toSet();
+    final toCreate =
+        generatedRanges.where((r) => !existingSet.contains(r)).toList();
+
+    if (toCreate.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All selected academic years already exist.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      Navigator.pop(context);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    int createdCount = 0;
+    int failedCount = 0;
+
+    for (final range in toCreate) {
+      try {
+        await ref.read(setupMutationProvider.notifier).createAcademicYear(
+              yearRange: range,
+              status: 'inactive',
+            );
+        createdCount++;
+      } catch (_) {
+        failedCount++;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    ref.invalidate(academicYearsListProvider);
+    Navigator.pop(context);
+
+    if (createdCount > 0) {
+      final alreadyCount = generatedRanges.length - toCreate.length;
+      final extraMsg = alreadyCount > 0 ? ' ($alreadyCount already existed)' : '';
+      showSuccessDialog(
+        context,
+        title: 'Academic Years Created',
+        message: 'Successfully generated $createdCount academic year${createdCount > 1 ? "s" : ""}$extraMsg.',
+      );
+    } else if (failedCount > 0) {
+      showErrorDialog(
+        context,
+        'Generation Failed',
+        'Failed to create academic years. Please try again.',
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentYear = DateTime.now().year;
+    final yearsAsync = ref.watch(academicYearsListProvider);
+    final existingYears = yearsAsync.asData?.value ?? [];
+    final existingSet = existingYears.map((y) => y.yearRange.trim()).toSet();
+
+    final generatedRanges = _getGeneratedYearRanges();
+    final newRanges =
+        generatedRanges.where((r) => !existingSet.contains(r)).toList();
+
+    final availableStartYears = List.generate(
+      (currentYear - 2000) + 1,
+      (index) => 2000 + index,
+    );
+
+    final availableEndYears = List.generate(
+      (currentYear - _startYear) + 1,
+      (index) => _startYear + index,
+    );
+
+    return CustomModal(
+      title: 'Auto-Generate Academic Years',
+      icon: Icons.auto_awesome_rounded,
+      maxWidth: 500,
+      content: Padding(
+        padding: const EdgeInsets.all(AppSizes.p20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.primaryGreen.withValues(alpha: 0.12)
+                    : AppColors.primaryGreen.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    color: AppColors.primaryGreen,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Select a start and end year to automatically generate all intervening academic years. Generated years are created as Inactive.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textPrimary,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Start Year',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                          ),
+                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            isExpanded: true,
+                            value: _startYear,
+                            items: availableStartYears.map((y) {
+                              return DropdownMenuItem<int>(
+                                value: y,
+                                child: Text('$y'),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _startYear = val;
+                                  if (_endYear < _startYear) {
+                                    _endYear = _startYear;
+                                  }
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'End Year',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                          ),
+                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            isExpanded: true,
+                            value: availableEndYears.contains(_endYear)
+                                ? _endYear
+                                : availableEndYears.last,
+                            items: availableEndYears.map((y) {
+                              return DropdownMenuItem<int>(
+                                value: y,
+                                child: Text('$y'),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _endYear = val);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            // Preview
+            Text(
+              'Generated Academic Years (${generatedRanges.length}):',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 140),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                ),
+              ),
+              child: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: generatedRanges.map((range) {
+                    final exists = existingSet.contains(range);
+                    return Chip(
+                      label: Text(
+                        exists ? '$range (exists)' : range,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: exists ? FontWeight.normal : FontWeight.w600,
+                          color: exists
+                              ? (isDark ? Colors.grey.shade500 : Colors.grey.shade600)
+                              : (isDark
+                                  ? AppColors.primaryGreen
+                                  : AppColors.primaryGreen),
+                        ),
+                      ),
+                      backgroundColor: exists
+                          ? (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade200)
+                          : AppColors.primaryGreen.withValues(alpha: 0.12),
+                      side: BorderSide(
+                        color: exists
+                            ? (isDark ? AppColors.darkBorder : Colors.grey.shade300)
+                            : AppColors.primaryGreen.withValues(alpha: 0.4),
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              newRanges.isNotEmpty
+                  ? '${newRanges.length} new academic year${newRanges.length > 1 ? "s" : ""} will be created.'
+                  : 'All selected academic years already exist in the system.',
+              style: TextStyle(
+                fontSize: 12,
+                color: newRanges.isNotEmpty
+                    ? (isDark ? AppColors.darkTextSecondary : Colors.grey.shade700)
+                    : Colors.orange.shade700,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 22),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isLoading ? null : () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      side: BorderSide(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: (_isLoading || newRanges.isEmpty)
+                        ? null
+                        : () => _handleGenerate(existingYears),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text('Generate (${newRanges.length})'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -602,14 +602,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
     final profileAsync = ref.watch(profileProvider);
 
-    return GestureDetector(
-      onTap: () {
-        FocusManager.instance.primaryFocus?.unfocus();
-        if (_hasProfileChanges()) {
-          _handleUpdateProfile();
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (ref.read(activeTabProvider) != 'Settings') return;
+        final primaryFocus = FocusManager.instance.primaryFocus;
+        if (primaryFocus != null && primaryFocus.hasFocus) {
+          primaryFocus.unfocus();
+          return;
         }
+        ref.read(activeTabProvider.notifier).setTab('Dashboard');
       },
-      child: Scaffold(
+      child: GestureDetector(
+        onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          if (_hasProfileChanges()) {
+            _handleUpdateProfile();
+          }
+        },
+        child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
         child: profileAsync.when(
@@ -1811,10 +1823,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             const SizedBox(height: AppSizes.p16),
                             Consumer(
                               builder: (context, ref, child) {
-                                final themeNotifier =
-                                    ref.watch(themeModeProvider.notifier);
+                                final themeMode = ref.watch(themeModeProvider);
+                                final themeNotifier = ref.read(themeModeProvider.notifier);
                                 final currentKey = themeNotifier.currentKey;
-                                final isSystem = currentKey == 'system';
+                                final isSystem = themeMode == ThemeMode.system;
                                 final isDark = Theme.of(context).brightness == Brightness.dark;
 
                                 return Column(
@@ -2582,7 +2594,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: AppSizes.p48),
+                      // Dynamic bottom clearance:
+                      // When bottom accordions are collapsed, keep normal compact padding (48px).
+                      // When a bottom accordion is expanded, dynamically provide just enough scroll headroom
+                      // so that section can scroll smoothly all the way to the top of the viewport.
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                        height: _isAboutExpanded
+                            ? (MediaQuery.sizeOf(context).height - 400).clamp(180.0, 450.0)
+                            : (_isAppearanceExpanded
+                                ? (MediaQuery.sizeOf(context).height - 460).clamp(140.0, 380.0)
+                                : AppSizes.p48),
+                      ),
                     ],
                   ),
                 ),
@@ -2656,7 +2680,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
     ),
-  );
+  ),
+);
 }
 
   Widget _buildCard({required Widget child}) {
@@ -2696,82 +2721,105 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.25)
-                : Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return Builder(
+      builder: (cardContext) {
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.25)
+                    : Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            ),
           ),
-        ],
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                HapticService.light();
-                onToggle();
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(AppSizes.p24),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    HapticService.light();
+                    final willExpand = !isExpanded;
+                    onToggle();
+                    if (willExpand) {
+                      void scrollToTop() {
+                        if (!cardContext.mounted) return;
+                        Scrollable.ensureVisible(
+                          cardContext,
+                          alignment: 0.0,
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeInOutCubic,
+                        );
+                      }
+
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        scrollToTop();
+                      });
+                      Future.delayed(const Duration(milliseconds: 270), () {
+                        scrollToTop();
+                      });
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSizes.p24),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
+                        AnimatedRotation(
+                          turns: isExpanded ? 0.5 : 0.0,
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeInOut,
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                            size: 24,
+                          ),
+                        ),
+                      ],
                     ),
-                    AnimatedRotation(
-                      turns: isExpanded ? 0.5 : 0.0,
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                        size: 24,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-          AnimatedCrossFade(
-            firstChild: const SizedBox(width: double.infinity, height: 0),
-            secondChild: Padding(
-              padding: const EdgeInsets.fromLTRB(AppSizes.p24, 0, AppSizes.p24, AppSizes.p24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Divider(),
-                  const SizedBox(height: AppSizes.p16),
-                  child,
-                ],
+              AnimatedCrossFade(
+                firstChild: const SizedBox(width: double.infinity, height: 0),
+                secondChild: Padding(
+                  padding: const EdgeInsets.fromLTRB(AppSizes.p24, 0, AppSizes.p24, AppSizes.p24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(),
+                      const SizedBox(height: AppSizes.p16),
+                      child,
+                    ],
+                  ),
+                ),
+                crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                duration: const Duration(milliseconds: 250),
+                sizeCurve: Curves.easeInOut,
               ),
-            ),
-            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 250),
-            sizeCurve: Curves.easeInOut,
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

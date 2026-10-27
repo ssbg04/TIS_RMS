@@ -1188,10 +1188,10 @@ Files backup/restore - mirror mode or zip -->
 
 
 # SETTINGS SCREEN
-- appearance & feedback, when i press dark and press system theme, system theme cannot toggle, my system default theme is dark
-- Academic & Class Management, in manage academic years the bulk import remove it, add new modal for select start year to end that automates making of academic year, in edit academic year separate the start and end date and add label for this it has no label
-- when the accordion is active make it scrolls to the top to fit the expanded accordion
-- in android when you press back it doesnt go to dashboard
+- [x] appearance & feedback, when i press dark and press system theme, system theme cannot toggle, my system default theme is dark (fixed Consumer to watch themeModeProvider directly so UI immediately re-renders when switching to system theme)
+- [x] Academic & Class Management, in manage academic years the bulk import remove it, add new modal for select start year to end that automates making of academic year, in edit academic year separate the start and end date and add label for this it has no label (replaced bulk import in AcademicYearsOverviewModal with AutoGenerateAcademicYearsModal, added year range labels, and separated start/end dates into individual picker fields)
+- [x] when the accordion is active make it scrolls to the top to fit the expanded accordion (wrapped collapsible card with Builder, added Scrollable.ensureVisible with alignment 0.0 upon expansion, and dynamic bottom clearance to prevent clamp)
+- [x] in android when you press back it doesnt go to dashboard (implemented PopScope with unfocus fallback and activeTab navigation to Dashboard)
 
 
 
