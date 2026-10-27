@@ -56,6 +56,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   StudentViewTab _viewTab = StudentViewTab.enrolled;
 
   final ScrollController _scrollController = ScrollController();
+  int _lastTotalPages = 1;
 
   void _updateSelection(void Function() updateFn) {
     setState(updateFn);
@@ -1063,6 +1064,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       if (next.search.isEmpty && _searchController.text.isNotEmpty) {
         _searchController.clear();
       }
+      if (previous != null &&
+          (previous.search != next.search ||
+           previous.gradeLevel != next.gradeLevel ||
+           previous.section != next.section ||
+           previous.status != next.status ||
+           previous.schoolYear != next.schoolYear ||
+           previous.is4Ps != next.is4Ps)) {
+        _lastTotalPages = 1;
+      }
     });
 
     ref.listen<AsyncValue<List<AcademicYearModel>>>(academicYearsListProvider, (prev, next) {
@@ -1104,9 +1114,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         if (ref.read(activeTabProvider) != 'Students') return;
-        if (_searchFocusNode.hasFocus || FocusManager.instance.primaryFocus?.hasFocus == true) {
+        if (_searchFocusNode.hasFocus) {
           _searchFocusNode.unfocus();
-          FocusManager.instance.primaryFocus?.unfocus();
           return;
         }
         if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
@@ -1224,17 +1233,24 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 ),
 
                 // ── Pagination ──
-                pageAsync.maybeWhen(
-                  data: (page) => page.totalPages > 1
-                      ? _buildPagination(query, page)
-                      : SizedBox(
-                          height: (MediaQuery.of(context).size.width < 700 ||
-                                  defaultTargetPlatform ==
-                                      TargetPlatform.android)
-                              ? 0
-                              : 16,
-                        ),
-                  orElse: () => const SizedBox.shrink(),
+                Builder(
+                  builder: (context) {
+                    final page = pageAsync.valueOrNull;
+                    if (page != null) {
+                      _lastTotalPages = page.totalPages;
+                    }
+                    final totalPages = page?.totalPages ?? _lastTotalPages;
+                    if (totalPages > 1) {
+                      return _buildPagination(query, totalPages);
+                    }
+                    return SizedBox(
+                      height: (MediaQuery.of(context).size.width < 700 ||
+                              defaultTargetPlatform ==
+                                  TargetPlatform.android)
+                          ? 0
+                          : 16,
+                    );
+                  },
                 ),
               ],
             ),
@@ -2916,12 +2932,21 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // ================================================================
   // PAGINATION CONTROLS
   // ================================================================
-  Widget _buildPagination(StudentQueryParams query, dynamic page) {
+  Widget _buildPagination(StudentQueryParams query, int totalPages) {
     if (_searchFocusNode.hasFocus) return const SizedBox.shrink();
     return AppPagination(
       currentPage: query.page,
-      totalPages: page.totalPages as int,
-      onPageChanged: (p) => ref.read(studentQueryProvider.notifier).setPage(p),
+      totalPages: totalPages,
+      onPageChanged: (p) {
+        ref.read(studentQueryProvider.notifier).setPage(p);
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          );
+        }
+      },
     );
   }
 

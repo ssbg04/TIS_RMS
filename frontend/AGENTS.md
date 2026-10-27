@@ -1162,12 +1162,13 @@ Files backup/restore - mirror mode or zip -->
 - [x] Separated School Year Overview widgets into independent movable and resizable cards (Digitalization Progress, Document Status Distribution, Document Breakdown, Upload Trends, and Storage Analytics), each displaying an active Academic Year badge (e.g. SY 2024-2025).
 
 # STUDENT SCREEN
-- in pagination, when you navigate to other pages pagination hides then the card list shows miliseconds, make the pagination stays visible
-- in android when you press back it doesnt go to dashboard
+- [x] In pagination, when navigating to other pages pagination stays permanently visible and stable (prevented pagination collapse/disappearance during async page fetch and preserved totalPages across page changes)
+- [x] In Android, back button properly navigates back to Dashboard (cleared blocking early-return and focus traps; gracefully closes multi-select if active, otherwise switches to Dashboard)
 
 # DOCUMENT SCREEN
-- make the skeleton loading not cards make it the same as listed folder or document not separated cards
-- move the configure button near search bar move inside section of "Document Requirements & Compliance" widget
+- [x] make the skeleton loading not cards make it the same as listed folder or document not separated cards (implemented unified DocumentListSkeletonLoader with table-like container and divider rows)
+- [x] move the configure button near search bar move inside section of "Document Requirements & Compliance" widget (moved into summary banner header, letting search bar comfortably span full width)
+- [x] the list and pagination hides in miliseconds after navigating to other pages, make it stays visible, use skeleton load when loading in list (decoupled pagination from list container, preserved _lastDocTotalPages across page changes, and rendered DocumentListSkeletonLoader in list body during page fetch)
 
 # ARCHIVE SCREEN
 - multi select menu action it has more icon button but not working, remove it
@@ -1175,11 +1176,20 @@ Files backup/restore - mirror mode or zip -->
 # REPORTS SCREEN
 - in compliance tab, in student document compliance, the search bar cant unactive when touch outside of the search bar in android
 - make the tab deped board and compliance when scrolls down it hides and if you scroll up a little it shows up like on websites
+- in android when you press back it doesnt go to dashboard
+
+# USERS SCREEN
+- in android when you press back it doesnt go to dashboard
+
+# ACTIVITY HISTORY SCREEN
+- in android when you press back it doesnt go to dashboard
+
 
 # SETTINGS SCREEN
 - appearance & feedback, when i press dark and press system theme, system theme cannot toggle, my system default theme is dark
 - Academic & Class Management, in manage academic years the bulk import remove it, add new modal for select start year to end that automates making of academic year, in edit academic year separate the start and end date and add label for this it has no label
 - when the accordion is active make it scrolls to the top to fit the expanded accordion
+- in android when you press back it doesnt go to dashboard
 
 
 

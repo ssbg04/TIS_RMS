@@ -93,6 +93,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   int _foldersPage = 1;
   final int _foldersPerPage = 20;
 
+  // Track document pagination so bar stays permanently visible while switching pages
+  int _lastDocTotalPages = 1;
+
   @override
   void initState() {
     super.initState();
@@ -281,7 +284,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   void _applyFilters() {
-    setState(() => _foldersPage = 1);
+    setState(() {
+      _foldersPage = 1;
+      _lastDocTotalPages = 1;
+    });
     final n = ref.read(documentQueryProvider.notifier);
     n.setStatus(_selectedStatus);
 
@@ -312,6 +318,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
     setState(() {
       _foldersPage = 1;
+      _lastDocTotalPages = 1;
       _selectedStatus = 'All Statuses';
       _selectedDocumentType = 'All Types';
       _selectedGradeLevel = 'All Grades';
@@ -858,29 +865,11 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                           ),
 
                           // Tab 1: All Documents
-                          Column(
-                            children: [
-                              Expanded(
-                                child: docState.when(
-                                  loading: () => const FolderSkeletonLoader(count: 6),
-                                  error: (e, _) =>
-                                      _buildErrorState(e.toString()),
-                                  data: (pageData) => pageData.documents.isEmpty
-                                      ? _buildEmptyState()
-                                      : _isGridView
-                                      ? _buildGridView(
-                                          pageData.documents,
-                                          pageData.totalPages,
-                                          query.page,
-                                        )
-                                      : _buildListView(
-                                          pageData.documents,
-                                          pageData.totalPages,
-                                          query.page,
-                                        ),
-                                ),
-                              ),
-                            ],
+                          _buildDocumentsView(
+                            docState: docState,
+                            query: query,
+                            isMobile: isMobile,
+                            isFolderMode: false,
                           ),
 
                           // Tab 2: Document Requirements Workflow
@@ -1831,46 +1820,18 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // If a folder is opened, show documents inline in this same tab
     if (_openedFolderStudentId != null) {
-      return Column(
-        children: [
-          Expanded(
-            child: docState.when(
-              loading: () => const FolderSkeletonLoader(count: 6),
-              error: (e, _) => _buildErrorState(e.toString()),
-              data: (pageData) {
-                final hasNoSections =
-                    widget.userRole == 'teacher' &&
-                    query.search.isEmpty &&
-                    query.status.isEmpty &&
-                    query.documentType.isEmpty &&
-                    query.gradeLevel.isEmpty &&
-                    query.schoolYear.isEmpty &&
-                    pageData.total == 0;
-                final activeDocuments = pageData.documents
-                    .where((d) => (d as DocumentModel).status != 'Archived')
-                    .toList();
-                return activeDocuments.isEmpty
-                    ? _buildEmptyState(noSections: hasNoSections)
-                    : _isGridView
-                    ? _buildGridView(
-                        activeDocuments,
-                        pageData.totalPages,
-                        query.page,
-                      )
-                    : _buildListView(
-                        activeDocuments,
-                        pageData.totalPages,
-                        query.page,
-                      );
-              },
-            ),
-          ),
-        ],
+      return _buildDocumentsView(
+        docState: docState,
+        query: query,
+        isMobile: isMobile,
+        isFolderMode: true,
       );
     }
 
     return foldersAsync.when(
-      loading: () => const FolderSkeletonLoader(count: 8),
+      loading: () => _isGridView
+          ? const FolderSkeletonLoader(count: 8)
+          : const DocumentListSkeletonLoader(count: 8, isFolder: true),
       error: (e, _) => _buildErrorState(e.toString()),
       data: (folders) {
         if (folders.isEmpty) {
@@ -2337,7 +2298,75 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     );
   }
 
-  Widget _buildGridView(List documents, int totalPages, int currentPage) {
+  Widget _buildDocumentsView({
+    required AsyncValue<dynamic> docState,
+    required DocumentQueryParams query,
+    required bool isMobile,
+    bool isFolderMode = false,
+  }) {
+    // Preserve and update last known total pages so pagination stays steady during page switching
+    if (docState.hasValue && docState.value != null && docState.value.totalPages > 0) {
+      _lastDocTotalPages = docState.value.totalPages;
+    }
+
+    final bool isLoading = docState.isLoading;
+    final bool hasError = docState.hasError && !isLoading;
+    final dynamic pageData = docState.asData?.value ?? docState.value;
+
+    Widget content;
+    if (isLoading) {
+      // Use list skeleton loader when in list mode, grid skeleton loader in grid mode
+      content = _isGridView
+          ? const FolderSkeletonLoader(count: 6)
+          : const DocumentListSkeletonLoader(count: 8, isFolder: false);
+    } else if (hasError) {
+      content = _buildErrorState(docState.error.toString());
+    } else if (pageData == null) {
+      content = _isGridView
+          ? const FolderSkeletonLoader(count: 6)
+          : const DocumentListSkeletonLoader(count: 8, isFolder: false);
+    } else {
+      final List rawDocs = pageData.documents ?? [];
+      final activeDocuments = isFolderMode
+          ? rawDocs
+              .where((d) => (d as DocumentModel).status != 'Archived')
+              .toList()
+          : rawDocs;
+
+      if (activeDocuments.isEmpty) {
+        final hasNoSections = isFolderMode &&
+            widget.userRole == 'teacher' &&
+            query.search.isEmpty &&
+            query.status.isEmpty &&
+            query.documentType.isEmpty &&
+            query.gradeLevel.isEmpty &&
+            query.schoolYear.isEmpty &&
+            pageData.total == 0;
+        content = _buildEmptyState(noSections: hasNoSections);
+      } else {
+        content = _isGridView
+            ? _buildGridView(activeDocuments)
+            : _buildListView(activeDocuments);
+      }
+    }
+
+    // Keep pagination visible whenever there are multiple pages, even while loading a new page
+    final bool showPagination = _lastDocTotalPages > 1 && !_searchFocusNode.hasFocus;
+
+    return Column(
+      children: [
+        Expanded(child: content),
+        if (showPagination)
+          _buildPagination(_lastDocTotalPages, query.page)
+        else if (isFolderMode)
+          SizedBox(height: isMobile ? 76 : 16)
+        else
+          const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildGridView(List documents) {
     final screenW = MediaQuery.of(context).size.width;
     final isMobileGrid = screenW < 700;
     return LayoutBuilder(
@@ -2346,84 +2375,79 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             ? 2
             : (c.maxWidth / 160.0).floor().clamp(2, 6);
         final aspect = isMobileGrid ? 0.82 : 0.95;
-        return Column(
-          children: [
-            Expanded(
-              child: GridView.builder(
-                padding: EdgeInsets.only(
-                  left: isMobileGrid ? 10 : 16,
-                  right: isMobileGrid ? 10 : 16,
-                  top: isMobileGrid ? 12 : 16,
-                  bottom: isMobileGrid ? 24 : 16,
-                ),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: cols,
-                  crossAxisSpacing: isMobileGrid ? 10 : 12,
-                  mainAxisSpacing: isMobileGrid ? 10 : 12,
-                  childAspectRatio: aspect,
-                ),
-                itemCount: documents.length,
-                itemBuilder: (ctx, i) => FileFolderCard(
-                  document: documents[i],
-                  isGrid: true,
-                  userRole: widget.userRole,
-                  isMultiSelectMode: _isMultiSelectMode,
-                  isSelected: _selectedDocumentIds.contains(documents[i].id),
-                  onIconTap: () {
-                    setState(() {
-                      if (!_isMultiSelectMode) {
-                        _isMultiSelectMode = true;
-                        _selectedDocumentIds.add(documents[i].id);
-                      } else {
-                        if (_selectedDocumentIds.contains(documents[i].id)) {
-                          _selectedDocumentIds.remove(documents[i].id);
-                        } else {
-                          _selectedDocumentIds.add(documents[i].id);
-                        }
-                      }
-                    });
-                  },
-                  onSelectedChanged: (val) {
-                    setState(() {
-                      if (val == true) {
-                        _selectedDocumentIds.add(documents[i].id);
-                        _isMultiSelectMode = true;
-                      } else {
-                        _selectedDocumentIds.remove(documents[i].id);
-                      }
-                    });
-                  },
-                  onTap: () {
-                    if (_isMultiSelectMode) {
-                      setState(() {
-                        if (_selectedDocumentIds.contains(documents[i].id)) {
-                          _selectedDocumentIds.remove(documents[i].id);
-                        } else {
-                          _selectedDocumentIds.add(documents[i].id);
-                        }
-                      });
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(documentPageProvider);
+          },
+          child: GridView.builder(
+            padding: EdgeInsets.only(
+              left: isMobileGrid ? 10 : 16,
+              right: isMobileGrid ? 10 : 16,
+              top: isMobileGrid ? 12 : 16,
+              bottom: isMobileGrid ? 24 : 16,
+            ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: cols,
+              crossAxisSpacing: isMobileGrid ? 10 : 12,
+              mainAxisSpacing: isMobileGrid ? 10 : 12,
+              childAspectRatio: aspect,
+            ),
+            itemCount: documents.length,
+            itemBuilder: (ctx, i) => FileFolderCard(
+              document: documents[i],
+              isGrid: true,
+              userRole: widget.userRole,
+              isMultiSelectMode: _isMultiSelectMode,
+              isSelected: _selectedDocumentIds.contains(documents[i].id),
+              onIconTap: () {
+                setState(() {
+                  if (!_isMultiSelectMode) {
+                    _isMultiSelectMode = true;
+                    _selectedDocumentIds.add(documents[i].id);
+                  } else {
+                    if (_selectedDocumentIds.contains(documents[i].id)) {
+                      _selectedDocumentIds.remove(documents[i].id);
                     } else {
-                      showDocumentPreview(
-                        context: context,
-                        document: documents[i],
-                      );
+                      _selectedDocumentIds.add(documents[i].id);
                     }
-                  },
-                  onActionSelected: (a) => _handleAction(a, documents[i]),
-                  onViewProfile: (sid) => showStudentProfileModal(
-                    context,
-                    studentId: sid,
-                    userRole: widget.userRole,
-                    hideEnrollmentActions: true,
-                  ),
-                ),
+                  }
+                });
+              },
+              onSelectedChanged: (val) {
+                setState(() {
+                  if (val == true) {
+                    _selectedDocumentIds.add(documents[i].id);
+                    _isMultiSelectMode = true;
+                  } else {
+                    _selectedDocumentIds.remove(documents[i].id);
+                  }
+                });
+              },
+              onTap: () {
+                if (_isMultiSelectMode) {
+                  setState(() {
+                    if (_selectedDocumentIds.contains(documents[i].id)) {
+                      _selectedDocumentIds.remove(documents[i].id);
+                    } else {
+                      _selectedDocumentIds.add(documents[i].id);
+                    }
+                  });
+                } else {
+                  showDocumentPreview(
+                    context: context,
+                    document: documents[i],
+                  );
+                }
+              },
+              onActionSelected: (a) => _handleAction(a, documents[i]),
+              onViewProfile: (sid) => showStudentProfileModal(
+                context,
+                studentId: sid,
+                userRole: widget.userRole,
+                hideEnrollmentActions: true,
               ),
             ),
-            if (totalPages > 1 && !_searchFocusNode.hasFocus)
-              _buildPagination(totalPages, currentPage)
-            else if (_openedFolderStudentId != null)
-              SizedBox(height: isMobileGrid ? 76 : 16),
-          ],
+          ),
         );
       },
     );
@@ -2432,107 +2456,97 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   // ══════════════════════════════════════════════════════════════
   // LIST VIEW
   // ══════════════════════════════════════════════════════════════
-  Widget _buildListView(List documents, int totalPages, int currentPage) {
+  Widget _buildListView(List documents) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenW = MediaQuery.of(context).size.width;
     final isMobileList = screenW < 700;
-    return Column(
-      children: [
-        Expanded(
-          child: Container(
-            margin: EdgeInsets.only(
-              left: isMobileList ? 12 : 16,
-              right: isMobileList ? 12 : 16,
-              top: isMobileList ? 8 : 16,
-              bottom: isMobileList ? 6 : 16,
-            ),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-              borderRadius: BorderRadius.circular(12),
-              border: isMobileList
-                  ? Border.all(
-                      color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                    )
-                  : null,
-              boxShadow: isMobileList
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(documentPageProvider);
-                },
-                child: ListView.separated(
-                  padding: EdgeInsets.zero,
-                  itemCount: documents.length,
-                  separatorBuilder: (ctx, i) =>
-                      Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
-                  itemBuilder: (ctx, i) {
-                    final doc = documents[i] as DocumentModel;
-                    return FileFolderCard(
-                      document: doc,
-                      isGrid: false,
-                      userRole: widget.userRole,
-                      isMultiSelectMode: _isMultiSelectMode,
-                      isSelected: _selectedDocumentIds.contains(doc.id),
-                      onIconTap: () {
-                        setState(() {
-                          _isMultiSelectMode = true;
-                          _selectedDocumentIds.add(doc.id);
-                        });
-                      },
-                      onSelectedChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            _selectedDocumentIds.add(doc.id);
-                          } else {
-                            _selectedDocumentIds.remove(doc.id);
-                          }
-                        });
-                      },
-                      onTap: () {
-                        if (_isMultiSelectMode) {
-                          setState(() {
-                            if (_selectedDocumentIds.contains(doc.id)) {
-                              _selectedDocumentIds.remove(doc.id);
-                            } else {
-                              _selectedDocumentIds.add(doc.id);
-                            }
-                          });
-                        } else {
-                          showDocumentPreview(
-                            context: context,
-                            document: doc,
-                          );
-                        }
-                      },
-                      onActionSelected: (a) => _handleAction(a, doc),
-                      onViewProfile: (sid) => showStudentProfileModal(
-                        context,
-                        studentId: sid,
-                        userRole: widget.userRole,
-                        hideEnrollmentActions: true,
-                      ),
-                    );
-                  },
+    return Container(
+      margin: EdgeInsets.only(
+        left: isMobileList ? 12 : 16,
+        right: isMobileList ? 12 : 16,
+        top: isMobileList ? 8 : 16,
+        bottom: isMobileList ? 6 : 16,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: isMobileList
+            ? Border.all(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              )
+            : null,
+        boxShadow: isMobileList
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-            ),
+              ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(documentPageProvider);
+          },
+          child: ListView.separated(
+            padding: EdgeInsets.zero,
+            itemCount: documents.length,
+            separatorBuilder: (ctx, i) =>
+                Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
+            itemBuilder: (ctx, i) {
+              final doc = documents[i] as DocumentModel;
+              return FileFolderCard(
+                document: doc,
+                isGrid: false,
+                userRole: widget.userRole,
+                isMultiSelectMode: _isMultiSelectMode,
+                isSelected: _selectedDocumentIds.contains(doc.id),
+                onIconTap: () {
+                  setState(() {
+                    _isMultiSelectMode = true;
+                    _selectedDocumentIds.add(doc.id);
+                  });
+                },
+                onSelectedChanged: (val) {
+                  setState(() {
+                    if (val == true) {
+                      _selectedDocumentIds.add(doc.id);
+                    } else {
+                      _selectedDocumentIds.remove(doc.id);
+                    }
+                  });
+                },
+                onTap: () {
+                  if (_isMultiSelectMode) {
+                    setState(() {
+                      if (_selectedDocumentIds.contains(doc.id)) {
+                        _selectedDocumentIds.remove(doc.id);
+                      } else {
+                        _selectedDocumentIds.add(doc.id);
+                      }
+                    });
+                  } else {
+                    showDocumentPreview(
+                      context: context,
+                      document: doc,
+                    );
+                  }
+                },
+                onActionSelected: (a) => _handleAction(a, doc),
+                onViewProfile: (sid) => showStudentProfileModal(
+                  context,
+                  studentId: sid,
+                  userRole: widget.userRole,
+                  hideEnrollmentActions: true,
+                ),
+              );
+            },
           ),
         ),
-        if (totalPages > 1 && !_searchFocusNode.hasFocus)
-          _buildPagination(totalPages, currentPage)
-        else if (_openedFolderStudentId != null)
-          SizedBox(height: isMobileList ? 76 : 16),
-      ],
+      ),
     );
   }
 

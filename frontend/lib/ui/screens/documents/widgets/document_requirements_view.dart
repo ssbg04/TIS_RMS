@@ -248,6 +248,34 @@ class _DocumentRequirementsViewState
                   ],
                 ),
               ),
+              if (widget.userRole != 'teacher') ...[
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: () => RequirementsSettingsModal.show(context),
+                  icon: const Icon(Icons.tune_rounded, size: 16, color: Colors.white),
+                  label: Text(
+                    MediaQuery.of(context).size.width < 600
+                        ? 'Configure'
+                        : 'Configure Requirements',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    elevation: 1,
+                    shadowColor: AppColors.primaryGreen.withValues(alpha: 0.35),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    minimumSize: const Size(0, 36),
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 14),
@@ -336,85 +364,49 @@ class _DocumentRequirementsViewState
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // CONTROLS BAR: SEARCH & CONFIGURE
+  // CONTROLS BAR: SEARCH
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildControlsBar(bool isDark) {
-    final screenW = MediaQuery.of(context).size.width;
-    final isCompact = screenW < 520;
-
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 40,
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-              ),
-            ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) => setState(() => _searchQuery = val.trim()),
-              decoration: InputDecoration(
-                hintText: 'Search requirements (e.g. SF9, PSA, SF10)...',
-                hintStyle: TextStyle(
-                  fontSize: 12.5,
-                  color: isDark ? Colors.white38 : Colors.grey.shade500,
-                ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  size: 18,
-                  color: isDark ? Colors.white54 : Colors.grey.shade600,
-                ),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 16),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
-                contentPadding: const EdgeInsets.symmetric(vertical: 9),
-                border: InputBorder.none,
-              ),
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? Colors.white : AppColors.textPrimary,
-              ),
-            ),
-          ),
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
         ),
-        const SizedBox(width: 10),
-        SizedBox(
-          height: 40,
-          child: ElevatedButton.icon(
-            onPressed: () => RequirementsSettingsModal.show(context),
-            icon: const Icon(Icons.tune_rounded, size: 18, color: Colors.white),
-            label: Text(
-              isCompact ? 'Configure' : 'Configure Requirements',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 0.2,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-              elevation: 2,
-              shadowColor: AppColors.primaryGreen.withValues(alpha: 0.35),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) => setState(() => _searchQuery = val.trim()),
+        decoration: InputDecoration(
+          hintText: 'Search requirements (e.g. SF9, PSA, SF10)...',
+          hintStyle: TextStyle(
+            fontSize: 12.5,
+            color: isDark ? Colors.white38 : Colors.grey.shade500,
           ),
+          prefixIcon: Icon(
+            Icons.search,
+            size: 18,
+            color: isDark ? Colors.white54 : Colors.grey.shade600,
+          ),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 16),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+              : null,
+          contentPadding: const EdgeInsets.symmetric(vertical: 9),
+          border: InputBorder.none,
         ),
-      ],
+        style: TextStyle(
+          fontSize: 13,
+          color: isDark ? Colors.white : AppColors.textPrimary,
+        ),
+      ),
     );
   }
 

@@ -216,3 +216,126 @@ class FolderSkeletonLoader extends StatelessWidget {
     );
   }
 }
+
+class DocumentListSkeletonLoader extends StatelessWidget {
+  final int count;
+  final bool isFolder;
+
+  const DocumentListSkeletonLoader({
+    super.key,
+    this.count = 8,
+    this.isFolder = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenW = MediaQuery.of(context).size.width;
+    final isMobile = screenW < 700;
+
+    return Container(
+      margin: EdgeInsets.only(
+        left: isMobile ? 12 : 16,
+        right: isMobile ? 12 : 16,
+        top: isMobile ? 8 : 16,
+        bottom: isMobile ? 6 : 16,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: isMobile
+            ? Border.all(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              )
+            : null,
+        boxShadow: isMobile
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: ListView.separated(
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: count,
+          separatorBuilder: (context, index) => Divider(
+            height: 1,
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade100,
+          ),
+          itemBuilder: (ctx, i) {
+            return Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 16,
+                vertical: isMobile ? 10 : 12,
+              ),
+              child: Row(
+                children: [
+                  AppSkeletonLoader(
+                    width: 40,
+                    height: 40,
+                    borderRadius: isFolder ? 10 : 8,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AppSkeletonLoader(
+                          width: i % 3 == 0
+                              ? 180
+                              : i % 3 == 1
+                                  ? 130
+                                  : 220,
+                          height: 13,
+                          borderRadius: 4,
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            AppSkeletonLoader(
+                              width: isFolder ? 70 : 90,
+                              height: 10,
+                              borderRadius: 4,
+                            ),
+                            if (!isFolder) ...[
+                              const SizedBox(width: 8),
+                              const AppSkeletonLoader(
+                                width: 50,
+                                height: 10,
+                                borderRadius: 4,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  if (isFolder)
+                    const AppSkeletonLoader(
+                      width: 18,
+                      height: 18,
+                      borderRadius: 9,
+                    )
+                  else
+                    const AppSkeletonLoader(
+                      width: 65,
+                      height: 22,
+                      borderRadius: 6,
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}

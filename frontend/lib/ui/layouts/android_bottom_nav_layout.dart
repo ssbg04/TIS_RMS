@@ -468,18 +468,38 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
-        // If any text input has focus, unfocus it first before navigating
+        // If an editable text input has focus, unfocus it first before navigating
         final primaryFocus = FocusManager.instance.primaryFocus;
-        if (primaryFocus != null && primaryFocus.hasFocus) {
-          primaryFocus.unfocus();
-          return;
+        if (primaryFocus != null &&
+            primaryFocus.hasFocus &&
+            primaryFocus.context != null) {
+          final isEditable = primaryFocus.context!.widget is EditableText ||
+              primaryFocus.context!
+                      .findAncestorWidgetOfExactType<EditableText>() !=
+                  null;
+          if (isEditable) {
+            primaryFocus.unfocus();
+            return;
+          }
         }
 
         if (activeTab != 'Dashboard') {
-          if (activeTab == 'Documents' ||
-              activeTab == 'Students' ||
-              activeTab == 'Archives') {
-            return;
+          if (activeTab == 'Students') {
+            if (ref.read(studentMultiSelectProvider)) {
+              ref.read(studentMultiSelectProvider.notifier).state = false;
+              ref.read(studentSelectedIdsProvider.notifier).state = [];
+              return;
+            }
+          } else if (activeTab == 'Documents') {
+            if (ref.read(openedFolderProvider) != null) {
+              ref.read(openedFolderProvider.notifier).setFolder(null);
+              return;
+            }
+          } else if (activeTab == 'Archives') {
+            if (ref.read(openedArchiveFolderProvider) != null) {
+              ref.read(openedArchiveFolderProvider.notifier).setFolder(null);
+              return;
+            }
           }
           _onNavTapped('Dashboard');
           return;
