@@ -1171,7 +1171,9 @@ Files backup/restore - mirror mode or zip -->
 - [x] the list and pagination hides in miliseconds after navigating to other pages, make it stays visible, use skeleton load when loading in list (decoupled pagination from list container, preserved _lastDocTotalPages across page changes, and rendered DocumentListSkeletonLoader in list body during page fetch)
 
 # ARCHIVE SCREEN
-- multi select menu action it has more icon button but not working, remove it
+- [x] make the skeleton loading not cards make it the same as listed folder or document not separated cards (utilized DocumentListSkeletonLoader matching listed table-like folder and document layout with divider rows)
+- [x] multi select menu action it has more icon button but not working, remove it (removed non-working PopupMenuButton from BulkOperationsBar when on Archive screen)
+- [x] the list and pagination hides in miliseconds after navigating to other pages, make it stays visible, use skeleton load when loading in list (decoupled pagination from views, preserved _lastDocTotalPages, and displayed DocumentListSkeletonLoader during page loading)
 
 # REPORTS SCREEN
 - in compliance tab, in student document compliance, the search bar cant unactive when touch outside of the search bar in android

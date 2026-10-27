@@ -133,9 +133,10 @@ class BulkOperationsBar extends StatelessWidget {
                     tooltip: 'Print',
                     onPressed: onBatchPrint,
                   ),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-                    tooltip: 'More Actions',
+                  if (!isArchiveScreen)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                      tooltip: 'More Actions',
                     onSelected: (val) {
                       switch (val) {
                         case 'copy':

@@ -12,6 +12,7 @@ import '../../../domain/repositories/document_repository.dart'
 import '../../shared/inputs/app_search_bar.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
+import '../../shared/widgets/app_skeleton_loader.dart';
 import '../../providers/archives_provider.dart';
 import '../../providers/document_provider.dart';
 import '../../shared/dialogs/success_dialog.dart';
@@ -56,6 +57,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // Folder pagination
   int _foldersPage = 1;
   final int _foldersPerPage = 20;
+
+  // Track document pagination so bar stays permanently visible while switching pages
+  int _lastDocTotalPages = 1;
 
   // Filter values
   String _selectedStatus = 'All Statuses';
@@ -227,6 +231,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   void _applyFilters() {
+    setState(() {
+      _lastDocTotalPages = 1;
+    });
     final n = ref.read(archiveDocumentQueryProvider.notifier);
     n.setStatus(_selectedStatus);
 
@@ -250,6 +257,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
   void _clearFilters() {
     setState(() {
+      _lastDocTotalPages = 1;
       _selectedStatus = 'All Statuses';
       _selectedDocumentType = 'All Types';
       _selectedGradeLevel = 'All Grades';
@@ -1249,39 +1257,18 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // If a folder is opened, show that student's documents
     if (_openedFolderStudentId != null) {
-      return Column(
-        children: [
-          Expanded(
-            child: docState.when(
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryGreen),
-              ),
-              error: (e, _) => _buildErrorState(e.toString()),
-              data: (pageData) => pageData.documents.isEmpty
-                  ? _buildEmptyState('No archived documents for this student.')
-                  : _isGridView
-                  ? _buildArchiveGridView(
-                      pageData.documents,
-                      isMobile,
-                      pageData.totalPages,
-                      query.page,
-                    )
-                  : _buildArchiveListView(
-                      pageData.documents,
-                      isMobile,
-                      pageData.totalPages,
-                      query.page,
-                    ),
-            ),
-          ),
-        ],
+      return _buildArchiveDocumentsView(
+        docState: docState,
+        query: query,
+        isMobile: isMobile,
+        isFolderMode: true,
       );
     }
 
     return foldersAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: AppColors.primaryGreen),
-      ),
+      loading: () => _isGridView
+          ? const FolderSkeletonLoader(count: 8)
+          : const DocumentListSkeletonLoader(count: 8, isFolder: true),
       error: (e, _) => _buildErrorState(e.toString()),
       data: (folders) {
         if (folders.isEmpty) {
@@ -1702,33 +1689,69 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     ArchiveDocumentQueryParams query,
     bool isMobile,
   ) {
+    return _buildArchiveDocumentsView(
+      docState: docState,
+      query: query,
+      isMobile: isMobile,
+      isFolderMode: false,
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // ARCHIVE LIST VIEW
+  // ════════════════════════════════════════════════════════════════
+  Widget _buildArchiveDocumentsView({
+    required AsyncValue<DocumentPage> docState,
+    required ArchiveDocumentQueryParams query,
+    required bool isMobile,
+    bool isFolderMode = false,
+  }) {
+    if (docState.hasValue && docState.value != null && docState.value!.totalPages > 0) {
+      _lastDocTotalPages = docState.value!.totalPages;
+    }
+
+    final bool isLoading = docState.isLoading;
+    final bool hasError = docState.hasError && !isLoading;
+    final DocumentPage? pageData = docState.asData?.value ?? docState.value;
+
+    Widget content;
+    if (isLoading) {
+      // Use list skeleton loader when in list mode, grid skeleton loader in grid mode
+      content = _isGridView
+          ? const FolderSkeletonLoader(count: 6)
+          : const DocumentListSkeletonLoader(count: 8, isFolder: false);
+    } else if (hasError) {
+      content = _buildErrorState(docState.error.toString());
+    } else if (pageData == null) {
+      content = _isGridView
+          ? const FolderSkeletonLoader(count: 6)
+          : const DocumentListSkeletonLoader(count: 8, isFolder: false);
+    } else {
+      final List<DocumentModel> documents = pageData.documents;
+      if (documents.isEmpty) {
+        content = _buildEmptyState(
+          isFolderMode
+              ? 'No archived documents for this student.'
+              : 'No archived documents found.\nAdjust filters or search terms.',
+        );
+      } else {
+        content = _isGridView
+            ? _buildArchiveGridView(documents, isMobile)
+            : _buildArchiveListView(documents, isMobile);
+      }
+    }
+
+    final bool showPagination = _lastDocTotalPages > 1 && !_searchFocusNode.hasFocus;
+
     return Column(
       children: [
-        Expanded(
-          child: docState.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryGreen),
-            ),
-            error: (e, _) => _buildErrorState(e.toString()),
-            data: (pageData) => pageData.documents.isEmpty
-                ? _buildEmptyState(
-                    'No archived documents found.\nAdjust filters or search terms.',
-                  )
-                : _isGridView
-                ? _buildArchiveGridView(
-                    pageData.documents,
-                    isMobile,
-                    pageData.totalPages,
-                    query.page,
-                  )
-                : _buildArchiveListView(
-                    pageData.documents,
-                    isMobile,
-                    pageData.totalPages,
-                    query.page,
-                  ),
-          ),
-        ),
+        Expanded(child: content),
+        if (showPagination)
+          _buildPagination(_lastDocTotalPages, query.page)
+        else if (isFolderMode)
+          SizedBox(height: isMobile ? 76 : 16)
+        else
+          const SizedBox(height: 16),
       ],
     );
   }
@@ -1739,113 +1762,101 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   Widget _buildArchiveListView(
     List<DocumentModel> documents,
     bool isMobile,
-    int totalPages,
-    int currentPage,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      children: [
-        Expanded(
-          child: Container(
-            margin: EdgeInsets.only(
-              left: isMobile ? 12 : 16,
-              right: isMobile ? 12 : 16,
-              top: isMobile ? 12 : 16,
-              bottom: isMobile ? 6 : 16,
-            ),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-              borderRadius: BorderRadius.circular(12),
-              border: isMobile
-                  ? Border.all(
-                      color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                    )
-                  : null,
-              boxShadow: isMobile
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(archiveDocumentPageProvider);
-                },
-                child: ListView.separated(
-                  padding: EdgeInsets.zero,
-                  itemCount: documents.length,
-                  separatorBuilder: (_, _) =>
-                      Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
-                  itemBuilder: (ctx, i) {
-                    final doc = documents[i];
-                    return FileFolderCard(
-                      document: doc,
-                      isGrid: false,
-                      userRole: widget.userRole,
-                      isArchiveScreen: true,
-                      isMultiSelectMode: _isMultiSelectMode,
-                      isSelected: _selectedDocumentIds.contains(doc.id),
-                      onIconTap: () {
-                        setState(() {
-                          if (!_isMultiSelectMode) {
-                            _isMultiSelectMode = true;
-                            _selectedDocumentIds.add(doc.id);
-                          } else {
-                            if (_selectedDocumentIds.contains(doc.id)) {
-                              _selectedDocumentIds.remove(doc.id);
-                            } else {
-                              _selectedDocumentIds.add(doc.id);
-                            }
-                          }
-                        });
-                      },
-                      onSelectedChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            _selectedDocumentIds.add(doc.id);
-                          } else {
-                            _selectedDocumentIds.remove(doc.id);
-                          }
-                        });
-                      },
-                      onTap: () {
-                        if (_isMultiSelectMode) {
-                          setState(() {
-                            if (_selectedDocumentIds.contains(doc.id)) {
-                              _selectedDocumentIds.remove(doc.id);
-                            } else {
-                              _selectedDocumentIds.add(doc.id);
-                            }
-                          });
-                        } else {
-                          _handlePreview(doc);
-                        }
-                      },
-                      onActionSelected: (a) => _handleDocumentAction(a, doc),
-                      onViewProfile: (sid) => showStudentProfileModal(
-                        context,
-                        studentId: sid,
-                        userRole: widget.userRole,
-                        hideEnrollmentActions: true,
-                      ),
-                    );
-                  },
+    return Container(
+      margin: EdgeInsets.only(
+        left: isMobile ? 12 : 16,
+        right: isMobile ? 12 : 16,
+        top: isMobile ? 12 : 16,
+        bottom: isMobile ? 6 : 16,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: isMobile
+            ? Border.all(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              )
+            : null,
+        boxShadow: isMobile
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-            ),
+              ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(archiveDocumentPageProvider);
+          },
+          child: ListView.separated(
+            padding: EdgeInsets.zero,
+            itemCount: documents.length,
+            separatorBuilder: (_, _) =>
+                Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
+            itemBuilder: (ctx, i) {
+              final doc = documents[i];
+              return FileFolderCard(
+                document: doc,
+                isGrid: false,
+                userRole: widget.userRole,
+                isArchiveScreen: true,
+                isMultiSelectMode: _isMultiSelectMode,
+                isSelected: _selectedDocumentIds.contains(doc.id),
+                onIconTap: () {
+                  setState(() {
+                    if (!_isMultiSelectMode) {
+                      _isMultiSelectMode = true;
+                      _selectedDocumentIds.add(doc.id);
+                    } else {
+                      if (_selectedDocumentIds.contains(doc.id)) {
+                        _selectedDocumentIds.remove(doc.id);
+                      } else {
+                        _selectedDocumentIds.add(doc.id);
+                      }
+                    }
+                  });
+                },
+                onSelectedChanged: (val) {
+                  setState(() {
+                    if (val == true) {
+                      _selectedDocumentIds.add(doc.id);
+                    } else {
+                      _selectedDocumentIds.remove(doc.id);
+                    }
+                  });
+                },
+                onTap: () {
+                  if (_isMultiSelectMode) {
+                    setState(() {
+                      if (_selectedDocumentIds.contains(doc.id)) {
+                        _selectedDocumentIds.remove(doc.id);
+                      } else {
+                        _selectedDocumentIds.add(doc.id);
+                      }
+                    });
+                  } else {
+                    _handlePreview(doc);
+                  }
+                },
+                onActionSelected: (a) => _handleDocumentAction(a, doc),
+                onViewProfile: (sid) => showStudentProfileModal(
+                  context,
+                  studentId: sid,
+                  userRole: widget.userRole,
+                  hideEnrollmentActions: true,
+                ),
+              );
+            },
           ),
         ),
-        if (totalPages > 1 && !_searchFocusNode.hasFocus)
-          _buildPagination(totalPages, currentPage)
-        else if (_openedFolderStudentId != null)
-          SizedBox(height: isMobile ? 76 : 16),
-      ],
+      ),
     );
   }
 
@@ -1855,8 +1866,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   Widget _buildArchiveGridView(
     List<DocumentModel> documents,
     bool isMobile,
-    int totalPages,
-    int currentPage,
   ) {
     return LayoutBuilder(
       builder: (ctx, c) {
@@ -1865,82 +1874,77 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             ? 2
             : (c.maxWidth / 160.0).floor().clamp(2, 6);
         final aspect = isMobileGrid ? 0.82 : 0.95;
-        return Column(
-          children: [
-            Expanded(
-              child: GridView.builder(
-                padding: EdgeInsets.only(
-                  left: isMobileGrid ? 10 : 16,
-                  right: isMobileGrid ? 10 : 16,
-                  top: isMobileGrid ? 12 : 16,
-                  bottom: isMobileGrid ? 6 : 16,
-                ),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: cols,
-                  crossAxisSpacing: isMobileGrid ? 10 : 12,
-                  mainAxisSpacing: isMobileGrid ? 10 : 12,
-                  childAspectRatio: aspect,
-                ),
-                itemCount: documents.length,
-                itemBuilder: (ctx, i) => FileFolderCard(
-                  document: documents[i],
-                  isGrid: true,
-                  userRole: widget.userRole,
-                  isArchiveScreen: true,
-                  isMultiSelectMode: _isMultiSelectMode,
-                  isSelected: _selectedDocumentIds.contains(documents[i].id),
-                  onIconTap: () {
-                    setState(() {
-                      if (!_isMultiSelectMode) {
-                        _isMultiSelectMode = true;
-                        _selectedDocumentIds.add(documents[i].id);
-                      } else {
-                        if (_selectedDocumentIds.contains(documents[i].id)) {
-                          _selectedDocumentIds.remove(documents[i].id);
-                        } else {
-                          _selectedDocumentIds.add(documents[i].id);
-                        }
-                      }
-                    });
-                  },
-                  onSelectedChanged: (val) {
-                    setState(() {
-                      if (val == true) {
-                        _selectedDocumentIds.add(documents[i].id);
-                        _isMultiSelectMode = true;
-                      } else {
-                        _selectedDocumentIds.remove(documents[i].id);
-                      }
-                    });
-                  },
-                  onTap: () {
-                    if (_isMultiSelectMode) {
-                      setState(() {
-                        if (_selectedDocumentIds.contains(documents[i].id)) {
-                          _selectedDocumentIds.remove(documents[i].id);
-                        } else {
-                          _selectedDocumentIds.add(documents[i].id);
-                        }
-                      });
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(archiveDocumentPageProvider);
+          },
+          child: GridView.builder(
+            padding: EdgeInsets.only(
+              left: isMobileGrid ? 10 : 16,
+              right: isMobileGrid ? 10 : 16,
+              top: isMobileGrid ? 12 : 16,
+              bottom: isMobileGrid ? 6 : 16,
+            ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: cols,
+              crossAxisSpacing: isMobileGrid ? 10 : 12,
+              mainAxisSpacing: isMobileGrid ? 10 : 12,
+              childAspectRatio: aspect,
+            ),
+            itemCount: documents.length,
+            itemBuilder: (ctx, i) => FileFolderCard(
+              document: documents[i],
+              isGrid: true,
+              userRole: widget.userRole,
+              isArchiveScreen: true,
+              isMultiSelectMode: _isMultiSelectMode,
+              isSelected: _selectedDocumentIds.contains(documents[i].id),
+              onIconTap: () {
+                setState(() {
+                  if (!_isMultiSelectMode) {
+                    _isMultiSelectMode = true;
+                    _selectedDocumentIds.add(documents[i].id);
+                  } else {
+                    if (_selectedDocumentIds.contains(documents[i].id)) {
+                      _selectedDocumentIds.remove(documents[i].id);
                     } else {
-                      _handlePreview(documents[i]);
+                      _selectedDocumentIds.add(documents[i].id);
                     }
-                  },
-                  onActionSelected: (a) => _handleDocumentAction(a, documents[i]),
-                  onViewProfile: (sid) => showStudentProfileModal(
-                    context,
-                    studentId: sid,
-                    userRole: widget.userRole,
-                    hideEnrollmentActions: true,
-                  ),
-                ),
+                  }
+                });
+              },
+              onSelectedChanged: (val) {
+                setState(() {
+                  if (val == true) {
+                    _selectedDocumentIds.add(documents[i].id);
+                    _isMultiSelectMode = true;
+                  } else {
+                    _selectedDocumentIds.remove(documents[i].id);
+                  }
+                });
+              },
+              onTap: () {
+                if (_isMultiSelectMode) {
+                  setState(() {
+                    if (_selectedDocumentIds.contains(documents[i].id)) {
+                      _selectedDocumentIds.remove(documents[i].id);
+                    } else {
+                      _selectedDocumentIds.add(documents[i].id);
+                    }
+                  });
+                } else {
+                  _handlePreview(documents[i]);
+                }
+              },
+              onActionSelected: (a) => _handleDocumentAction(a, documents[i]),
+              onViewProfile: (sid) => showStudentProfileModal(
+                context,
+                studentId: sid,
+                userRole: widget.userRole,
+                hideEnrollmentActions: true,
               ),
             ),
-            if (totalPages > 1 && !_searchFocusNode.hasFocus)
-              _buildPagination(totalPages, currentPage)
-            else if (_openedFolderStudentId != null)
-              SizedBox(height: isMobileGrid ? 76 : 16),
-          ],
+          ),
         );
       },
     );
