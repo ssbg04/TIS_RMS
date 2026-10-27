@@ -26,6 +26,10 @@ import 'widgets/dashboard_kpis.dart';
 import 'widgets/needs_attention_card.dart';
 import 'widgets/recent_activity_feed.dart';
 import '../../shared/widgets/app_error_state.dart';
+import 'models/dashboard_card_config.dart';
+import '../../providers/dashboard_layout_provider.dart';
+import 'widgets/customizable_dashboard_card.dart';
+import 'widgets/dashboard_customize_banner.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -37,6 +41,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _setupBannerMinimized = false;
   bool _setupBannerDismissed = false;
+  bool _isCustomizing = false;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final FocusNode _shortcutFocusNode = FocusNode();
@@ -120,6 +125,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ref.read(authProvider.notifier).refreshUser();
           _startPolling();
         } else if (next != 'Dashboard') {
+          if (_isCustomizing) {
+            setState(() => _isCustomizing = false);
+          }
           _stopPolling();
           if (_searchController.text.isNotEmpty) {
             _searchController.clear();
@@ -333,6 +341,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
         defaultTargetPlatform == TargetPlatform.android;
 
+    final layoutCards = ref.watch(dashboardLayoutProvider);
+    final layoutNotifier = ref.read(dashboardLayoutProvider.notifier);
+    final isTeacher = user?.role == 'teacher';
+    final roleCards = isTeacher
+        ? layoutCards.where((c) => !c.id.startsWith('kpi')).toList()
+        : layoutCards;
+    final visibleCards = roleCards.where((c) => c.isVisible).toList();
+    final hiddenCards = roleCards.where((c) => !c.isVisible).toList();
+
     // Clean up if not used
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
@@ -376,20 +393,70 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(
-                              'Dashboard Overview',
-                              style: TextStyle(
-                                fontSize:
-                                    MediaQuery.of(context).size.width > 600
-                                    ? 28
-                                    : 24,
-                                fontWeight: FontWeight.bold,
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      'Dashboard Overview',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width > 600
+                                            ? 28
+                                            : 22,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isMobileOrAndroid) ...[
+                                    const SizedBox(width: 6),
+                                    IconButton(
+                                      icon: Icon(
+                                        _isCustomizing
+                                            ? Icons.check_circle_rounded
+                                            : Icons.tune_rounded,
+                                        size: 22,
+                                        color: _isCustomizing
+                                            ? AppColors.primaryGreen
+                                            : null,
+                                      ),
+                                      tooltip: _isCustomizing
+                                          ? 'Done Customizing'
+                                          : 'Customize Layout',
+                                      onPressed: () => setState(
+                                        () => _isCustomizing = !_isCustomizing,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                             if (!isMobileOrAndroid)
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  Tooltip(
+                                    message: _isCustomizing
+                                        ? 'Done Customizing'
+                                        : 'Customize Dashboard Layout',
+                                    child: IconButton(
+                                      icon: Icon(
+                                        _isCustomizing
+                                            ? Icons.check_circle_rounded
+                                            : Icons.tune_rounded,
+                                        size: 24,
+                                        color: _isCustomizing
+                                            ? AppColors.primaryGreen
+                                            : null,
+                                      ),
+                                      onPressed: () => setState(
+                                        () => _isCustomizing = !_isCustomizing,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
                                   Tooltip(
                                     richMessage: const TextSpan(
                                       text: 'Search Students ',
@@ -455,15 +522,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        _buildStatGrid(data.stats, user),
-                        const SizedBox(height: 28),
-                        const NeedsAttentionCard(),
-                        if (isAdmin) ...[
-                          const SizedBox(height: 32),
-                          const DashboardKpisSection(),
+                        if (_isCustomizing) ...[
+                          DashboardCustomizeBanner(
+                            hiddenCards: hiddenCards,
+                            onReset: () => layoutNotifier.resetToDefault(),
+                            onDone: () => setState(() => _isCustomizing = false),
+                            onRestoreCard: (id) =>
+                                layoutNotifier.toggleCardVisibility(id, isVisible: true),
+                          ),
                         ],
-                        const SizedBox(height: 32),
-                        const RecentActivityFeed(),
+                        _buildCardGrid(
+                          context: context,
+                          cards: visibleCards,
+                          data: data,
+                          user: user,
+                          isCustomizing: _isCustomizing,
+                          layoutNotifier: layoutNotifier,
+                        ),
                         const SizedBox(height: 48),
                       ],
                     ),
@@ -974,5 +1049,133 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       },
     );
   }
-}
 
+  // ── CUSTOMIZABLE CARD GRID ───────────────────────────────────────────────
+  Widget _buildCardGrid({
+    required BuildContext context,
+    required List<DashboardCardConfig> cards,
+    required DashboardData data,
+    required UserModel? user,
+    required bool isCustomizing,
+    required DashboardLayoutNotifier layoutNotifier,
+  }) {
+    if (cards.isEmpty) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+          ),
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.dashboard_customize_outlined,
+              size: 48,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'All dashboard cards are currently hidden.',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Click below to restore all cards to default layout.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () => layoutNotifier.resetToDefault(),
+              icon: const Icon(Icons.restart_alt_rounded, size: 16),
+              label: const Text('Reset to Default Layout'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 800;
+        final totalWidth = constraints.maxWidth;
+        const double spacing = 20.0;
+        final double halfWidth = (totalWidth - spacing) / 2;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (int i = 0; i < cards.length; i++)
+              SizedBox(
+                width: (isDesktop && cards[i].colSpan == 6)
+                    ? halfWidth
+                    : totalWidth,
+                child: CustomizableDashboardCard(
+                  config: cards[i],
+                  isCustomizing: isCustomizing,
+                  isFirst: i == 0,
+                  isLast: i == cards.length - 1,
+                  onMoveUp: () => layoutNotifier.moveCard(cards[i].id, -1),
+                  onMoveDown: () => layoutNotifier.moveCard(cards[i].id, 1),
+                  onSpanChanged: (span) =>
+                      layoutNotifier.setCardSpan(cards[i].id, span),
+                  onHide: () => layoutNotifier.toggleCardVisibility(
+                    cards[i].id,
+                    isVisible: false,
+                  ),
+                  onReorder: (draggedId, targetId) =>
+                      layoutNotifier.reorderCards(draggedId, targetId),
+                  child: _buildDashboardCard(cards[i], data, user),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDashboardCard(
+    DashboardCardConfig card,
+    DashboardData data,
+    UserModel? user,
+  ) {
+    switch (card.id) {
+      case 'stats':
+        return _buildStatGrid(data.stats, user);
+      case 'needs_attention':
+        return const NeedsAttentionCard();
+      case 'kpi_digitalization':
+        return const DigitalizationProgressKpiCard();
+      case 'kpi_status':
+        return const StatusDistributionKpiCard();
+      case 'kpi_doc_types':
+        return const DocTypeBreakdownKpiCard();
+      case 'kpi_upload_trend':
+        return const UploadTrendKpiCard();
+      case 'kpi_storage':
+        return const StorageAnalyticsKpiCard();
+      case 'kpis':
+        if (user?.role == 'teacher') return const SizedBox.shrink();
+        return const DashboardKpisSection();
+      case 'recent_activity':
+        return const RecentActivityFeed();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+}

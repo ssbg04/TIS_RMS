@@ -1157,12 +1157,41 @@ Files backup/restore - mirror mode or zip -->
 - [x] sort enrollments chronologically ascending by school year and grade level across student profile, edit student, edit enrollment, and OCR review
 - [x] progression and regression validation: prevent grade skipping and downgrading across academic year chronology
 
+# DASHBOARD SCREEN
+- [x] Implement movable and resizable cards in dashboard (customizable layout with drag-to-reorder, adjustable card sizes/spans, edit mode toggle, and persistence via SharedPreferences)
+- [x] Separated School Year Overview widgets into independent movable and resizable cards (Digitalization Progress, Document Status Distribution, Document Breakdown, Upload Trends, and Storage Analytics), each displaying an active Academic Year badge (e.g. SY 2024-2025).
+
+# STUDENT SCREEN
+- in pagination, when you navigate to other pages pagination hides then the card list shows miliseconds, make the pagination stays visible
+- in android when you press back it doesnt go to dashboard
+
+# DOCUMENT SCREEN
+- make the skeleton loading not cards make it the same as listed folder or document not separated cards
+- move the configure button near search bar move inside section of "Document Requirements & Compliance" widget
+
+# ARCHIVE SCREEN
+- multi select menu action it has more icon button but not working, remove it
+
+# REPORTS SCREEN
+- in compliance tab, in student document compliance, the search bar cant unactive when touch outside of the search bar in android
+- make the tab deped board and compliance when scrolls down it hides and if you scroll up a little it shows up like on websites
+
+# SETTINGS SCREEN
+- appearance & feedback, when i press dark and press system theme, system theme cannot toggle, my system default theme is dark
+- Academic & Class Management, in manage academic years the bulk import remove it, add new modal for select start year to end that automates making of academic year, in edit academic year separate the start and end date and add label for this it has no label
+- when the accordion is active make it scrolls to the top to fit the expanded accordion
+
+
+
+
 ---
 
 
 # DONT DO
 <!-- - documents screen -> add how many files can be uploaded into a document requirement, the current limitation is only 1, so we can dynamically choose number files that can be uploaded into that document, update both frontend and backend, but first give me suggestion where will put the setting of this, ask me first   -->
 ---
+
+
 
 # TIS_RMS Server Manager (dont do)
 Windows Service - NSSM nodejs

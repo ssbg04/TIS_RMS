@@ -19,10 +19,11 @@ class DashboardKpisSection extends ConsumerWidget {
     final user = ref.watch(authProvider).value;
     final isTeacher = user?.role == 'teacher';
     final kpisAsync = ref.watch(dashboardKpisProvider);
-    final width = MediaQuery.of(context).size.width;
-    final isWide = width >= 800;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 750;
 
-    return kpisAsync.when(
+        return kpisAsync.when(
       skipLoadingOnReload: true,
       loading: () => const _KpiSkeleton(),
       error: (e, _) => Padding(
@@ -36,6 +37,157 @@ class DashboardKpisSection extends ConsumerWidget {
         kpis: kpis,
         isWide: isWide,
         isTeacher: isTeacher,
+      ),
+    );
+      },
+    );
+  }
+}
+
+
+// ──────────────────────────────────────────────────────────────
+// SEPARATED KPI CARDS WITH ACADEMIC YEAR INDICATOR
+// ──────────────────────────────────────────────────────────────
+Widget _buildYearBadge(BuildContext context, String? activeYear) {
+  final rawYear = activeYear?.trim() ?? '';
+  final cleanYear = rawYear
+      .replaceAll(RegExp(r'^(s\.?y\.?\s*)', caseSensitive: false), '')
+      .trim();
+  if (cleanYear.isEmpty) return const SizedBox.shrink();
+
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.08),
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(
+        color: AppColors.primaryGreen.withValues(alpha: 0.3),
+      ),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          Icons.school_rounded,
+          size: 11,
+          color: AppColors.primaryGreen,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          'SY $cleanYear',
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primaryGreen,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class DigitalizationProgressKpiCard extends ConsumerWidget {
+  const DigitalizationProgressKpiCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).value;
+    if (user?.role == 'teacher') return const SizedBox.shrink();
+
+    final kpisAsync = ref.watch(dashboardKpisProvider);
+    return kpisAsync.when(
+      skipLoadingOnReload: true,
+      loading: () => const _KpiSkeleton(),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (kpis) => _DigitalizationCard(
+        data: kpis.digitalization,
+        activeYear: kpis.activeAcademicYear,
+      ),
+    );
+  }
+}
+
+class StatusDistributionKpiCard extends ConsumerWidget {
+  const StatusDistributionKpiCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).value;
+    if (user?.role == 'teacher') return const SizedBox.shrink();
+
+    final kpisAsync = ref.watch(dashboardKpisProvider);
+    return kpisAsync.when(
+      skipLoadingOnReload: true,
+      loading: () => const _KpiSkeleton(),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (kpis) => _StatusDistributionCard(
+        entries: kpis.statusDistribution,
+        activeYear: kpis.activeAcademicYear,
+      ),
+    );
+  }
+}
+
+class DocTypeBreakdownKpiCard extends ConsumerWidget {
+  const DocTypeBreakdownKpiCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).value;
+    if (user?.role == 'teacher') return const SizedBox.shrink();
+
+    final kpisAsync = ref.watch(dashboardKpisProvider);
+    return kpisAsync.when(
+      skipLoadingOnReload: true,
+      loading: () => const _KpiSkeleton(),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (kpis) => _DocTypePieCard(
+        entries: kpis.docTypeBreakdown,
+        docTypeByGrade: kpis.docTypeByGrade,
+        activeYear: kpis.activeAcademicYear,
+      ),
+    );
+  }
+}
+
+class UploadTrendKpiCard extends ConsumerWidget {
+  const UploadTrendKpiCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).value;
+    if (user?.role == 'teacher') return const SizedBox.shrink();
+
+    final kpisAsync = ref.watch(dashboardKpisProvider);
+    return kpisAsync.when(
+      skipLoadingOnReload: true,
+      loading: () => const _KpiSkeleton(),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (kpis) => _UploadTrendCard(
+        entries: kpis.uploadTrend,
+        activeYear: kpis.activeAcademicYear,
+      ),
+    );
+  }
+}
+
+class StorageAnalyticsKpiCard extends ConsumerWidget {
+  const StorageAnalyticsKpiCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).value;
+    if (user?.role == 'teacher') return const SizedBox.shrink();
+
+    final kpisAsync = ref.watch(dashboardKpisProvider);
+    return kpisAsync.when(
+      skipLoadingOnReload: true,
+      loading: () => const _KpiSkeleton(),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (kpis) => _StorageCard(
+        analytics: kpis.storageAnalytics,
+        activeYear: kpis.activeAcademicYear,
       ),
     );
   }
@@ -146,6 +298,7 @@ class _ChartCard extends StatelessWidget {
   final Color iconColor;
   final Widget child;
   final String? subtitle;
+  final String? activeYear;
 
   const _ChartCard({
     required this.title,
@@ -153,6 +306,7 @@ class _ChartCard extends StatelessWidget {
     required this.child,
     this.iconColor = AppColors.primaryGreen,
     this.subtitle,
+    this.activeYear,
   });
 
   @override
@@ -210,6 +364,10 @@ class _ChartCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (activeYear != null) ...[
+                const SizedBox(width: 8),
+                _buildYearBadge(context, activeYear),
+              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -226,7 +384,8 @@ class _ChartCard extends StatelessWidget {
 // ──────────────────────────────────────────────────────────────
 class _DigitalizationCard extends StatelessWidget {
   final DigitalizationData data;
-  const _DigitalizationCard({required this.data});
+  final String? activeYear;
+  const _DigitalizationCard({required this.data, this.activeYear});
 
   @override
   Widget build(BuildContext context) {
@@ -234,6 +393,7 @@ class _DigitalizationCard extends StatelessWidget {
       title: 'Digitalization Progress',
       icon: Icons.donut_large_rounded,
       subtitle: 'Enrolled students with all mandatory requirements completed',
+      activeYear: activeYear,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -340,7 +500,8 @@ class _DonutTile extends StatelessWidget {
 // ──────────────────────────────────────────────────────────────
 class _StatusDistributionCard extends StatelessWidget {
   final List<StatusDistributionEntry> entries;
-  const _StatusDistributionCard({required this.entries});
+  final String? activeYear;
+  const _StatusDistributionCard({required this.entries, this.activeYear});
 
   static const Map<String, Color> _colorMap = {
     'Completed': AppColors.primaryGreen,
@@ -357,6 +518,7 @@ class _StatusDistributionCard extends StatelessWidget {
       icon: Icons.pie_chart_outline_rounded,
       iconColor: Colors.orange,
       subtitle: 'By unique document types uploaded',
+      activeYear: activeYear,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -452,10 +614,12 @@ class _StatusDistributionCard extends StatelessWidget {
 class _DocTypePieCard extends StatefulWidget {
   final List<DocTypeEntry> entries;
   final Map<String, List<DocTypeGradeEntry>> docTypeByGrade;
+  final String? activeYear;
 
   const _DocTypePieCard({
     required this.entries,
     this.docTypeByGrade = const {},
+    this.activeYear,
   });
 
   @override
@@ -1108,6 +1272,10 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (widget.activeYear != null) ...[
+                        const SizedBox(width: 8),
+                        _buildYearBadge(context, widget.activeYear),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -1153,6 +1321,10 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
                           ],
                         ),
                       ),
+                      if (widget.activeYear != null) ...[
+                        const SizedBox(width: 8),
+                        _buildYearBadge(context, widget.activeYear),
+                      ],
                       const SizedBox(width: 12),
                       buildSelectorBar(maxWidth: (cardWidth * 0.48).clamp(200.0, 270.0)),
                     ],
@@ -1199,7 +1371,8 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
 // ──────────────────────────────────────────────────────────────
 class _UploadTrendCard extends StatelessWidget {
   final List<UploadTrendEntry> entries;
-  const _UploadTrendCard({required this.entries});
+  final String? activeYear;
+  const _UploadTrendCard({required this.entries, this.activeYear});
 
   @override
   Widget build(BuildContext context) {
@@ -1226,6 +1399,7 @@ class _UploadTrendCard extends StatelessWidget {
       title: 'Upload Trend',
       icon: Icons.show_chart_rounded,
       subtitle: 'Documents uploaded over the last 30 days',
+      activeYear: activeYear,
       child: SizedBox(
         height: 180,
         child: LineChart(
@@ -1317,7 +1491,8 @@ class _UploadTrendCard extends StatelessWidget {
 // ──────────────────────────────────────────────────────────────
 class _StorageCard extends StatefulWidget {
   final StorageAnalytics analytics;
-  const _StorageCard({required this.analytics});
+  final String? activeYear;
+  const _StorageCard({required this.analytics, this.activeYear});
 
   @override
   State<_StorageCard> createState() => _StorageCardState();
@@ -1355,6 +1530,7 @@ class _StorageCardState extends State<_StorageCard> {
       title: 'Storage Analytics',
       icon: Icons.storage_rounded,
       iconColor: AppColors.primaryGreen,
+      activeYear: widget.activeYear,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
