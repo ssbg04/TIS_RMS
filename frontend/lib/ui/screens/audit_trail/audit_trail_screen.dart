@@ -883,16 +883,46 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
 
     final hasActiveFilters = activeFilterCount > 0;
 
-    return CallbackShortcuts(
-      bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
-          _showSearchDialog(context);
-        },
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        final activeTab = ref.read(activeTabProvider);
+        if (activeTab != 'Activity History' && activeTab != 'History') return;
+        if (_searchFocusNode.hasFocus) {
+          _searchFocusNode.unfocus();
+          return;
+        }
+        final primaryFocus = FocusManager.instance.primaryFocus;
+        if (primaryFocus != null && primaryFocus.hasFocus) {
+          final isEditable = primaryFocus.context?.widget is EditableText ||
+              primaryFocus.context?.findAncestorWidgetOfExactType<EditableText>() != null;
+          if (isEditable) {
+            primaryFocus.unfocus();
+            return;
+          }
+        }
+        ref.read(activeTabProvider.notifier).setTab('Dashboard');
       },
-      child: Focus(
-        focusNode: _shortcutFocusNode,
-        autofocus: true,
-        child: Scaffold(
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          if (_searchFocusNode.hasFocus) {
+            _searchFocusNode.unfocus();
+          } else {
+            FocusScope.of(context).unfocus();
+          }
+        },
+        child: CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+              _showSearchDialog(context);
+            },
+          },
+          child: Focus(
+            focusNode: _shortcutFocusNode,
+            autofocus: true,
+            child: Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: Column(
@@ -1134,6 +1164,8 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
         ),
       ),
     ),
+  ),
+),
   ),
 );
   }

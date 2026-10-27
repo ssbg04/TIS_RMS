@@ -1181,10 +1181,10 @@ Files backup/restore - mirror mode or zip -->
 - [x] in android when you press back it doesnt go to dashboard (implemented PopScope with unfocus fallback and activeTab navigation to Dashboard)
 
 # USERS SCREEN
-- in android when you press back it doesnt go to dashboard
+- [x] in android when you press back it doesnt go to dashboard (implemented PopScope with search/input unfocus fallback and activeTab navigation to Dashboard)
 
 # ACTIVITY HISTORY SCREEN
-- in android when you press back it doesnt go to dashboard
+- [x] in android when you press back it doesnt go to dashboard (implemented PopScope with search/input unfocus fallback and activeTab navigation to Dashboard)
 
 
 # SETTINGS SCREEN
@@ -1193,8 +1193,17 @@ Files backup/restore - mirror mode or zip -->
 - [x] when the accordion is active make it scrolls to the top to fit the expanded accordion (wrapped collapsible card with Builder, added Scrollable.ensureVisible with alignment 0.0 upon expansion, and dynamic bottom clearance to prevent clamp)
 - [x] in android when you press back it doesnt go to dashboard (implemented PopScope with unfocus fallback and activeTab navigation to Dashboard)
 
-
-
+# STUDENT SCREEN -> STUDENT PROFILE MODAL
+- [x] in tab of doucments when the student have document counts it overflowed (added Flexible with ellipsis to label, reduced spacing/icon size so tab row never overflows)
+- [x] edit details and view archive button not noticable in desktop view (upgraded desktop header with prominent ElevatedButton.icon for Edit Details and styled OutlinedButton.icon for View Folder/View Archive)
+- [x] add minimize of details to view contents better under the tabs (added minimize/expand toggle button in profile card header, collapsing secondary divider & metadata chips into a compact bar)
+- [x] copy to clipboard button notification is under the modal, and remove the icon and make LRN underlined when clicked that LRN it copies to clipboard (underlined clickable LRN, removed copy/check icon, and used root overlay toast floating above the dialog plus inline copied badge)
+- [x] overview tab, enrollments each enrollment have pen icon remove it, document requirements make the list compact and dont add upload button (removed individual enrollment pen icon, added compact mode for requirements without upload action in Overview tab)
+- [x] documents tab, make the document workspace width same as the requirements checklist, when you click upload auto preselect on step 2 review & upload of what document type you click upload on the checklist, and add view more/load less on files on record. If the student is inactive files on record should have not upload document button (width double.infinity on workspace toolbar, prefill document type on step 2 from checklist upload, 5-item limit with View More/Load Less button, and hide upload document button in empty files on record if student is not enrolled) 
+- [x] student detail it has overflow in latest enrollment and the button of edit details in desktop view, in mobile viewthe copied badge (raised isNarrow breakpoint to 620 to protect action buttons, wrapped LRN and Grade Level with Wrap, compacted button padding, and replaced mobile appended badge with in-place AnimatedSwitcher cross-fade)
+- [x] in document tab, requirement checklist when I upload using upload button it doesnt pre select the document type in step 2 review & upload after I upload a file, I want that where the upload button is position that document type is pre-selected (passed prefilledRequirementId & prefilledDocumentType from checklist, prioritized prefilled requirement in _applyAutoDetect, auto-applied upon requirements load in _buildStep1, and keyed DropdownMenu to selectedRequirementId)
+- [x] after upload from the documents tab, refresh the requirement checklist (added onUploadSuccess callback to UploadOcrModal, invalidated missingRequirementsProvider, studentDocumentsProvider, studentDetailProvider, and studentActivitiesProvider upon upload completion and modal close, and wired refresh in Files on Record header)
+- [x] remove the pencil icon in enrollments cards (removed IconButton edit pencil from _buildEnrollmentCard in student profile modal)
 
 ---
 

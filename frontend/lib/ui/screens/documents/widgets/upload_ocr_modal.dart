@@ -57,27 +57,38 @@ class UploadOcrModal extends ConsumerStatefulWidget {
   final int? prefilledStudentId;
   final String? prefilledLrn;
 
+  /// If provided, the modal will automatically pre-select this requirement/document type in review step
+  final int? prefilledRequirementId;
+  final String? prefilledDocumentType;
+
   /// Files pre-populated from drag-and-drop (Windows)
   final List<File>? preloadedFiles;
 
   final ValueNotifier<int>? stepNotifier;
+  final VoidCallback? onUploadSuccess;
 
   const UploadOcrModal({
     super.key,
     this.prefilledStudentId,
     this.prefilledLrn,
+    this.prefilledRequirementId,
+    this.prefilledDocumentType,
     this.preloadedFiles,
     this.stepNotifier,
+    this.onUploadSuccess,
   });
 
-  static void show(
+  static Future<void> show(
     BuildContext context, {
     int? prefilledStudentId,
     String? prefilledLrn,
+    int? prefilledRequirementId,
+    String? prefilledDocumentType,
     List<File>? preloadedFiles,
+    VoidCallback? onUploadSuccess,
   }) {
     final stepNotifier = ValueNotifier<int>(0);
-    showDialog<void>(
+    return showDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (modalContext) {
@@ -116,8 +127,11 @@ class UploadOcrModal extends ConsumerStatefulWidget {
                     child: UploadOcrModal(
                       prefilledStudentId: prefilledStudentId,
                       prefilledLrn: prefilledLrn,
+                      prefilledRequirementId: prefilledRequirementId,
+                      prefilledDocumentType: prefilledDocumentType,
                       preloadedFiles: preloadedFiles,
                       stepNotifier: stepNotifier,
+                      onUploadSuccess: onUploadSuccess,
                     ),
                   ),
                 ),
@@ -179,17 +193,20 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     }
     // Pre-populate entries from drag-and-drop files
     if (widget.preloadedFiles != null && widget.preloadedFiles!.isNotEmpty) {
+      final reqs = ref.read(documentRequirementsProvider).value ?? [];
       _entries = widget.preloadedFiles!.map((f) {
         final bytes = _safeFileSize(f);
         final kb = bytes / 1024;
         final size = kb >= 1024
             ? '${(kb / 1024).toStringAsFixed(1)} MB'
             : '${kb.toStringAsFixed(0)} KB';
-        return _UploadEntry(
+        final entry = _UploadEntry(
           file: f,
           fileName: f.path.split(Platform.pathSeparator).last,
           fileSize: size,
         );
+        _applyAutoDetect(entry, reqs);
+        return entry;
       }).toList();
       _currentStep = 1;
       widget.stepNotifier?.value = _currentStep; // Jump to review step
@@ -706,6 +723,45 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   }
 
   void _applyAutoDetect(_UploadEntry entry, List<dynamic> requirements) {
+    if (widget.prefilledRequirementId != null) {
+      entry.selectedRequirementId = widget.prefilledRequirementId;
+      if (widget.prefilledDocumentType != null &&
+          widget.prefilledDocumentType!.trim().isNotEmpty) {
+        entry.selectedDocumentType = widget.prefilledDocumentType;
+      } else {
+        final match = requirements.cast<dynamic>().firstWhere(
+          (r) => r.id == widget.prefilledRequirementId,
+          orElse: () => null,
+        );
+        if (match != null) {
+          entry.selectedDocumentType = match.name as String;
+        }
+      }
+      return;
+    }
+
+    if (widget.prefilledDocumentType != null &&
+        widget.prefilledDocumentType!.trim().isNotEmpty) {
+      final prefilledTarget =
+          widget.prefilledDocumentType!.toLowerCase().trim();
+      final match = requirements.cast<dynamic>().firstWhere(
+        (r) {
+          final name = (r.name as String?)?.toLowerCase().trim();
+          return name == prefilledTarget ||
+              (name != null && (name.contains(prefilledTarget) || prefilledTarget.contains(name))) ||
+              r.id.toString() == widget.prefilledDocumentType;
+        },
+        orElse: () => null,
+      );
+      if (match != null) {
+        entry.selectedRequirementId = match.id as int;
+        entry.selectedDocumentType = match.name as String;
+        return;
+      } else {
+        entry.selectedDocumentType = widget.prefilledDocumentType;
+      }
+    }
+
     final fileNameLower = entry.fileName.toLowerCase();
     final cleanFileName = fileNameLower.replaceAll(RegExp(r'[^a-z0-9]'), '');
     
@@ -891,9 +947,20 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       }
 
       if (mounted) {
-        ref.invalidate(documentPageProvider);
-        ref.invalidate(foldersProvider);
-        ref.invalidate(studentFoldersProvider);
+        final hasSuccessfulUpload =
+            _entries.any((e) => e.status == UploadStatus.done);
+
+        if (hasSuccessfulUpload) {
+          ref.invalidate(documentPageProvider);
+          ref.invalidate(foldersProvider);
+          ref.invalidate(studentFoldersProvider);
+          ref.invalidate(missingRequirementsProvider(finalStudentId));
+          ref.invalidate(studentDocumentsProvider(finalStudentId));
+          ref.invalidate(studentDetailProvider(finalStudentId));
+          ref.invalidate(studentActivitiesProvider(finalStudentId));
+
+          widget.onUploadSuccess?.call();
+        }
 
         setState(() => _isUploading = false);
       }
@@ -1187,6 +1254,11 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
             error: (e, _) => Text('Failed to load types: $e',
                 style: const TextStyle(color: AppColors.error)),
             data: (requirements) {
+              for (final entry in _entries) {
+                if (entry.selectedRequirementId == null) {
+                  _applyAutoDetect(entry, requirements);
+                }
+              }
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1466,6 +1538,9 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         hasJHS = hasSHS = true;
       }
       applicable = requirements.where((r) {
+        if (item.selectedRequirementId != null && r.id == item.selectedRequirementId) {
+          return true;
+        }
         if (!hasJHS && r.category == 'JHS') return false;
         if (!hasSHS && r.category == 'SHS') return false;
         return true;
@@ -1522,7 +1597,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     }
 
     return DropdownMenu<int>(
-      key: ValueKey('dd_$idx'),
+      key: ValueKey('dd_${idx}_${item.selectedRequirementId}'),
       initialSelection: item.selectedRequirementId,
       hintText: 'Select Document Type',
       expandedInsets: EdgeInsets.zero,

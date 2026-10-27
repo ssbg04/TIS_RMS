@@ -371,6 +371,8 @@ class _StudentProfileModalBodyState
     extends ConsumerState<StudentProfileModalBody> {
   _StudentProfileTab _selectedTab = _StudentProfileTab.overview;
   int _historyLimit = 10;
+  bool _isDetailsMinimized = false;
+  bool _showAllFilesOnRecord = false;
 
   void _navigateToDocumentsFolder(BuildContext context, StudentModel student) {
     Navigator.of(context).pop();
@@ -609,7 +611,7 @@ class _StudentProfileModalBodyState
       borderRadius: BorderRadius.circular(8),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primaryGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -625,29 +627,34 @@ class _StudentProfileModalBodyState
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              size: 15,
+              size: 14,
               color: isSelected
                   ? Colors.white
                   : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
             ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                color: isSelected
-                    ? Colors.white
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                ),
               ),
             ),
             if (count != null && count > 0) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withValues(alpha: 0.25)
@@ -657,7 +664,7 @@ class _StudentProfileModalBodyState
                 child: Text(
                   '$count',
                   style: TextStyle(
-                    fontSize: 9.5,
+                    fontSize: 9,
                     fontWeight: FontWeight.bold,
                     color: isSelected
                         ? Colors.white
@@ -848,13 +855,8 @@ class _StudentProfileModalBodyState
           _buildRequirementsStatus(
             context,
             missing,
-            onUploadRequirement: student.status == 'Enrolled'
-                ? (req) => UploadOcrModal.show(
-                    context,
-                    prefilledStudentId: student.id,
-                    prefilledLrn: student.lrn,
-                  )
-                : null,
+            compact: true,
+            onUploadRequirement: null,
           )
         else
           Container(
@@ -890,6 +892,7 @@ class _StudentProfileModalBodyState
       children: [
         // Action Toolbar
         Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
@@ -940,11 +943,25 @@ class _StudentProfileModalBodyState
                   ),
                   if (student.status == 'Enrolled')
                     ElevatedButton.icon(
-                      onPressed: () => UploadOcrModal.show(
-                        context,
-                        prefilledStudentId: student.id,
-                        prefilledLrn: student.lrn,
-                      ),
+                      onPressed: () async {
+                        await UploadOcrModal.show(
+                          context,
+                          prefilledStudentId: student.id,
+                          prefilledLrn: student.lrn,
+                          onUploadSuccess: () {
+                            ref.invalidate(missingRequirementsProvider(student.id));
+                            ref.invalidate(studentDocumentsProvider(student.id));
+                            ref.invalidate(studentDetailProvider(student.id));
+                            ref.invalidate(studentActivitiesProvider(student.id));
+                          },
+                        );
+                        if (mounted) {
+                          ref.invalidate(missingRequirementsProvider(student.id));
+                          ref.invalidate(studentDocumentsProvider(student.id));
+                          ref.invalidate(studentDetailProvider(student.id));
+                          ref.invalidate(studentActivitiesProvider(student.id));
+                        }
+                      },
                       icon: const Icon(Icons.upload_file_rounded, size: 14),
                       label:
                           const Text('Upload File', style: TextStyle(fontSize: 11.5)),
@@ -1038,11 +1055,27 @@ class _StudentProfileModalBodyState
             context,
             missing,
             onUploadRequirement: student.status == 'Enrolled'
-                ? (req) => UploadOcrModal.show(
-                    context,
-                    prefilledStudentId: student.id,
-                    prefilledLrn: student.lrn,
-                  )
+                ? (req) async {
+                    await UploadOcrModal.show(
+                      context,
+                      prefilledStudentId: student.id,
+                      prefilledLrn: student.lrn,
+                      prefilledRequirementId: req.id,
+                      prefilledDocumentType: req.name,
+                      onUploadSuccess: () {
+                        ref.invalidate(missingRequirementsProvider(student.id));
+                        ref.invalidate(studentDocumentsProvider(student.id));
+                        ref.invalidate(studentDetailProvider(student.id));
+                        ref.invalidate(studentActivitiesProvider(student.id));
+                      },
+                    );
+                    if (mounted) {
+                      ref.invalidate(missingRequirementsProvider(student.id));
+                      ref.invalidate(studentDocumentsProvider(student.id));
+                      ref.invalidate(studentDetailProvider(student.id));
+                      ref.invalidate(studentActivitiesProvider(student.id));
+                    }
+                  }
                 : null,
           )
         else
@@ -1108,8 +1141,10 @@ class _StudentProfileModalBodyState
               ],
             ),
             TextButton.icon(
-              onPressed: () =>
-                  ref.invalidate(studentDocumentsProvider(student.id)),
+              onPressed: () {
+                ref.invalidate(studentDocumentsProvider(student.id));
+                ref.invalidate(missingRequirementsProvider(student.id));
+              },
               icon: const Icon(Icons.refresh_rounded, size: 14),
               label: const Text('Refresh', style: TextStyle(fontSize: 12)),
               style: TextButton.styleFrom(
@@ -1194,33 +1229,99 @@ class _StudentProfileModalBodyState
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () => UploadOcrModal.show(
-                        context,
-                        prefilledStudentId: student.id,
-                        prefilledLrn: student.lrn,
+                    if (student.status == 'Enrolled') ...[
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await UploadOcrModal.show(
+                            context,
+                            prefilledStudentId: student.id,
+                            prefilledLrn: student.lrn,
+                            onUploadSuccess: () {
+                              ref.invalidate(missingRequirementsProvider(student.id));
+                              ref.invalidate(studentDocumentsProvider(student.id));
+                              ref.invalidate(studentDetailProvider(student.id));
+                              ref.invalidate(studentActivitiesProvider(student.id));
+                            },
+                          );
+                          if (mounted) {
+                            ref.invalidate(missingRequirementsProvider(student.id));
+                            ref.invalidate(studentDocumentsProvider(student.id));
+                            ref.invalidate(studentDetailProvider(student.id));
+                            ref.invalidate(studentActivitiesProvider(student.id));
+                          }
+                        },
+                        icon: const Icon(Icons.upload_file_rounded, size: 15),
+                        label: const Text('Upload Document',
+                            style: TextStyle(fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGreen,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                        ),
                       ),
-                      icon: const Icon(Icons.upload_file_rounded, size: 15),
-                      label: const Text('Upload Document',
-                          style: TextStyle(fontSize: 12)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                      ),
-                    ),
+                    ],
                   ],
                 ),
               );
             }
 
+            const int defaultFilesLimit = 5;
+            final hasMore = docs.length > defaultFilesLimit;
+            final displayedDocs = (_showAllFilesOnRecord || !hasMore)
+                ? docs
+                : docs.take(defaultFilesLimit).toList();
+
             return Column(
-              children: docs
-                  .map((doc) =>
-                      _buildDocumentItemTile(context, student, doc, isDark))
-                  .toList(),
+              children: [
+                ...displayedDocs.map(
+                  (doc) =>
+                      _buildDocumentItemTile(context, student, doc, isDark),
+                ),
+                if (hasMore) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _showAllFilesOnRecord = !_showAllFilesOnRecord;
+                        });
+                      },
+                      icon: Icon(
+                        _showAllFilesOnRecord
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        size: 16,
+                      ),
+                      label: Text(
+                        _showAllFilesOnRecord
+                            ? 'Load Less'
+                            : 'View More (${docs.length - defaultFilesLimit} more)',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
+                        side: BorderSide(
+                          color: isDark
+                              ? AppColors.darkBorder
+                              : Colors.grey.shade300,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             );
           },
         ),
@@ -1762,7 +1863,7 @@ class _StudentProfileModalBodyState
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isNarrow = constraints.maxWidth < 460 ||
+          final isNarrow = constraints.maxWidth < 620 ||
               Theme.of(context).platform == TargetPlatform.android;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1772,18 +1873,18 @@ class _StudentProfileModalBodyState
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     CircleAvatar(
-                      radius: 24,
+                      radius: 22,
                       backgroundColor: AppColors.primaryGreen,
                       child: Text(
                         '${student.firstName[0]}${student.lastName.isNotEmpty ? student.lastName[0] : ''}',
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1791,13 +1892,13 @@ class _StudentProfileModalBodyState
                           Text(
                             student.profileDisplayName,
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 14.5,
                               fontWeight: FontWeight.bold,
                               color: isDark
                                   ? AppColors.darkTextPrimary
                                   : AppColors.textPrimary,
                             ),
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           _CopyableLrnButton(
@@ -1820,98 +1921,102 @@ class _StudentProfileModalBodyState
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     _buildStatusBadge(student.status),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    if (widget.onEditDetails != null)
-                      Expanded(
-                        child: InkWell(
-                          onTap: widget.onEditDetails,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 7),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryGreen
-                                  .withValues(alpha: isDark ? 0.20 : 0.10),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppColors.primaryGreen
-                                    .withValues(alpha: isDark ? 0.45 : 0.35),
-                                width: 1,
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.edit_rounded,
-                                    size: 13, color: AppColors.primaryGreen),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Edit Details',
-                                  style: TextStyle(
-                                    color: AppColors.primaryGreen,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: _isDetailsMinimized
+                          ? 'Expand details'
+                          : 'Minimize details',
+                      icon: Icon(
+                        _isDetailsMinimized
+                            ? Icons.keyboard_arrow_down_rounded
+                            : Icons.keyboard_arrow_up_rounded,
+                        size: 20,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
                       ),
-                    if (widget.onEditDetails != null) const SizedBox(width: 8),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _navigateToDocumentsFolder(context, student),
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 7),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.folder_open_rounded,
-                                  size: 14,
-                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-                              const SizedBox(width: 6),
-                              Text(
-                                student.status == 'Enrolled' ? 'View Folder' : 'View Archive',
-                                style: TextStyle(
-                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      onPressed: () => setState(
+                          () => _isDetailsMinimized = !_isDetailsMinimized),
                     ),
                   ],
                 ),
+                if (!_isDetailsMinimized) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      if (widget.onEditDetails != null)
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: widget.onEditDetails,
+                            icon: const Icon(Icons.edit_rounded, size: 13),
+                            label: const Text('Edit Details'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              textStyle: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      if (widget.onEditDetails != null) const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              _navigateToDocumentsFolder(context, student),
+                          icon: Icon(
+                            Icons.folder_open_rounded,
+                            size: 13,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary,
+                          ),
+                          label: Text(
+                            student.status == 'Enrolled'
+                                ? 'View Folder'
+                                : 'View Archive',
+                            style: TextStyle(
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: isDark
+                                  ? AppColors.darkBorder
+                                  : Colors.grey.shade300,
+                            ),
+                            backgroundColor: isDark
+                                ? AppColors.darkSurface2
+                                : const Color(0xFFF1F5F9),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ] else ...[
                 Row(
                   children: [
                     CircleAvatar(
-                      radius: 26,
+                      radius: 24,
                       backgroundColor: AppColors.primaryGreen,
                       child: Text(
                         '${student.firstName[0]}${student.lastName.isNotEmpty ? student.lastName[0] : ''}',
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1922,150 +2027,164 @@ class _StudentProfileModalBodyState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            student.profileDisplayName,
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  student.profileDisplayName,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.textPrimary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _buildStatusBadge(student.status),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 2,
+                            children: [
+                              _CopyableLrnButton(
+                                lrn: student.lrn.toString(),
+                                isDark: isDark,
+                              ),
+                              if (student.latestGradeLevel != null) ...[
+                                Text(
+                                  '•  Grade ${student.latestGradeLevel} (${student.latestSection ?? 'Unassigned'})',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? AppColors.darkTextSecondary
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.onEditDetails != null) ...[
+                          ElevatedButton.icon(
+                            onPressed: widget.onEditDetails,
+                            icon: const Icon(Icons.edit_rounded, size: 13),
+                            label: const Text('Edit Details'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 7),
+                              visualDensity: VisualDensity.compact,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              textStyle: const TextStyle(
+                                  fontSize: 11.5, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              _navigateToDocumentsFolder(context, student),
+                          icon: Icon(
+                            Icons.folder_open_rounded,
+                            size: 13,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary,
+                          ),
+                          label: Text(
+                            student.status == 'Enrolled'
+                                ? 'View Folder'
+                                : 'View Archive',
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
                               color: isDark
                                   ? AppColors.darkTextPrimary
                                   : AppColors.textPrimary,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                          _CopyableLrnButton(
-                            lrn: student.lrn.toString(),
-                            isDark: isDark,
-                          ),
-                          if (student.latestGradeLevel != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              'Grade ${student.latestGradeLevel} • ${student.latestSection ?? 'Unassigned'}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? AppColors.darkTextSecondary
-                                    : AppColors.textSecondary,
-                              ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: isDark
+                                  ? AppColors.darkBorder
+                                  : Colors.grey.shade300,
                             ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildStatusBadge(student.status),
-                        if (widget.onEditDetails != null) ...[
-                          const SizedBox(height: 6),
-                          Tooltip(
-                            message: 'Edit Student Details',
-                            child: InkWell(
-                              onTap: widget.onEditDetails,
-                              borderRadius: BorderRadius.circular(16),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryGreen
-                                      .withValues(alpha: isDark ? 0.20 : 0.10),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: AppColors.primaryGreen
-                                        .withValues(alpha: isDark ? 0.45 : 0.35),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.edit_rounded,
-                                        size: 12, color: AppColors.primaryGreen),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Edit Details',
-                                      style: TextStyle(
-                                        color: AppColors.primaryGreen,
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                            backgroundColor: isDark
+                                ? AppColors.darkSurface2
+                                : const Color(0xFFF1F5F9),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 7),
+                            visualDensity: VisualDensity.compact,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
-                        ],
-                        const SizedBox(height: 6),
-                        Tooltip(
-                          message: student.status == 'Enrolled'
-                              ? 'Open Folder in Documents'
-                              : 'Open Folder in Archives',
-                          child: InkWell(
-                            onTap: () => _navigateToDocumentsFolder(context, student),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.folder_open_rounded,
-                                      size: 12,
-                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    student.status == 'Enrolled' ? 'View Folder' : 'View Archive',
-                                    style: TextStyle(
-                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          tooltip: _isDetailsMinimized
+                              ? 'Expand details'
+                              : 'Minimize details',
+                          icon: Icon(
+                            _isDetailsMinimized
+                                ? Icons.keyboard_arrow_down_rounded
+                                : Icons.keyboard_arrow_up_rounded,
+                            size: 20,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
                           ),
+                          onPressed: () => setState(
+                              () => _isDetailsMinimized = !_isDetailsMinimized),
                         ),
                       ],
                     ),
                   ],
                 ),
               ],
-              Divider(
+              if (!_isDetailsMinimized) ...[
+                Divider(
                   height: 20,
-                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-              Wrap(
-                spacing: 20,
-                runSpacing: 8,
-                children: [
-                  _buildInfoItem(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                ),
+                Wrap(
+                  spacing: 20,
+                  runSpacing: 8,
+                  children: [
+                    _buildInfoItem(
                       context,
                       'Sex',
-                      (student.sex.isNotEmpty)
-                          ? student.sex
-                          : '-'),
-                  _buildInfoItem(
+                      (student.sex.isNotEmpty) ? student.sex : '-',
+                    ),
+                    _buildInfoItem(
                       context,
                       'Birth Date',
                       student.birthDate != null
                           ? _formatDate(student.birthDate!)
-                          : '-'),
-                  _build4psItem(context, student.is4ps),
-                ],
-              ),
+                          : '-',
+                    ),
+                    _build4psItem(context, student.is4ps),
+                  ],
+                ),
+              ],
             ],
           );
         },
@@ -2272,14 +2391,6 @@ class _StudentProfileModalBodyState
               ],
             ),
           ),
-          if (widget.onEditEnrollment != null &&
-              widget.userRole.toLowerCase() != 'teacher')
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              color: AppColors.primaryGreen,
-              tooltip: 'Edit Enrollment',
-              onPressed: widget.onEditEnrollment,
-            ),
         ],
       ),
     );
@@ -2290,6 +2401,7 @@ class _StudentProfileModalBodyState
     BuildContext context,
     MissingRequirements data, {
     void Function(DocumentRequirementModel req)? onUploadRequirement,
+    bool compact = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final jhsMissing = data.missing.where((r) => r.category == 'JHS').toList();
@@ -2345,7 +2457,7 @@ class _StudentProfileModalBodyState
       final isAllMandatoryDone = mandatoryMissing.isEmpty && mandatoryTotal > 0;
 
       return Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: EdgeInsets.only(bottom: compact ? 8 : 12),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
           borderRadius: BorderRadius.circular(12),
@@ -2368,7 +2480,8 @@ class _StudentProfileModalBodyState
           children: [
             // Level header strip
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 10 : 14, vertical: compact ? 6 : 9),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: isDark ? 0.12 : 0.06),
                 borderRadius:
@@ -2465,50 +2578,52 @@ class _StudentProfileModalBodyState
             ),
             // Body with stats & items
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(compact ? 8 : 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Summary badge row
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: [
-                      _buildCountBadge(
-                        label: 'Required: $mandatoryDone / $mandatoryTotal',
-                        color: isAllMandatoryDone
-                            ? AppColors.success
-                            : Colors.orange,
-                        isDark: isDark,
-                      ),
-                      if (activeCompletedCount > 0)
+                  if (!compact) ...[
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
                         _buildCountBadge(
-                          label: '$activeCompletedCount Active',
-                          color: AppColors.success,
+                          label: 'Required: $mandatoryDone / $mandatoryTotal',
+                          color: isAllMandatoryDone
+                              ? AppColors.success
+                              : Colors.orange,
                           isDark: isDark,
                         ),
-                      if (archivedCount > 0)
-                        _buildCountBadge(
-                          label: '$archivedCount Archived',
-                          color: Colors.blueGrey,
-                          isDark: isDark,
-                        ),
-                      if (mandatoryMissing.isNotEmpty)
-                        _buildCountBadge(
-                          label: '${mandatoryMissing.length} Missing',
-                          color: AppColors.error,
-                          isDark: isDark,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
+                        if (activeCompletedCount > 0)
+                          _buildCountBadge(
+                            label: '$activeCompletedCount Active',
+                            color: AppColors.success,
+                            isDark: isDark,
+                          ),
+                        if (archivedCount > 0)
+                          _buildCountBadge(
+                            label: '$archivedCount Archived',
+                            color: Colors.blueGrey,
+                            isDark: isDark,
+                          ),
+                        if (mandatoryMissing.isNotEmpty)
+                          _buildCountBadge(
+                            label: '${mandatoryMissing.length} Missing',
+                            color: AppColors.error,
+                            isDark: isDark,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
 
                   // ── Mandatory Requirements Group ──
                   if (mandatoryTotal > 0) ...[
                     Text(
                       'MANDATORY REQUIREMENTS',
                       style: TextStyle(
-                        fontSize: 10.5,
+                        fontSize: compact ? 9.5 : 10.5,
                         letterSpacing: 0.5,
                         fontWeight: FontWeight.bold,
                         color: isDark
@@ -2516,7 +2631,7 @@ class _StudentProfileModalBodyState
                             : Colors.grey.shade700,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: compact ? 4 : 6),
                     ...mandatoryVerified.map((r) => _buildRequirementCard(
                           context,
                           r,
@@ -2524,12 +2639,14 @@ class _StudentProfileModalBodyState
                               ? 'archived'
                               : 'completed',
                           isDark,
+                          compact: compact,
                         )),
                     ...mandatoryMissing.map((r) => _buildRequirementCard(
                           context,
                           r,
                           'missing_mandatory',
                           isDark,
+                          compact: compact,
                           onUpload: onUploadRequirement != null
                               ? () => onUploadRequirement(r)
                               : null,
@@ -2538,11 +2655,11 @@ class _StudentProfileModalBodyState
 
                   // ── Optional Requirements Group ──
                   if ((optionalMissing.length + optionalVerified.length) > 0) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: compact ? 8 : 12),
                     Text(
                       'OPTIONAL REQUIREMENTS',
                       style: TextStyle(
-                        fontSize: 10.5,
+                        fontSize: compact ? 9.5 : 10.5,
                         letterSpacing: 0.5,
                         fontWeight: FontWeight.bold,
                         color: isDark
@@ -2550,7 +2667,7 @@ class _StudentProfileModalBodyState
                             : Colors.grey.shade600,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: compact ? 4 : 6),
                     ...optionalVerified.map((r) => _buildRequirementCard(
                           context,
                           r,
@@ -2558,12 +2675,14 @@ class _StudentProfileModalBodyState
                               ? 'archived'
                               : 'completed',
                           isDark,
+                          compact: compact,
                         )),
                     ...optionalMissing.map((r) => _buildRequirementCard(
                           context,
                           r,
                           'missing_optional',
                           isDark,
+                          compact: compact,
                           onUpload: onUploadRequirement != null
                               ? () => onUploadRequirement(r)
                               : null,
@@ -2629,6 +2748,7 @@ class _StudentProfileModalBodyState
     String state, // 'completed', 'archived', 'missing_mandatory', 'missing_optional'
     bool isDark, {
     VoidCallback? onUpload,
+    bool compact = false,
   }) {
     Color bg;
     Color border;
@@ -2679,7 +2799,8 @@ class _StudentProfileModalBodyState
     final isMobile = MediaQuery.of(context).size.width < 500;
 
     final typeBadge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: EdgeInsets.symmetric(
+          horizontal: compact ? 5 : 6, vertical: compact ? 1.5 : 2),
       decoration: BoxDecoration(
         color: r.isMandatory
             ? (isDark
@@ -2697,7 +2818,7 @@ class _StudentProfileModalBodyState
       child: Text(
         r.isMandatory ? 'Mandatory' : 'Optional',
         style: TextStyle(
-          fontSize: 9,
+          fontSize: compact ? 8.5 : 9,
           fontWeight: FontWeight.w600,
           color: r.isMandatory
               ? (isDark ? Colors.indigo.shade200 : Colors.indigo.shade800)
@@ -2707,7 +2828,8 @@ class _StudentProfileModalBodyState
     );
 
     final statusBadge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+      padding: EdgeInsets.symmetric(
+          horizontal: compact ? 6 : 7, vertical: compact ? 2 : 2.5),
       decoration: BoxDecoration(
         color: statusColor.withValues(alpha: isDark ? 0.2 : 0.1),
         borderRadius: BorderRadius.circular(6),
@@ -2723,7 +2845,7 @@ class _StudentProfileModalBodyState
           Text(
             statusLabel,
             style: TextStyle(
-              fontSize: 9.5,
+              fontSize: compact ? 9 : 9.5,
               fontWeight: FontWeight.bold,
               color: statusColor,
             ),
@@ -2771,8 +2893,8 @@ class _StudentProfileModalBodyState
 
     if (isMobile) {
       return Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.all(10),
+        margin: EdgeInsets.only(bottom: compact ? 4 : 6),
+        padding: EdgeInsets.all(compact ? 8 : 10),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(8),
@@ -2783,13 +2905,13 @@ class _StudentProfileModalBodyState
           children: [
             Row(
               children: [
-                Icon(icon, size: 16, color: iconColor),
-                const SizedBox(width: 8),
+                Icon(icon, size: compact ? 14 : 16, color: iconColor),
+                SizedBox(width: compact ? 6 : 8),
                 Expanded(
                   child: Text(
                     r.name,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: compact ? 11.5 : 12,
                       fontWeight: FontWeight.w600,
                       color: isDark
                           ? AppColors.darkTextPrimary
@@ -2801,7 +2923,7 @@ class _StudentProfileModalBodyState
                 statusBadge,
               ],
             ),
-            if (r.description != null && r.description!.trim().isNotEmpty) ...[
+            if (!compact && r.description != null && r.description!.trim().isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 r.description!.trim(),
@@ -2815,7 +2937,7 @@ class _StudentProfileModalBodyState
                 overflow: TextOverflow.ellipsis,
               ),
             ],
-            const SizedBox(height: 6),
+            SizedBox(height: compact ? 4 : 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -2829,8 +2951,9 @@ class _StudentProfileModalBodyState
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      margin: EdgeInsets.only(bottom: compact ? 4 : 6),
+      padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 10, vertical: compact ? 5 : 8),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(8),
@@ -2838,8 +2961,8 @@ class _StudentProfileModalBodyState
       ),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: iconColor),
-          const SizedBox(width: 8),
+          Icon(icon, size: compact ? 14 : 16, color: iconColor),
+          SizedBox(width: compact ? 6 : 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2847,14 +2970,14 @@ class _StudentProfileModalBodyState
                 Text(
                   r.name,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: compact ? 11.5 : 12,
                     fontWeight: FontWeight.w600,
                     color: isDark
                         ? AppColors.darkTextPrimary
                         : AppColors.textPrimary,
                   ),
                 ),
-                if (r.description != null && r.description!.trim().isNotEmpty)
+                if (!compact && r.description != null && r.description!.trim().isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
@@ -2922,16 +3045,19 @@ class _CopyableLrnButton extends StatefulWidget {
 class _CopyableLrnButtonState extends State<_CopyableLrnButton> {
   bool _copied = false;
   Timer? _timer;
+  static OverlayEntry? _activeToast;
 
   @override
   void dispose() {
     _timer?.cancel();
+    _activeToast?.remove();
+    _activeToast = null;
     super.dispose();
   }
 
   void _handleCopy() {
     final lrn = widget.lrn?.toString().trim() ?? '';
-    if (lrn.isEmpty) return;
+    if (lrn.isEmpty || lrn == 'null' || lrn == 'N/A') return;
 
     Clipboard.setData(ClipboardData(text: lrn));
     HapticService.light();
@@ -2949,70 +3075,128 @@ class _CopyableLrnButtonState extends State<_CopyableLrnButton> {
       }
     });
 
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text('LRN copied: $lrn'),
-          ],
+    _showOverlayToast(context, 'LRN copied: $lrn');
+  }
+
+  void _showOverlayToast(BuildContext context, String message) {
+    _activeToast?.remove();
+    _activeToast = null;
+
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) return;
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 24,
+        left: 0,
+        right: 0,
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        backgroundColor: AppColors.primaryGreen,
       ),
     );
+
+    overlay.insert(entry);
+    _activeToast = entry;
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (_activeToast == entry) {
+        entry.remove();
+        _activeToast = null;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(6),
-      onTap: _handleCopy,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'LRN: ${widget.lrn ?? 'N/A'}',
-              style: TextStyle(
-                color: widget.isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.textSecondary,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Tooltip(
-              message: _copied ? 'Copied!' : 'Copy LRN',
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, anim) => ScaleTransition(
-                  scale: anim,
-                  child: child,
+    final lrnText = widget.lrn?.toString().trim() ?? 'N/A';
+    final hasLrn = lrnText.isNotEmpty && lrnText != 'null' && lrnText != 'N/A';
+
+    return MouseRegion(
+      cursor: hasLrn ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: hasLrn ? _handleCopy : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'LRN: ',
+                style: TextStyle(
+                  color: widget.isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                  fontSize: 12.5,
                 ),
+              ),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
                 child: _copied
-                    ? const Icon(
-                        Icons.check_circle_rounded,
-                        key: ValueKey('check'),
-                        size: 15,
-                        color: AppColors.primaryGreen,
+                    ? Container(
+                        key: const ValueKey('copied'),
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Copied!',
+                          style: TextStyle(
+                            color: AppColors.primaryGreen,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       )
-                    : Icon(
-                        Icons.copy_rounded,
-                        key: const ValueKey('copy'),
-                        size: 14,
-                        color: widget.isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.textSecondary,
+                    : Text(
+                        lrnText,
+                        key: const ValueKey('lrn'),
+                        style: TextStyle(
+                          color: widget.isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          decoration: hasLrn ? TextDecoration.underline : TextDecoration.none,
+                          decorationColor: AppColors.primaryGreen,
+                        ),
                       ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -621,16 +621,45 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final userSearch = ref.watch(userSearchQueryProvider);
     final isAndroid = defaultTargetPlatform == TargetPlatform.android;
 
-    return CallbackShortcuts(
-      bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
-          _showSearchDialog(context);
-        },
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (ref.read(activeTabProvider) != 'Users') return;
+        if (_searchFocusNode.hasFocus) {
+          _searchFocusNode.unfocus();
+          return;
+        }
+        final primaryFocus = FocusManager.instance.primaryFocus;
+        if (primaryFocus != null && primaryFocus.hasFocus) {
+          final isEditable = primaryFocus.context?.widget is EditableText ||
+              primaryFocus.context?.findAncestorWidgetOfExactType<EditableText>() != null;
+          if (isEditable) {
+            primaryFocus.unfocus();
+            return;
+          }
+        }
+        ref.read(activeTabProvider.notifier).setTab('Dashboard');
       },
-      child: Focus(
-        focusNode: _shortcutFocusNode,
-        autofocus: true,
-        child: Scaffold(
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          if (_searchFocusNode.hasFocus) {
+            _searchFocusNode.unfocus();
+          } else {
+            FocusScope.of(context).unfocus();
+          }
+        },
+        child: CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+              _showSearchDialog(context);
+            },
+          },
+          child: Focus(
+            focusNode: _shortcutFocusNode,
+            autofocus: true,
+            child: Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
           body: SafeArea(
@@ -719,7 +748,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       ),
       ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Future<void> _showSearchDialog(BuildContext context) async {
