@@ -42,6 +42,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   int _rowsPerPage = 10;
   int _selectedViewMode = 0; // 0: DepEd Transparency Board, 1: Document Compliance
 
+  // Floating view mode toggle state
+  final GlobalKey _toggleKey = GlobalKey();
+  bool _isTabToggleVisible = true;
+  double _lastScrollOffset = 0.0;
+  double _toggleHeight = 48.0;
+
+  // Search FocusNode for tap-outside unfocus
+  final FocusNode _searchFocusNode = FocusNode();
+
   // Table search & sort state
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -69,6 +78,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             _scrollController.jumpTo(0.0);
           }
           setState(() {
+            _isTabToggleVisible = true;
+            _lastScrollOffset = 0.0;
             _rowsPerPage = 10;
             _currentPage = 0;
             _searchQuery = '';
@@ -106,6 +117,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     _gradeComplianceScrollController.dispose();
     _missingDocsScrollController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -258,30 +270,96 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     final isAndroid = Theme.of(context).platform == TargetPlatform.android || (!kIsWeb && Platform.isAndroid);
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(reportStatsProvider);
-            ref.invalidate(academicYearsProvider);
-            ref.invalidate(yearlyComparisonProvider);
-            ref.invalidate(storageStatsProvider);
-            ref.invalidate(transparencyBoardProvider);
-          },
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(
-              horizontal: isAndroid ? 14 : 16,
-              vertical: isAndroid ? 10 : 10,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildViewModeToggle(),
-                const SizedBox(height: 10),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final renderBox = _toggleKey.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox != null && renderBox.hasSize) {
+        final height = renderBox.size.height;
+        if (height > 0 && (_toggleHeight - height).abs() > 1.0) {
+          setState(() {
+            _toggleHeight = height;
+          });
+        }
+      }
+    });
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (ref.read(activeTabProvider) != 'Reports') return;
+        if (_searchFocusNode.hasFocus) {
+          _searchFocusNode.unfocus();
+          return;
+        }
+        ref.read(activeTabProvider.notifier).setTab('Dashboard');
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          if (_searchFocusNode.hasFocus) {
+            _searchFocusNode.unfocus();
+          } else {
+            FocusScope.of(context).unfocus();
+          }
+        },
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
+          backgroundColor: Colors.transparent,
+          body: SafeArea(
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (ScrollNotification notification) {
+                if (notification.depth != 0) return false;
+                if (notification.metrics.axis != Axis.vertical) return false;
+
+                final currentOffset = notification.metrics.pixels;
+                final delta = currentOffset - _lastScrollOffset;
+
+                // Always show at top of scroll view
+                if (currentOffset <= 10) {
+                  if (!_isTabToggleVisible) {
+                    setState(() => _isTabToggleVisible = true);
+                  }
+                } else if (delta > 8) {
+                  // Scrolling down: hide toggle
+                  if (_isTabToggleVisible) {
+                    setState(() => _isTabToggleVisible = false);
+                  }
+                } else if (delta < -8) {
+                  // Scrolling up a little: show toggle
+                  if (!_isTabToggleVisible) {
+                    setState(() => _isTabToggleVisible = true);
+                  }
+                }
+
+                _lastScrollOffset = currentOffset;
+                return false;
+              },
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: RefreshIndicator(
+                      edgeOffset: _toggleHeight + (isAndroid ? 14 : 16),
+                      onRefresh: () async {
+                        ref.invalidate(reportStatsProvider);
+                        ref.invalidate(academicYearsProvider);
+                        ref.invalidate(yearlyComparisonProvider);
+                        ref.invalidate(storageStatsProvider);
+                        ref.invalidate(transparencyBoardProvider);
+                      },
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: EdgeInsets.fromLTRB(
+                          isAndroid ? 14 : 16,
+                          _toggleHeight + (isAndroid ? 18 : 20),
+                          isAndroid ? 14 : 16,
+                          isAndroid ? 14 : 16,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
 
                 if (_selectedViewMode == 0) ...[
                   const TransparencyBoardSection(),
@@ -403,7 +481,34 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                 ],
                 const SizedBox(height: AppSizes.p48),
-              ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Floating View Mode Toggle (DepEd Board / Compliance)
+                  Positioned(
+                    top: isAndroid ? 8 : 10,
+                    left: isAndroid ? 14 : 16,
+                    right: isAndroid ? 14 : 16,
+                    child: AnimatedSlide(
+                      offset: _isTabToggleVisible ? Offset.zero : const Offset(0, -1.4),
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOutCubic,
+                      child: AnimatedOpacity(
+                        opacity: _isTabToggleVisible ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
+                        child: IgnorePointer(
+                          ignoring: !_isTabToggleVisible,
+                          child: _buildViewModeToggle(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -441,7 +546,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         _selectedViewMode = index;
         _rowsPerPage = 10;
         _currentPage = 0;
+        _isTabToggleVisible = true;
       });
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0.0);
+      }
     }
 
     return LayoutBuilder(
@@ -450,6 +559,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         final isMobile = constraints.maxWidth < 560;
 
         return Container(
+          key: _toggleKey,
           padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurfaceCard : Colors.white,
@@ -459,9 +569,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -2991,9 +3101,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       );
     }
 
-    return Container(
-      width: double.infinity,
-      decoration: _cardDecoration(),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        if (_searchFocusNode.hasFocus) {
+          _searchFocusNode.unfocus();
+        } else {
+          FocusScope.of(context).unfocus();
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -3076,6 +3195,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                   child: TextField(
                     controller: _searchController,
+                    focusNode: _searchFocusNode,
                     onChanged: (val) => setState(() {
                       _searchQuery = val;
                       _currentPage = 0;
@@ -3551,8 +3671,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ],
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   List<dynamic> _buildReportPageList(int cur, int total) {
     if (total <= 1) return [];

@@ -1176,9 +1176,9 @@ Files backup/restore - mirror mode or zip -->
 - [x] the list and pagination hides in miliseconds after navigating to other pages, make it stays visible, use skeleton load when loading in list (decoupled pagination from views, preserved _lastDocTotalPages, and displayed DocumentListSkeletonLoader during page loading)
 
 # REPORTS SCREEN
-- in compliance tab, in student document compliance, the search bar cant unactive when touch outside of the search bar in android
-- make the tab deped board and compliance when scrolls down it hides and if you scroll up a little it shows up like on websites
-- in android when you press back it doesnt go to dashboard
+- [x] in compliance tab, in student document compliance, the search bar cant unactive when touch outside of the search bar in android (added dedicated FocusNode, wrapped screen and table container with translucent GestureDetector unfocus listeners, and enabled ScrollViewKeyboardDismissBehavior.onDrag)
+- [x] make the tab deped board and compliance when scrolls down it hides and if you scroll up a little it shows up like on websites (implemented floating animated header with NotificationListener scroll tracking, AnimatedSlide and AnimatedOpacity transitions, and dynamic height-based scroll padding)
+- [x] in android when you press back it doesnt go to dashboard (implemented PopScope with unfocus fallback and activeTab navigation to Dashboard)
 
 # USERS SCREEN
 - in android when you press back it doesnt go to dashboard
