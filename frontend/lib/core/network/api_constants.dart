@@ -131,7 +131,6 @@ class ApiConstants {
     effectiveOptions.receiveTimeout ??= const Duration(seconds: 15);
     effectiveOptions.sendTimeout ??= const Duration(seconds: 10);
     effectiveOptions.contentType ??= Headers.jsonContentType;
-    effectiveOptions.responseType ??= ResponseType.json;
 
     final dio = Dio(effectiveOptions);
 
