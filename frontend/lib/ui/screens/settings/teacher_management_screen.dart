@@ -147,24 +147,12 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
         labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         tabs: isNarrow
             ? const [
-                Tab(
-                  icon: Icon(Icons.account_tree_outlined, size: 18),
-                  text: 'Academic',
-                ),
-                Tab(
-                  icon: Icon(Icons.people_alt_outlined, size: 18),
-                  text: 'Advisers',
-                ),
+                Tab(text: 'Academic'),
+                Tab(text: 'Advisers'),
               ]
             : const [
-                Tab(
-                  icon: Icon(Icons.account_tree_outlined, size: 18),
-                  text: 'Academic Structure',
-                ),
-                Tab(
-                  icon: Icon(Icons.people_alt_outlined, size: 18),
-                  text: 'Teacher Advisers',
-                ),
+                Tab(text: 'Academic Structure'),
+                Tab(text: 'Teacher Advisers'),
               ],
       ),
     );

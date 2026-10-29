@@ -29,11 +29,13 @@ class DocumentRequirementsView extends ConsumerStatefulWidget {
 class _DocumentRequirementsViewState
     extends ConsumerState<DocumentRequirementsView> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -128,9 +130,16 @@ class _DocumentRequirementsViewState
             ref.invalidate(requirementsSettingsProvider);
             ref.invalidate(enrolledStudentsForRequirementsProvider);
           },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              _searchFocusNode.unfocus();
+              FocusScope.of(context).unfocus();
+            },
+            child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -176,7 +185,8 @@ class _DocumentRequirementsViewState
               ],
             ),
           ),
-        );
+        ),
+      );
       },
     );
   }
@@ -378,6 +388,9 @@ class _DocumentRequirementsViewState
       ),
       child: TextField(
         controller: _searchController,
+        focusNode: _searchFocusNode,
+        textInputAction: TextInputAction.search,
+        onSubmitted: (_) => _searchFocusNode.unfocus(),
         onChanged: (val) => setState(() => _searchQuery = val.trim()),
         decoration: InputDecoration(
           hintText: 'Search requirements (e.g. SF9, PSA, SF10)...',
@@ -395,6 +408,7 @@ class _DocumentRequirementsViewState
                   icon: const Icon(Icons.clear, size: 16),
                   onPressed: () {
                     _searchController.clear();
+                    _searchFocusNode.unfocus();
                     setState(() => _searchQuery = '');
                   },
                 )

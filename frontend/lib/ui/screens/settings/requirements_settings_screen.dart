@@ -35,7 +35,12 @@ class RequirementsModal extends ConsumerStatefulWidget {
   ConsumerState<RequirementsModal> createState() => _RequirementsModalState();
 }
 
-class _RequirementsModalState extends ConsumerState<RequirementsModal> {
+class _RequirementsModalState extends ConsumerState<RequirementsModal>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  int _lastTabIndex = 0;
+  final FocusNode _searchFocusNode = FocusNode();
+
   int _selectedFilterIndex = 0; // 0: All, 1: Mandatory, 2: Optional, 3: Inactive
   _SortMode _sortMode = _SortMode.az;
 
@@ -48,6 +53,8 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_handleTabChange);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.invalidate(requirementsSettingsProvider);
@@ -55,10 +62,26 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     });
   }
 
+  void _handleTabChange() {
+    if (_tabController.index != _lastTabIndex) {
+      _lastTabIndex = _tabController.index;
+      setState(() {
+        _multiSelectMode = false;
+        _selectedIds.clear();
+        _selectedFilterIndex = 0;
+        _searchQuery = '';
+        _searchCtrl.clear();
+      });
+      _searchFocusNode.unfocus();
+    }
+  }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
+    _tabController.dispose();
     _searchCtrl.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -230,216 +253,217 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     final jhsList = settingsAsync.asData?.value.jhs ?? [];
     final shsList = settingsAsync.asData?.value.shs ?? [];
 
-    return DefaultTabController(
-      length: 2,
-      child: Builder(
-        builder: (tabContext) {
-          final tabController = DefaultTabController.of(tabContext);
-          final currentList = tabController.index == 0 ? jhsList : shsList;
-          final currentFiltered = _applyFiltersAndSort(currentList);
-          final allCurrentSelected = currentFiltered.isNotEmpty &&
-              currentFiltered.every((r) => _selectedIds.contains(r.id));
-          final selectedTargets =
-              currentList.where((r) => _selectedIds.contains(r.id)).toList();
+    final currentList = _tabController.index == 0 ? jhsList : shsList;
+    final currentFiltered = _applyFiltersAndSort(currentList);
+    final allCurrentSelected = currentFiltered.isNotEmpty &&
+        currentFiltered.every((r) => _selectedIds.contains(r.id));
+    final selectedTargets =
+        currentList.where((r) => _selectedIds.contains(r.id)).toList();
 
-          final bodyContent = Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Header Segment / Tabs ──
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-                  border: Border(
-                    bottom: BorderSide(
-                      color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF),
-                    ),
+    final bodyContent = GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        _searchFocusNode.unfocus();
+        FocusScope.of(context).unfocus();
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Header Segment / Tabs ──
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF),
+                ),
+              ),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              labelColor: AppColors.primaryGreen,
+              unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              indicatorColor: AppColors.primaryGreen,
+              indicatorWeight: 3,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(isWide ? 'Junior High School' : 'JHS'),
+                      const SizedBox(width: 8),
+                      _countBadge(jhsList.length, isDark),
+                    ],
                   ),
                 ),
-                child: TabBar(
-                  labelColor: AppColors.primaryGreen,
-                  unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                  indicatorColor: AppColors.primaryGreen,
-                  indicatorWeight: 3,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
-                  tabs: [
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(isWide ? 'Junior High School' : 'JHS'),
-                          const SizedBox(width: 8),
-                          _countBadge(jhsList.length, isDark),
-                        ],
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(isWide ? 'Senior High School' : 'SHS'),
+                      const SizedBox(width: 8),
+                      _countBadge(shsList.length, isDark),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Focused Filter & Search Bar ──
+          _buildControlBar(isWide, isDark, () {
+            final activeCategory = _tabController.index == 0 ? 'JHS' : 'SHS';
+            _showFormModal(defaultCategory: activeCategory);
+          }),
+
+          // ── Multi-Select Banner (Desktop only; Android uses Contextual Action Bar) ──
+          if (_multiSelectMode) ...[
+            _buildMultiSelectBanner(
+              currentList,
+              isDark,
+              isAndroid,
+            ),
+          ],
+
+          // ── Focused Requirements List ──
+          Expanded(
+            child: settingsAsync.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.primaryGreen),
+              ),
+              error: (e, _) => Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 40, color: AppColors.error),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Failed to load requirements',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(isWide ? 'Senior High School' : 'SHS'),
-                          const SizedBox(width: 8),
-                          _countBadge(shsList.length, isDark),
-                        ],
-                      ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => ref.invalidate(requirementsSettingsProvider),
+                      child: const Text('RETRY'),
                     ),
                   ],
                 ),
               ),
-
-              // ── Focused Filter & Search Bar ──
-              _buildControlBar(isWide, isDark, () {
-                final activeCategory = tabController.index == 0 ? 'JHS' : 'SHS';
-                _showFormModal(defaultCategory: activeCategory);
-              }),
-
-              // ── Multi-Select Banner (Desktop only; Android uses Contextual Action Bar) ──
-              if (_multiSelectMode) ...[
-                _buildMultiSelectBanner(
-                  currentList,
-                  isDark,
-                  isAndroid,
-                ),
-              ],
-
-              // ── Focused Requirements List ──
-              Expanded(
-                child: settingsAsync.when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(color: AppColors.primaryGreen),
-                  ),
-                  error: (e, _) => Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.error_outline, size: 40, color: AppColors.error),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Failed to load requirements',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: () => ref.invalidate(requirementsSettingsProvider),
-                          child: const Text('RETRY'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  data: (_) => TabBarView(
-                    children: [
-                      _buildRequirementsList(jhsList, isWide, isDark, 'JHS'),
-                      _buildRequirementsList(shsList, isWide, isDark, 'SHS'),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-
-          if (isMobile) {
-            return PopScope(
-              canPop: !_multiSelectMode,
-              onPopInvokedWithResult: (didPop, _) {
-                if (didPop) return;
-                if (_multiSelectMode) {
-                  setState(() {
-                    _multiSelectMode = false;
-                    _selectedIds.clear();
-                  });
-                }
-              },
-              child: Scaffold(
-                backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
-                appBar: _multiSelectMode
-                    ? AppBar(
-                        backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
-                        foregroundColor: Colors.white,
-                        elevation: 1,
-                        leading: IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white),
-                          tooltip: 'Exit Selection',
-                          onPressed: _toggleMultiSelect,
-                        ),
-                        title: Text(
-                          '${_selectedIds.length} selected',
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        actions: [
-                          IconButton(
-                            icon: Icon(
-                              allCurrentSelected ? Icons.deselect : Icons.select_all,
-                              color: Colors.white,
-                            ),
-                            tooltip: allCurrentSelected ? 'Unselect All' : 'Select All',
-                            onPressed: () => _selectAll(currentFiltered),
-                          ),
-                          if (_selectedIds.isNotEmpty) ...[
-                            IconButton(
-                              icon: const Icon(Icons.tune_rounded, color: Colors.white),
-                              tooltip: 'Bulk Edit',
-                              onPressed: () => _bulkEdit(selectedTargets),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
-                              tooltip: 'Delete Selected',
-                              onPressed: () => _confirmDelete(selectedTargets),
-                            ),
-                          ],
-                        ],
-                      )
-                    : AppBar(
-                        backgroundColor: AppColors.primaryGreen,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        title: const Text(
-                          'Document Requirements',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        actions: [
-                          IconButton(
-                            icon: const Icon(Icons.checklist_rounded, color: Colors.white),
-                            tooltip: 'Select Multiple',
-                            onPressed: _toggleMultiSelect,
-                          ),
-                        ],
-                      ),
-                body: SafeArea(child: bodyContent),
-                floatingActionButton: _multiSelectMode
-                    ? null
-                    : FloatingActionButton(
-                        backgroundColor: AppColors.primaryGreen,
-                        foregroundColor: Colors.white,
-                        elevation: 3,
-                        onPressed: () {
-                          final activeCategory = tabController.index == 0 ? 'JHS' : 'SHS';
-                          _showFormModal(defaultCategory: activeCategory);
-                        },
-                        child: const Icon(Icons.add),
-                      ),
-              ),
-            );
-          }
-
-          return CustomModal(
-            title: 'Document Requirements',
-            maxWidth: 840,
-            content: SizedBox(
-              height: screenSize.height * 0.78,
-              child: Scaffold(
-                backgroundColor: Colors.transparent,
-                body: bodyContent,
+              data: (_) => TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildRequirementsList(jhsList, isWide, isDark, 'JHS'),
+                  _buildRequirementsList(shsList, isWide, isDark, 'SHS'),
+                ],
               ),
             ),
-          );
+          ),
+        ],
+      ),
+    );
+
+    if (isMobile) {
+      return PopScope(
+        canPop: !_multiSelectMode,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          if (_multiSelectMode) {
+            setState(() {
+              _multiSelectMode = false;
+              _selectedIds.clear();
+            });
+          }
         },
+        child: Scaffold(
+          backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
+          appBar: _multiSelectMode
+              ? AppBar(
+                  backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  elevation: 1,
+                  leading: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    tooltip: 'Exit Selection',
+                    onPressed: _toggleMultiSelect,
+                  ),
+                  title: Text(
+                    '${_selectedIds.length} selected',
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  actions: [
+                    IconButton(
+                      icon: Icon(
+                        allCurrentSelected ? Icons.deselect : Icons.select_all,
+                        color: Colors.white,
+                      ),
+                      tooltip: allCurrentSelected ? 'Unselect All' : 'Select All',
+                      onPressed: () => _selectAll(currentFiltered),
+                    ),
+                    if (_selectedIds.isNotEmpty) ...[
+                      IconButton(
+                        icon: const Icon(Icons.tune_rounded, color: Colors.white),
+                        tooltip: 'Bulk Edit',
+                        onPressed: () => _bulkEdit(selectedTargets),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                        tooltip: 'Delete Selected',
+                        onPressed: () => _confirmDelete(selectedTargets),
+                      ),
+                    ],
+                  ],
+                )
+              : AppBar(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  title: const Text(
+                    'Document Requirements',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.checklist_rounded, color: Colors.white),
+                      tooltip: 'Select Multiple',
+                      onPressed: _toggleMultiSelect,
+                    ),
+                  ],
+                ),
+          body: SafeArea(child: bodyContent),
+          floatingActionButton: _multiSelectMode
+              ? null
+              : FloatingActionButton(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  elevation: 3,
+                  onPressed: () {
+                    final activeCategory = _tabController.index == 0 ? 'JHS' : 'SHS';
+                    _showFormModal(defaultCategory: activeCategory);
+                  },
+                  child: const Icon(Icons.add),
+                ),
+        ),
+      );
+    }
+
+    return CustomModal(
+      title: 'Document Requirements',
+      maxWidth: 840,
+      content: SizedBox(
+        height: screenSize.height * 0.78,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: bodyContent,
+        ),
       ),
     );
   }
@@ -479,6 +503,9 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                   height: 38,
                   child: TextField(
                     controller: _searchCtrl,
+                    focusNode: _searchFocusNode,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (_) => _searchFocusNode.unfocus(),
                     onChanged: (v) => setState(() => _searchQuery = v),
                     style: TextStyle(
                       fontSize: 13,
@@ -496,6 +523,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                               icon: const Icon(Icons.clear, size: 16),
                               onPressed: () {
                                 _searchCtrl.clear();
+                                _searchFocusNode.unfocus();
                                 setState(() => _searchQuery = '');
                               },
                             )
@@ -775,6 +803,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     }
 
     return ListView.separated(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: items.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
@@ -1067,6 +1096,9 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
   late String _acceptedFileTypes;
   late int _maxFiles;
 
+  DocumentRequirementModel? _counterpart;
+  bool _syncCounterpart = false;
+
   bool _isLoading = false;
 
   @override
@@ -1083,8 +1115,19 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
 
     if (req != null) {
       final cat = req.category.toUpperCase();
-      _catJhs = cat == 'JHS' || cat == 'BOTH';
-      _catShs = cat == 'SHS' || cat == 'BOTH';
+      _catJhs = cat == 'JHS';
+      _catShs = cat == 'SHS';
+      final settings = ref.read(requirementsSettingsProvider).asData?.value;
+      if (settings != null) {
+        final otherList = (cat == 'JHS') ? settings.shs : settings.jhs;
+        for (final r in otherList) {
+          if (r.name.trim().toLowerCase() == req.name.trim().toLowerCase()) {
+            _counterpart = r;
+            _syncCounterpart = true;
+            break;
+          }
+        }
+      }
     } else {
       final def = widget.defaultCategory?.toUpperCase() ?? 'JHS';
       _catJhs = def == 'JHS' || def == 'BOTH';
@@ -1205,56 +1248,129 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                   const SizedBox(height: 14),
 
                   // Category Selection
-                  const Text('Applicable Level *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      InkWell(
-                        onTap: () => setState(() => _catJhs = !_catJhs),
-                        borderRadius: BorderRadius.circular(4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Checkbox(
-                              value: _catJhs,
-                              activeColor: AppColors.primaryGreen,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
-                              onChanged: (v) => setState(() => _catJhs = v ?? false),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text('Junior High (JHS)', style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
+                  if (isEditing) ...[
+                    const Text('Applicable Level', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF)),
                       ),
-                      InkWell(
-                        onTap: () => setState(() => _catShs = !_catShs),
-                        borderRadius: BorderRadius.circular(4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Checkbox(
-                              value: _catShs,
-                              activeColor: AppColors.primaryGreen,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
-                              onChanged: (v) => setState(() => _catShs = v ?? false),
+                      child: Row(
+                        children: [
+                          Icon(
+                            widget.requirement!.category.toUpperCase() == 'JHS'
+                                ? Icons.school_outlined
+                                : Icons.account_balance_outlined,
+                            size: 18,
+                            color: AppColors.primaryGreen,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              widget.requirement!.category.toUpperCase() == 'JHS'
+                                  ? 'Junior High School (JHS)'
+                                  : 'Senior High School (SHS)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              ),
                             ),
-                            const SizedBox(width: 6),
-                            const Text('Senior High (SHS)', style: TextStyle(fontSize: 13)),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_counterpart != null) ...[
+                      const SizedBox(height: 10),
+                      InkWell(
+                        onTap: () => setState(() => _syncCounterpart = !_syncCounterpart),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Checkbox(
+                                  value: _syncCounterpart,
+                                  activeColor: AppColors.primaryGreen,
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                  onChanged: (v) => setState(() => _syncCounterpart = v ?? false),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Also apply changes to matching ${widget.requirement!.category.toUpperCase() == 'JHS' ? 'Senior High (SHS)' : 'Junior High (JHS)'} requirement',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
-                  ),
-                  if (!_catJhs && !_catShs)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 4, left: 4),
-                      child: Text('Select at least one level', style: TextStyle(color: AppColors.error, fontSize: 11)),
+                  ] else ...[
+                    const Text('Applicable Level *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        InkWell(
+                          onTap: () => setState(() => _catJhs = !_catJhs),
+                          borderRadius: BorderRadius.circular(4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Checkbox(
+                                value: _catJhs,
+                                activeColor: AppColors.primaryGreen,
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                                onChanged: (v) => setState(() => _catJhs = v ?? false),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text('Junior High (JHS)', style: TextStyle(fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => setState(() => _catShs = !_catShs),
+                          borderRadius: BorderRadius.circular(4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Checkbox(
+                                value: _catShs,
+                                activeColor: AppColors.primaryGreen,
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                                onChanged: (v) => setState(() => _catShs = v ?? false),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text('Senior High (SHS)', style: TextStyle(fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
+                    if (!_catJhs && !_catShs)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 4, left: 4),
+                        child: Text('Select at least one level', style: TextStyle(color: AppColors.error, fontSize: 11)),
+                      ),
+                  ],
 
                   const SizedBox(height: 12),
 
@@ -1348,7 +1464,7 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_catJhs && !_catShs) return;
+    if (widget.requirement == null && !_catJhs && !_catShs) return;
 
     setState(() => _isLoading = true);
 
@@ -1365,32 +1481,55 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
         }
       }
 
-      final categories = <String>[];
-      if (_catJhs && _catShs) {
-        categories.addAll(['JHS', 'SHS']);
-      } else if (_catJhs) {
-        categories.add('JHS');
-      } else {
-        categories.add('SHS');
-      }
-
-      for (final cat in categories) {
-        final requirement = DocumentRequirementModel(
-          id: (categories.length == 1) ? (widget.requirement?.id ?? 0) : 0,
+      if (widget.requirement != null) {
+        final updated = DocumentRequirementModel(
+          id: widget.requirement!.id,
           name: _nameController.text.trim(),
           description: _descController.text.trim().isEmpty ? null : _descController.text.trim(),
-          category: cat,
+          category: widget.requirement!.category,
           isMandatory: _isMandatory,
           isEnabled: _isEnabled,
           dueDate: dueDate,
           acceptedFileTypes: _acceptedFileTypes,
-          schoolLevels: 'JHS,SHS',
+          schoolLevels: widget.requirement!.schoolLevels,
           maxFiles: _maxFiles,
         );
 
-        if (widget.requirement != null && categories.length == 1) {
-          await ref.read(requirementMutationProvider.notifier).updateRequirement(requirement);
-        } else {
+        await ref.read(requirementMutationProvider.notifier).updateRequirement(updated);
+
+        if (_syncCounterpart && _counterpart != null) {
+          final updatedCounterpart = DocumentRequirementModel(
+            id: _counterpart!.id,
+            name: _nameController.text.trim(),
+            description: _descController.text.trim().isEmpty ? null : _descController.text.trim(),
+            category: _counterpart!.category,
+            isMandatory: _isMandatory,
+            isEnabled: _isEnabled,
+            dueDate: dueDate,
+            acceptedFileTypes: _acceptedFileTypes,
+            schoolLevels: _counterpart!.schoolLevels,
+            maxFiles: _maxFiles,
+          );
+          await ref.read(requirementMutationProvider.notifier).updateRequirement(updatedCounterpart);
+        }
+      } else {
+        final categories = <String>[];
+        if (_catJhs) categories.add('JHS');
+        if (_catShs) categories.add('SHS');
+
+        for (final cat in categories) {
+          final requirement = DocumentRequirementModel(
+            id: 0,
+            name: _nameController.text.trim(),
+            description: _descController.text.trim().isEmpty ? null : _descController.text.trim(),
+            category: cat,
+            isMandatory: _isMandatory,
+            isEnabled: _isEnabled,
+            dueDate: dueDate,
+            acceptedFileTypes: _acceptedFileTypes,
+            schoolLevels: 'JHS,SHS',
+            maxFiles: _maxFiles,
+          );
           await ref.read(requirementMutationProvider.notifier).createRequirement(requirement);
         }
       }
