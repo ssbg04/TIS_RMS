@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +8,17 @@ import '../constants/app_sizes.dart';
 class AppTheme {
   // Prevent instantiation
   AppTheme._();
+
+  static const PageTransitionsTheme _pageTransitionsTheme = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.fuchsia: CupertinoPageTransitionsBuilder(),
+    },
+  );
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -160,6 +172,9 @@ class AppTheme {
 
       // Font Family & Typography
       textTheme: GoogleFonts.interTextTheme(),
+
+      // Page Transitions
+      pageTransitionsTheme: _pageTransitionsTheme,
     );
   }
 
@@ -318,6 +333,9 @@ class AppTheme {
 
       // Font Family & Typography
       textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+
+      // Page Transitions
+      pageTransitionsTheme: _pageTransitionsTheme,
     );
   }
 }
