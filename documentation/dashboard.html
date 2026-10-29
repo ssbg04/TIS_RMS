@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Module 1: Dashboard & Overview - TIS-RMS User Guide</title>
-  <meta name="description" content="Real-time school performance metrics, role-scoped notifications, visual compliance analytics, and top students monitoring.">
+  <meta name="description" content="Real-time school performance metrics, role-scoped notifications, visual compliance analytics, and dashboard layout customization.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -203,8 +203,8 @@
           <ul class="module-summary-list">
             <li><strong>Admin &amp; Teacher Toolbars:</strong> Global student search, role-scoped notifications, and a comprehensive user profile dropdown.</li>
             <li><strong>Quick-Access Hubs:</strong> Jump directly to Students, Documents, Users, and core settings from prominent dashboard shortcut cards.</li>
-            <li><strong>Visual Compliance Analytics:</strong> Real-time charts for JHS/SHS digitalization progress, document breakdown by grade level, 30-day upload trends, and disk storage consumption.</li>
-            <li><strong>Actionable Student Monitoring:</strong> Instant rankings for top compliant learners alongside flags for students needing immediate document compliance attention.</li>
+            <li><strong>Visual Compliance Analytics:</strong> Real-time animated charts for JHS/SHS digitalization progress, grade level breakdown, 30-day upload trends, and storage usage.</li>
+            <li><strong>Dashboard Layout Customization:</strong> Personalize card order, toggle between full and half width widgets, hide or restore cards, and reset layouts anytime.</li>
           </ul>
         </div>
 
@@ -273,54 +273,137 @@
           </div>
         </div>
 
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/dashboard_search.svg" data-caption="Global Student Search Bar">
-          <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/dashboard_search.svg" alt="Global Student Search Bar" loading="lazy">
+        <h4 class="subheading" style="margin-top: 24px;">1. Global Student Search Bar</h4>
+        <div class="mockup-container">
+          <div class="mockup-tabs">
+            <button class="mockup-tab-btn active" data-tab-target="win-search">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-search">Android</button>
           </div>
-          <figcaption>
-            <div>
-              <span class="screenshot-title">Global Student Search Bar</span>
-              <p class='screenshot-sub'>Direct learner lookup by name or LRN with instant transition to the Students module</p>
-            </div>
-            <span class="zoom-hint">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-              Click to enlarge
-            </span>
-          </figcaption>
-        </figure>
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/dashboard_notifications.svg" data-caption="Role-Based Notification Feed">
-          <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/dashboard_notifications.svg" alt="Role-Based Notification Feed" loading="lazy">
+
+          <div class="mockup-pane active" id="win-search">
+            <figure class="doc-figure" data-lightbox="assets/images/dashboard/dashboard-search.webp" data-caption="Global Student Search Bar (Windows Desktop)">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/dashboard/dashboard-search.webp" alt="Global Student Search Bar on Windows" loading="lazy">
+              </div>
+              <figcaption>
+                <div>
+                  <span class="screenshot-title">Global Student Search Bar (Windows Desktop)</span>
+                  <p class='screenshot-sub'>Direct learner lookup by name or 12-digit LRN with instant transition to the Students module</p>
+                </div>
+                <span class="zoom-hint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                  Click to enlarge
+                </span>
+              </figcaption>
+            </figure>
           </div>
-          <figcaption>
-            <div>
-              <span class="screenshot-title">Role-Based Notification Feed</span>
-              <p class='screenshot-sub'>Audited system notifications filtered automatically by administrative or teacher scope</p>
-            </div>
-            <span class="zoom-hint">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-              Click to enlarge
-            </span>
-          </figcaption>
-        </figure>
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/dashboard_profile.svg" data-caption="User Profile &amp; Session Dropdown">
-          <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/dashboard_profile.svg" alt="User Profile &amp; Session Dropdown" loading="lazy">
+
+          <div class="mockup-pane" id="and-search" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/dashboard/dashboard-search-mobile.webp" data-caption="Global Student Search (Android Mobile)">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/dashboard/dashboard-search-mobile.webp" alt="Global Student Search on Android" loading="lazy">
+              </div>
+              <figcaption>
+                <div>
+                  <span class="screenshot-title">Global Student Search (Android Mobile)</span>
+                  <p class='screenshot-sub'>Optimized mobile learner search bar with live auto-suggestions</p>
+                </div>
+                <span class="zoom-hint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                  Click to enlarge
+                </span>
+              </figcaption>
+            </figure>
           </div>
-          <figcaption>
-            <div>
-              <span class="screenshot-title">User Profile &amp; Session Dropdown</span>
-              <p class='screenshot-sub'>Quick-view profile details, contact information, Settings shortcut, and secure sign-out</p>
-            </div>
-            <span class="zoom-hint">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-              Click to enlarge
-            </span>
-          </figcaption>
-        </figure>
+        </div>
+
+        <h4 class="subheading" style="margin-top: 24px;">2. Role-Based Notification Feed</h4>
+        <div class="mockup-container">
+          <div class="mockup-tabs">
+            <button class="mockup-tab-btn active" data-tab-target="win-notif">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-notif">Android</button>
+          </div>
+
+          <div class="mockup-pane active" id="win-notif">
+            <figure class="doc-figure" data-lightbox="assets/images/dashboard/dashboard-notification.webp" data-caption="Role-Based Notification Feed (Windows Desktop)">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/dashboard/dashboard-notification.webp" alt="Role-Based Notification Feed on Windows" loading="lazy">
+              </div>
+              <figcaption>
+                <div>
+                  <span class="screenshot-title">Role-Based Notification Feed (Windows Desktop)</span>
+                  <p class='screenshot-sub'>Audited system alerts and activity notices filtered automatically by administrative or teacher scope</p>
+                </div>
+                <span class="zoom-hint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                  Click to enlarge
+                </span>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="mockup-pane" id="and-notif" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/dashboard/dashboard-notification-mobile.webp" data-caption="Role-Based Notifications (Android Mobile)">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/dashboard/dashboard-notification-mobile.webp" alt="Role-Based Notifications on Android" loading="lazy">
+              </div>
+              <figcaption>
+                <div>
+                  <span class="screenshot-title">Role-Based Notifications (Android Mobile)</span>
+                  <p class='screenshot-sub'>Mobile notification drawer for quick advisory alerts on tablets and smartphones</p>
+                </div>
+                <span class="zoom-hint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                  Click to enlarge
+                </span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <h4 class="subheading" style="margin-top: 24px;">3. User Profile &amp; Session Dropdown</h4>
+        <div class="mockup-container">
+          <div class="mockup-tabs">
+            <button class="mockup-tab-btn active" data-tab-target="win-profile">Windows</button>
+            <button class="mockup-tab-btn" data-tab-target="and-profile">Android</button>
+          </div>
+
+          <div class="mockup-pane active" id="win-profile">
+            <figure class="doc-figure" data-lightbox="assets/images/dashboard/dashboard-profile.webp" data-caption="User Profile &amp; Session Dropdown (Windows Desktop)">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/dashboard/dashboard-profile.webp" alt="User Profile &amp; Session Dropdown on Windows" loading="lazy">
+              </div>
+              <figcaption>
+                <div>
+                  <span class="screenshot-title">User Profile &amp; Session Dropdown (Windows Desktop)</span>
+                  <p class='screenshot-sub'>Quick-view profile details, contact information, Settings shortcut, and secure sign-out</p>
+                </div>
+                <span class="zoom-hint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                  Click to enlarge
+                </span>
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="mockup-pane" id="and-profile" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/dashboard/dashboard-profile-mobile.webp" data-caption="User Profile Menu (Android Mobile)">
+              <div class="doc-figure-img-wrap">
+                <img src="assets/images/dashboard/dashboard-profile-mobile.webp" alt="User Profile Menu on Android" loading="lazy">
+              </div>
+              <figcaption>
+                <div>
+                  <span class="screenshot-title">User Profile Menu (Android Mobile)</span>
+                  <p class='screenshot-sub'>Mobile account drawer with user profile credentials and quick log-out option</p>
+                </div>
+                <span class="zoom-hint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                  Click to enlarge
+                </span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
 
         <h3 class="subheading">Administrator Side: Dashboard Overview</h3>
         <p class="paragraph">
@@ -331,10 +414,9 @@
           <li><strong>Quick-Access Action Cards:</strong> Fast navigation tiles to the <a href="students.html">Students</a>, <a href="documents.html">Documents</a>, and <a href="users.html">Users</a> modules.</li>
         </ul>
 
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/dashboard_admin.svg" data-caption="Administrator Dashboard Overview">
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/dashboard/dashboard-admin.webp" data-caption="Administrator Dashboard Overview">
           <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/dashboard_admin.svg" alt="Administrator Dashboard Overview" loading="lazy">
+            <img src="assets/images/dashboard/dashboard-admin.webp" alt="Administrator Dashboard Overview" loading="lazy">
           </div>
           <figcaption>
             <div>
@@ -355,20 +437,19 @@
         <ul class="bullet-list">
           <li><strong>Digitalization Progress for JHS and SHS:</strong> Tracks the exact count of students who have completed all required documents, clearly separated into Junior High School (JHS) and Senior High School (SHS) cohorts.</li>
           <li><strong>Overall Document Status:</strong> Displays the total count and status breakdown of uploaded files across the school.</li>
-          <li><strong>Document Breakdown by Grade Level:</strong> An interactive pie chart visualizing completed vs. submitted document requirements across Grade 7 through Grade 12.</li>
+          <li><strong>Document Breakdown by Grade Level:</strong> An interactive chart visualizing completed vs. submitted document requirements across Grade 7 through Grade 12.</li>
           <li><strong>30-Day Upload Trend:</strong> A dynamic line graph showing document submission velocity over the past 30 days to identify submission spikes.</li>
           <li><strong>Storage Analytics:</strong> Visualizes which document categories (SF9, SF10, PSA, etc.) consume the most server storage space.</li>
         </ul>
 
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/dashboard_graphs.svg" data-caption="Visual Graphs &amp; KPI Analytics">
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/dashboard/dashboard-analytics.gif" data-caption="Visual Graphs &amp; KPI Analytics">
           <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/dashboard_graphs.svg" alt="Visual Graphs &amp; KPI Analytics" loading="lazy">
+            <img src="assets/images/dashboard/dashboard-analytics.gif" alt="Visual Graphs &amp; KPI Analytics" loading="lazy">
           </div>
           <figcaption>
             <div>
-              <span class="screenshot-title">Visual Graphs &amp; KPI Analytics</span>
-              <p class='screenshot-sub'>Interactive charts displaying JHS/SHS digitalization progress, grade distribution pie chart, upload trend line, and disk storage</p>
+              <span class="screenshot-title">Visual Graphs &amp; KPI Analytics (Interactive Live View)</span>
+              <p class='screenshot-sub'>Animated analytics showcasing JHS/SHS digitalization progress, grade level distribution, 30-day velocity, and disk storage usage</p>
             </div>
             <span class="zoom-hint">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
@@ -377,49 +458,43 @@
           </figcaption>
         </figure>
 
-        <h4 class="subheading" style="margin-top: 24px;">Administrator Student Monitoring Lists</h4>
+        <h3 class="subheading">Dashboard Layout Customization</h3>
+        <p class="paragraph">
+          TIS-RMS empowers staff to tailor their dashboard layout to best match their individual workflow. By tapping the customization button in the top toolbar, users enter <strong>Dashboard Customization Mode</strong>:
+        </p>
+
         <div class="feature-grid">
           <div class="feature-card">
             <div class="card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>
             </div>
-            <h4 class="card-title">Top Students by Documents</h4>
-            <p class="card-desc">School-wide ranking of learners based on total uploaded documents, recognizing complete and compliant digital portfolios.</p>
+            <h4 class="card-title">Reorder Cards &amp; Widgets</h4>
+            <p class="card-desc">Move cards up or down using drag handles or reordering arrow buttons to position priority metrics exactly where you need them.</p>
           </div>
           <div class="feature-card">
             <div class="card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
             </div>
-            <h4 class="card-title">Students Needing Attention</h4>
-            <p class="card-desc">Identifies students missing critical document requirements, allowing administrators to click directly and see which specific requirements are missing.</p>
+            <h4 class="card-title">Flexible Width Toggle (50% / 100%)</h4>
+            <p class="card-desc">Toggle widgets between half-width (50%) and full-width (100%) spans to optimize screen real estate on desktop monitors and tablet displays.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </div>
+            <h4 class="card-title">Hide &amp; Restore Cards</h4>
+            <p class="card-desc">Hide non-essential widgets with one click to minimize distraction. Restore any hidden card or reset the entire layout to defaults at any time.</p>
           </div>
         </div>
 
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/dashboard_topstudents.svg" data-caption="Top Students by Documents Ranking">
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/dashboard/dashboard-customization.gif" data-caption="Dashboard Customization Mode &amp; Card Reordering">
           <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/dashboard_topstudents.svg" alt="Top Students by Documents Ranking" loading="lazy">
+            <img src="assets/images/dashboard/dashboard-customization.gif" alt="Dashboard Customization Mode &amp; Card Reordering" loading="lazy">
           </div>
           <figcaption>
             <div>
-              <span class="screenshot-title">Top Students by Documents Ranking</span>
-              <p class='screenshot-sub'>Leaderboard of learners with the highest submission counts across all grade levels</p>
-            </div>
-            <span class="zoom-hint">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-              Click to enlarge
-            </span>
-          </figcaption>
-        </figure>
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/dashboard_attention.svg" data-caption="Students Needing Attention &amp; Missing Documents Drilldown">
-          <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/dashboard_attention.svg" alt="Students Needing Attention &amp; Missing Documents Drilldown" loading="lazy">
-          </div>
-          <figcaption>
-            <div>
-              <span class="screenshot-title">Students Needing Attention &amp; Missing Documents Drilldown</span>
-              <p class='screenshot-sub'>Real-time list of learners with incomplete requirements, with one-click checklist inspection</p>
+              <span class="screenshot-title">Dashboard Customization Mode &amp; Card Reordering</span>
+              <p class='screenshot-sub'>Demonstrating real-time card reordering, span width toggling (half/full), widget hiding, and layout reset</p>
             </div>
             <span class="zoom-hint">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
@@ -433,20 +508,19 @@
           The Teacher Dashboard is streamlined to focus specifically on the teacher's assigned advisory classes:
         </p>
         <ul class="bullet-list">
-          <li><strong>Quick-Access Cards:</strong> Direct navigation buttons to the <a href="students.html">Students</a> and <a href="documents.html">Documents</a> modules scoped to their advisory classes.</li>
-          <li><strong>Top Students by Documents:</strong> Shows a ranking of students based on the number of uploaded documents strictly from their assigned advisory sections.</li>
-          <li><strong>Students Needing Attention:</strong> Highlights learners in their assigned sections with missing documents, allowing teachers to view exactly which requirements need to be submitted.</li>
+          <li><strong>Quick-Access Advisory Hubs:</strong> Direct navigation buttons to the <a href="students.html">Students</a> and <a href="documents.html">Documents</a> modules scoped exclusively to their advisory classes.</li>
+          <li><strong>Section Compliance Overview:</strong> Immediate status counts and completion progress for all learners enrolled in the teacher's designated sections.</li>
+          <li><strong>Personalized Workspace:</strong> Teachers can customize their layout just like administrators, placing relevant grade sections and checklists within easy reach.</li>
         </ul>
 
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/dashboard_teacher.svg" data-caption="Teacher Advisory Section Dashboard">
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/dashboard/dashboard-teacher.webp" data-caption="Teacher Advisory Section Dashboard">
           <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/dashboard_teacher.svg" alt="Teacher Advisory Section Dashboard" loading="lazy">
+            <img src="assets/images/dashboard/dashboard-teacher.webp" alt="Teacher Advisory Section Dashboard" loading="lazy">
           </div>
           <figcaption>
             <div>
               <span class="screenshot-title">Teacher Advisory Section Dashboard</span>
-              <p class='screenshot-sub'>Tailored classroom dashboard with section switchers, advisory compliance metrics, and missing document flags</p>
+              <p class='screenshot-sub'>Tailored classroom dashboard with section switchers, advisory compliance metrics, and document status progress</p>
             </div>
             <span class="zoom-hint">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
