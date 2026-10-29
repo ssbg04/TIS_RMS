@@ -98,6 +98,8 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         break;
       case 'Students':
         ref.read(studentViewTabProvider.notifier).state = StudentViewTab.enrolled;
+        ref.read(studentEnrolledSearchProvider.notifier).state = '';
+        ref.read(studentAllSearchProvider.notifier).state = '';
         ref.read(studentQueryProvider.notifier).reset();
         ref.invalidate(studentPageProvider);
         break;

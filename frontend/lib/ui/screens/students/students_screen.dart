@@ -54,6 +54,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   /// Whether the screen is showing enrolled-only (current year) or all students.
   StudentViewTab _viewTab = StudentViewTab.enrolled;
+  bool _isSwitchingTabs = false;
 
   final ScrollController _scrollController = ScrollController();
   int _lastTotalPages = 1;
@@ -75,18 +76,25 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     _searchFocusNode.addListener(_onSearchFocusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      // Sync initial search text if it was set externally (e.g. from Dashboard)
-      final initialQuery = ref.read(studentQueryProvider).search;
-      if (initialQuery.isNotEmpty) {
-        _searchController.text = initialQuery;
-        if (widget.userRole != 'teacher') {
-          if (mounted) setState(() => _viewTab = StudentViewTab.all);
-          ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
-        }
-      } else {
-        // Apply the default enrolled-tab filter on first load
-        _applyViewTab(StudentViewTab.enrolled);
+      final currentTab = ref.read(studentViewTabProvider);
+      if (_viewTab != currentTab) {
+        setState(() => _viewTab = currentTab);
       }
+      final currentSearch = (currentTab == StudentViewTab.enrolled)
+          ? ref.read(studentEnrolledSearchProvider)
+          : ref.read(studentAllSearchProvider);
+
+      _isSwitchingTabs = true;
+      try {
+        if (currentSearch.isNotEmpty) {
+          _searchController.text = currentSearch;
+        }
+      } finally {
+        _isSwitchingTabs = false;
+      }
+
+      _applyViewTab(currentTab, clearSearch: currentSearch.isEmpty);
+
       if (ref.read(activeTabProvider) == 'Students') {
         _shortcutFocusNode.requestFocus();
       }
@@ -96,11 +104,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       ) {
         if (!mounted) return;
         if (next != 'Students') {
-          if (_searchController.text.isNotEmpty) _searchController.clear();
-          ref.read(studentQueryProvider.notifier).reset();
-          // Reset view tab to enrolled for next visit
-          if (mounted) setState(() => _viewTab = StudentViewTab.enrolled);
-          ref.read(studentViewTabProvider.notifier).state = StudentViewTab.enrolled;
           if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
             _updateSelection(() {
               _showMultiSelect = false;
@@ -118,19 +121,26 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           ref.invalidate(academicYearsListProvider);
           ref.invalidate(gradeLevelsListProvider);
           ref.invalidate(sectionsListProvider);
-          // Sync search text if returning to Students tab with a pre-filled query
-          final currentQuery = ref.read(studentQueryProvider).search;
-          if (_searchController.text != currentQuery) {
-            _searchController.text = currentQuery;
-            if (mounted) setState(() {});
+
+          final targetTab = ref.read(studentViewTabProvider);
+          if (mounted && _viewTab != targetTab) {
+            setState(() => _viewTab = targetTab);
           }
-          if (currentQuery.isNotEmpty && widget.userRole != 'teacher') {
-            if (mounted) setState(() => _viewTab = StudentViewTab.all);
-            ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
-          } else if (mounted) {
-            // Re-apply the enrolled filter when returning to this tab
-            _applyViewTab(_viewTab);
+          final targetSearch = (targetTab == StudentViewTab.enrolled)
+              ? ref.read(studentEnrolledSearchProvider)
+              : ref.read(studentAllSearchProvider);
+
+          _isSwitchingTabs = true;
+          try {
+            if (_searchController.text != targetSearch) {
+              _searchController.text = targetSearch;
+              if (mounted) setState(() {});
+            }
+          } finally {
+            _isSwitchingTabs = false;
           }
+
+          _applyViewTab(targetTab, clearSearch: targetSearch.isEmpty);
         }
       });
     });
@@ -153,19 +163,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   }
 
   void _onSearchChanged() {
+    if (_isSwitchingTabs) return;
     _debounce?.cancel();
     final text = _searchController.text;
-    if (widget.userRole != 'teacher' && text.trim().isNotEmpty && _viewTab != StudentViewTab.all) {
-      if (mounted) setState(() => _viewTab = StudentViewTab.all);
-      ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
-      ref.read(studentQueryProvider.notifier).setFilters(
-        status: '',
-        schoolYear: '',
-        gradeLevel: '',
-        section: '',
-      );
+    if (_viewTab == StudentViewTab.enrolled) {
+      ref.read(studentEnrolledSearchProvider.notifier).state = text;
+    } else {
+      ref.read(studentAllSearchProvider.notifier).state = text;
     }
-    _debounce = Timer(const Duration(milliseconds: 500), () {
+    _debounce = Timer(const Duration(milliseconds: 400), () {
       ref.read(studentQueryProvider.notifier).setSearch(text);
     });
   }
@@ -173,60 +179,60 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // ----------------------------------------------------------------
   // VIEW TAB: Enrolled (current year) vs All Students
   // ----------------------------------------------------------------
-  Future<void> _applyViewTab(StudentViewTab tab) async {
+  Future<void> _applyViewTab(StudentViewTab tab, {bool clearSearch = true}) async {
     if (!mounted) return;
-    setState(() => _viewTab = tab);
-    ref.read(studentViewTabProvider.notifier).state = tab;
+    _isSwitchingTabs = true;
+    try {
+      setState(() => _viewTab = tab);
+      ref.read(studentViewTabProvider.notifier).state = tab;
 
-    if (tab == StudentViewTab.enrolled) {
-      // Clear any search when switching back to the enrolled tab
-      if (_searchController.text.isNotEmpty) {
-        _searchController.clear();
-      }
-      // Ensure we have the loaded list of academic years
-      List<AcademicYearModel> years = ref.read(academicYearsListProvider).asData?.value ?? [];
-      if (years.isEmpty) {
-        try {
-          years = await ref.read(academicYearsListProvider.future);
-        } catch (_) {}
-      }
-      if (!mounted) return;
-      final active = years.firstWhere(
-        (y) => y.status.toLowerCase() == 'active',
-        orElse: () => years.isNotEmpty ? years.first : AcademicYearModel(id: 0, yearRange: '', status: ''),
-      );
-      // Apply active school year without hardcoding status so all statuses in this SY stay visible
-      ref.read(studentQueryProvider.notifier).setFilters(
-        status: '',
-        schoolYear: active.yearRange.isNotEmpty ? active.yearRange : '',
-        gradeLevel: '',
-        section: '',
-      );
-      if (ref.read(studentQueryProvider).search.isNotEmpty) {
+      if (clearSearch) {
+        if (_searchController.text.isNotEmpty) {
+          _searchController.clear();
+        }
+        ref.read(studentEnrolledSearchProvider.notifier).state = '';
+        ref.read(studentAllSearchProvider.notifier).state = '';
         ref.read(studentQueryProvider.notifier).setSearch('');
       }
-    } else {
-      // All students: clear status and school year filters
-      ref.read(studentQueryProvider.notifier).setFilters(
-        status: '',
-        schoolYear: '',
-        gradeLevel: '',
-        section: '',
-      );
+
+      if (tab == StudentViewTab.enrolled) {
+        List<AcademicYearModel> years = ref.read(academicYearsListProvider).asData?.value ?? [];
+        if (years.isEmpty) {
+          try {
+            years = await ref.read(academicYearsListProvider.future);
+          } catch (_) {}
+        }
+        if (!mounted) return;
+        final active = years.firstWhere(
+          (y) => y.status.toLowerCase() == 'active',
+          orElse: () => years.isNotEmpty ? years.first : AcademicYearModel(id: 0, yearRange: '', status: ''),
+        );
+
+        ref.read(studentQueryProvider.notifier).setFilters(
+          status: '',
+          schoolYear: active.yearRange.isNotEmpty ? active.yearRange : '',
+          gradeLevel: '',
+          section: '',
+        );
+      } else {
+        ref.read(studentQueryProvider.notifier).setFilters(
+          status: '',
+          schoolYear: '',
+          gradeLevel: '',
+          section: '',
+        );
+      }
+    } finally {
+      _isSwitchingTabs = false;
     }
   }
 
   void _onSearchSubmitted(String query) {
     _debounce?.cancel();
-    if (query.trim().isNotEmpty && _viewTab != StudentViewTab.all) {
-      if (mounted) setState(() => _viewTab = StudentViewTab.all);
-      ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
-      ref.read(studentQueryProvider.notifier).setFilters(
-        status: '',
-        schoolYear: '',
-        gradeLevel: '',
-        section: '',
-      );
+    if (_viewTab == StudentViewTab.enrolled) {
+      ref.read(studentEnrolledSearchProvider.notifier).state = query;
+    } else {
+      ref.read(studentAllSearchProvider.notifier).state = query;
     }
     ref.read(studentQueryProvider.notifier).setSearch(query);
   }
@@ -1056,12 +1062,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
     ref.listen<StudentViewTab>(studentViewTabProvider, (previous, next) {
       if (mounted && _viewTab != next) {
-        setState(() => _viewTab = next);
+        _applyViewTab(next);
       }
     });
 
     ref.listen<StudentQueryParams>(studentQueryProvider, (previous, next) {
-      if (next.search.isEmpty && _searchController.text.isNotEmpty) {
+      if (next.search.isEmpty && _searchController.text.isNotEmpty && !_isSwitchingTabs) {
         _searchController.clear();
       }
       if (previous != null &&
@@ -1080,17 +1086,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       final years = next.asData?.value;
       if (years != null && years.isNotEmpty && _viewTab == StudentViewTab.enrolled) {
         final currentQuery = ref.read(studentQueryProvider);
-        if (currentQuery.search.isEmpty) {
-          final active = years.firstWhere(
-            (y) => y.status.toLowerCase() == 'active',
-            orElse: () => years.first,
+        final active = years.firstWhere(
+          (y) => y.status.toLowerCase() == 'active',
+          orElse: () => years.first,
+        );
+        if (active.yearRange.isNotEmpty && currentQuery.schoolYear != active.yearRange) {
+          ref.read(studentQueryProvider.notifier).setFilters(
+            status: currentQuery.status,
+            schoolYear: active.yearRange,
           );
-          if (active.yearRange.isNotEmpty && currentQuery.schoolYear != active.yearRange) {
-            ref.read(studentQueryProvider.notifier).setFilters(
-              status: currentQuery.status,
-              schoolYear: active.yearRange,
-            );
-          }
         }
       }
     });
@@ -1448,6 +1452,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               onPressed: () {
                                 _searchController.clear();
                                 _searchFocusNode.unfocus();
+                                if (_viewTab == StudentViewTab.enrolled) {
+                                  ref.read(studentEnrolledSearchProvider.notifier).state = '';
+                                } else {
+                                  ref.read(studentAllSearchProvider.notifier).state = '';
+                                }
                                 ref.read(studentQueryProvider.notifier).setSearch('');
                               },
                             )
@@ -1553,6 +1562,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         label: 'Search: "${query.search}"',
         onDeleted: () {
           _searchController.clear();
+          if (_viewTab == StudentViewTab.enrolled) {
+            ref.read(studentEnrolledSearchProvider.notifier).state = '';
+          } else {
+            ref.read(studentAllSearchProvider.notifier).state = '';
+          }
           ref.read(studentQueryProvider.notifier).setSearch('');
         },
         isDark: isDark,
@@ -1616,6 +1630,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             TextButton(
               onPressed: () {
                 _searchController.clear();
+                if (_viewTab == StudentViewTab.enrolled) {
+                  ref.read(studentEnrolledSearchProvider.notifier).state = '';
+                } else {
+                  ref.read(studentAllSearchProvider.notifier).state = '';
+                }
                 ref.read(studentQueryProvider.notifier).setFilters(
                   schoolYear: _viewTab == StudentViewTab.enrolled ? null : '',
                   gradeLevel: '',
@@ -3100,8 +3119,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       actionLabel: hasActiveFilter ? 'Clear Filters' : null,
       onAction: hasActiveFilter
           ? () {
-              ref.read(studentQueryProvider.notifier).reset();
               _searchController.clear();
+              if (_viewTab == StudentViewTab.enrolled) {
+                ref.read(studentEnrolledSearchProvider.notifier).state = '';
+              } else {
+                ref.read(studentAllSearchProvider.notifier).state = '';
+              }
+              ref.read(studentQueryProvider.notifier).reset();
             }
           : null,
     );

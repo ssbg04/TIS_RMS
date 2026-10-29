@@ -892,7 +892,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 maxWidth: 600,
                 onSubmitted: (value) {
                   Navigator.of(context).pop(); // Close dialog
-                  ref.read(studentQueryProvider.notifier).setSearch(value);
+                  final queryText = value.trim();
+                  ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
+                  ref.read(studentAllSearchProvider.notifier).state = queryText;
+                  ref.read(studentQueryProvider.notifier).setFilters(
+                    status: '',
+                    schoolYear: '',
+                    gradeLevel: '',
+                    section: '',
+                  );
+                  ref.read(studentQueryProvider.notifier).setSearch(queryText);
                   ref.invalidate(studentPageProvider);
                   ref.read(activeTabProvider.notifier).setTab('Students');
                   _searchController.clear();

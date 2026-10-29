@@ -240,6 +240,12 @@ enum StudentViewTab { enrolled, all }
 final studentViewTabProvider =
     StateProvider<StudentViewTab>((ref) => StudentViewTab.enrolled);
 
+// ============================================================
+// Separate Search Query Providers for Active Year vs All Tabs
+// ============================================================
+final studentEnrolledSearchProvider = StateProvider<String>((ref) => '');
+final studentAllSearchProvider = StateProvider<String>((ref) => '');
+
 final studentActiveFilterCountProvider = Provider<int>((ref) {
   final query = ref.watch(studentQueryProvider);
   final tab = ref.watch(studentViewTabProvider);
@@ -285,8 +291,7 @@ final studentPageProvider = FutureProvider.autoDispose<StudentPage>((
 
   String effectiveSchoolYear = query.schoolYear;
   if (tab == StudentViewTab.enrolled &&
-      effectiveSchoolYear.isEmpty &&
-      query.search.isEmpty) {
+      effectiveSchoolYear.isEmpty) {
     List<AcademicYearModel> years =
         ref.watch(academicYearsListProvider).asData?.value ?? [];
     if (years.isEmpty) {

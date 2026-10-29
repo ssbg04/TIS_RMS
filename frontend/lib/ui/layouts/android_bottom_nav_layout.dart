@@ -126,18 +126,27 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                 maxWidth: 600,
                 onSubmitted: (value) {
                   Navigator.of(ctx).pop();
-                  if (value.trim().isNotEmpty) {
+                  final queryText = value.trim();
+                  if (navigateToStudents) {
+                    ref.read(studentViewTabProvider.notifier).state = StudentViewTab.all;
+                    ref.read(studentAllSearchProvider.notifier).state = queryText;
                     ref.read(studentQueryProvider.notifier).setFilters(
                       status: '',
                       schoolYear: '',
                       gradeLevel: '',
                       section: '',
                     );
-                  }
-                  ref.read(studentQueryProvider.notifier).setSearch(value);
-                  if (navigateToStudents) {
+                    ref.read(studentQueryProvider.notifier).setSearch(queryText);
                     ref.invalidate(studentPageProvider);
                     ref.read(activeTabProvider.notifier).setTab('Students');
+                  } else {
+                    final currentTab = ref.read(studentViewTabProvider);
+                    if (currentTab == StudentViewTab.enrolled) {
+                      ref.read(studentEnrolledSearchProvider.notifier).state = queryText;
+                    } else {
+                      ref.read(studentAllSearchProvider.notifier).state = queryText;
+                    }
+                    ref.read(studentQueryProvider.notifier).setSearch(queryText);
                   }
                 },
               ),
@@ -384,6 +393,8 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         break;
       case 'Students':
         ref.read(studentViewTabProvider.notifier).state = StudentViewTab.enrolled;
+        ref.read(studentEnrolledSearchProvider.notifier).state = '';
+        ref.read(studentAllSearchProvider.notifier).state = '';
         ref.read(studentQueryProvider.notifier).reset();
         ref.invalidate(studentPageProvider);
         break;
