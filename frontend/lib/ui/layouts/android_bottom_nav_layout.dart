@@ -572,7 +572,8 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
               child: Scaffold(
                 key: _scaffoldKey,
                 drawerEnableOpenDragGesture: !isStudentMultiSelect,
-                drawerEdgeDragWidth: isStudentMultiSelect ? 0.0 : 64.0,
+                drawerEdgeDragWidth: isStudentMultiSelect ? 0.0 : 48.0,
+                drawerScrimColor: Colors.black54,
                 resizeToAvoidBottomInset: false,
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 appBar: isStudentMultiSelect
@@ -980,11 +981,12 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                           ],
                         ],
                       ),
-          drawer: Drawer(
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            surfaceTintColor: Colors.transparent,
-            width: 280,
-            child: SafeArea(
+          drawer: RepaintBoundary(
+            child: Drawer(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              surfaceTintColor: Colors.transparent,
+              width: 280,
+              child: SafeArea(
               child: Column(
                 children: [
                   Container(
@@ -1043,87 +1045,75 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                     ),
                   ),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    child: ListView(
+                      padding: EdgeInsets.zero,
                       children: [
-                        Expanded(
-                          child: ListView(
-                            physics: const NeverScrollableScrollPhysics(),
-                            padding: EdgeInsets.zero,
-                            children: [
-                              if (_allowedPrimary.isNotEmpty) ...[
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 8,
-                                  ),
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    'MAIN',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      ..._allowedPrimary.map(
-                                        (tab) => _buildDrawerItem(
-                                          tab,
-                                          currentIndex,
-                                          _tabs,
-                                        ),
-                                      ),
-                                    ],
+                        if (_allowedPrimary.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 8,
+                            ),
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'MAIN',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                            ),
+                            child: Column(
+                              children: [
+                                ..._allowedPrimary.map(
+                                  (tab) => _buildDrawerItem(
+                                    tab,
+                                    currentIndex,
+                                    _tabs,
                                   ),
                                 ),
                               ],
-                            ],
+                            ),
                           ),
-                        ),
-                        if (_allowedSecondary.isNotEmpty)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 8,
-                                ),
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'ADMINISTRATION',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
+                        ],
+                        if (_allowedSecondary.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 8,
+                            ),
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'ADMINISTRATION',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                            ),
+                            child: Column(
+                              children: [
+                                ..._allowedSecondary.map(
+                                  (tab) => _buildDrawerItem(
+                                    tab,
+                                    currentIndex,
+                                    _tabs,
                                   ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                child: Column(
-                                  children: [
-                                    ..._allowedSecondary.map(
-                                      (tab) => _buildDrawerItem(
-                                        tab,
-                                        currentIndex,
-                                        _tabs,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                        ],
                       ],
                     ),
                   ),
@@ -1206,6 +1196,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
               ),
             ),
           ),
+        ),
           body: AbstractBackground(
             child: Stack(
               children: [
@@ -1258,7 +1249,9 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         child: InkWell(
           onTap: () {
             Navigator.pop(context); // Close drawer
-            _onNavTapped(label);
+            if (!isSelected) {
+              _onNavTapped(label);
+            }
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -1387,45 +1380,17 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
   }
 }
 
-class _DrawerCloseButton extends StatefulWidget {
+class _DrawerCloseButton extends StatelessWidget {
   const _DrawerCloseButton();
-
-  @override
-  State<_DrawerCloseButton> createState() => _DrawerCloseButtonState();
-}
-
-class _DrawerCloseButtonState extends State<_DrawerCloseButton> {
-  bool _useArrow = false;
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(const Duration(milliseconds: 150), () {
-      if (mounted) {
-        setState(() {
-          _useArrow = true;
-        });
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      icon: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 250),
-        transitionBuilder: (child, animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: ScaleTransition(scale: animation, child: child),
-          );
-        },
-        child: Icon(
-          _useArrow ? Icons.arrow_back : Icons.menu,
-          key: ValueKey(_useArrow),
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
-        ),
+      icon: Icon(
+        Icons.arrow_back,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
       ),
+      tooltip: 'Close menu',
       onPressed: () => Navigator.pop(context),
     );
   }
