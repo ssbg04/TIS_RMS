@@ -14,7 +14,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   // ==========================================
-  // 1. THEME TOGGLE (EYE-FRIENDLY SLATE DARK / CLEAN LIGHT)
+  // 1. THEME TOGGLE (MINIMALIST LIGHT / DARK)
   // ==========================================
   const themeToggleBtn = document.getElementById('themeToggleBtn');
   const savedTheme = localStorage.getItem('tis_doc_theme') || 
@@ -26,8 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateThemeButton(theme) {
     if (!themeToggleBtn) return;
     const isDark = theme === 'dark';
-    themeToggleBtn.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to eye-friendly dark theme');
-    themeToggleBtn.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to eye-friendly dark theme');
+    themeToggleBtn.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+    themeToggleBtn.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
   }
 
   if (themeToggleBtn) {
