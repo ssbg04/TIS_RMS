@@ -162,7 +162,7 @@ kbd {
 .doc-header {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 120;
   height: var(--header-h);
   background: var(--header-bg);
   backdrop-filter: blur(12px);
@@ -197,25 +197,32 @@ kbd {
 }
 
 .mobile-menu-btn:hover,
-.mobile-search-btn:hover {
+.mobile-search-btn:hover,
+.mobile-menu-btn.active {
   background: var(--bg-subtle);
-  border-color: var(--border-strong);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .sidebar-backdrop {
-  display: none;
+  display: block;
   position: fixed;
   inset: 0;
-  z-index: 95;
-  background: rgba(0, 0, 0, 0.4);
+  top: var(--header-h);
+  z-index: 105;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   opacity: 0;
-  transition: opacity 0.2s ease;
+  visibility: hidden;
   pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s;
+  touch-action: none;
 }
 
 .sidebar-backdrop.active {
-  display: block;
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 
@@ -1442,7 +1449,7 @@ table.doc-table tr:hover td {
     border-bottom: 1px solid var(--border-subtle);
     display: none;
     box-shadow: var(--shadow-md);
-    z-index: 90;
+    z-index: 115;
   }
 
   .header-search.mobile-open {
@@ -1455,21 +1462,62 @@ table.doc-table tr:hover td {
 
   .doc-sidebar {
     position: fixed;
-    top: 0;
+    top: var(--header-h);
     bottom: 0;
-    left: -300px;
-    height: 100vh;
-    z-index: 100;
-    width: 280px;
+    left: 0;
+    height: calc(100vh - var(--header-h));
+    height: calc(100dvh - var(--header-h));
+    z-index: 110;
+    width: min(84vw, 310px);
     background: var(--bg-surface);
     border-right: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-lg);
-    transition: transform 0.25s ease;
-    padding: 16px 14px 40px;
+    box-shadow: none;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s;
+    padding: 16px 12px calc(48px + env(safe-area-inset-bottom, 16px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   .doc-sidebar.open {
-    transform: translateX(300px);
+    transform: translateX(0);
+    visibility: visible;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .doc-sidebar .sidebar-heading {
+    font-size: 0.72rem;
+    margin: 18px 0 6px 6px;
+    letter-spacing: 0.05em;
+  }
+
+  .doc-sidebar .sidebar-heading:first-of-type {
+    margin-top: 4px;
+  }
+
+  .doc-sidebar .sidebar-nav li {
+    margin-bottom: 3px;
+  }
+
+  .doc-sidebar .nav-link {
+    padding: 10px 12px;
+    min-height: 42px;
+    font-size: 0.88rem;
+    gap: 10px;
+    border-radius: var(--radius-sm);
+    line-height: 1.35;
+  }
+
+  .doc-sidebar .nav-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .doc-sidebar .nav-badge {
+    font-size: 0.65rem;
+    padding: 2px 7px;
   }
 
   .doc-main {
@@ -1608,8 +1656,9 @@ table.doc-table tr:hover td {
 
 @media (max-width: 1024px) and (orientation: landscape) {
   .doc-sidebar {
-    height: 100vh;
-    max-height: 100vh;
+    height: calc(100vh - var(--header-h));
+    height: calc(100dvh - var(--header-h));
+    max-height: calc(100dvh - var(--header-h));
     overflow-y: auto;
     padding-bottom: 56px;
   }
@@ -1722,13 +1771,45 @@ table.doc-table tr:hover td {
   grid-column: 1;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .page-navigation {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
+    margin-top: 36px;
+    padding-top: 22px;
   }
-  .page-nav-link.next:only-child {
-    grid-column: 1;
+
+  /* Next button stacked at the top */
+  .page-nav-link.next {
+    order: 1;
+    width: 100%;
+    grid-column: auto;
+    text-align: right;
+    align-items: flex-end;
+  }
+
+  /* Previous button stacked below the next button */
+  .page-nav-link.prev {
+    order: 2;
+    width: 100%;
+    grid-column: auto;
+    text-align: left;
+    align-items: flex-start;
+  }
+
+  .page-nav-link.next:only-child,
+  .page-nav-link.prev:only-child {
+    grid-column: auto;
+    order: 1;
+  }
+
+  .page-nav-link {
+    padding: 14px 18px;
+  }
+
+  .page-nav-link:active {
+    transform: scale(0.99);
   }
 }
 

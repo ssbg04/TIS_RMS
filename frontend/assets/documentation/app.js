@@ -145,13 +145,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const docSearchInput = document.getElementById('docSearchInput');
 
   function openMobileSidebar() {
-    if (docSidebar) docSidebar.classList.add('open');
+    if (docSidebar) {
+      docSidebar.classList.add('open');
+      const activeLink = docSidebar.querySelector('.nav-link.active');
+      if (activeLink) {
+        setTimeout(() => {
+          activeLink.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }, 120);
+      }
+    }
     if (sidebarBackdrop) sidebarBackdrop.classList.add('active');
     if (mobileMenuBtn) {
+      mobileMenuBtn.classList.add('active');
       const ham = mobileMenuBtn.querySelector('.hamburger-icon');
       const close = mobileMenuBtn.querySelector('.close-icon');
       if (ham) ham.style.display = 'none';
       if (close) close.style.display = 'block';
+      mobileMenuBtn.setAttribute('aria-expanded', 'true');
     }
     document.body.style.overflow = 'hidden';
   }
@@ -160,10 +170,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (docSidebar) docSidebar.classList.remove('open');
     if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
     if (mobileMenuBtn) {
+      mobileMenuBtn.classList.remove('active');
       const ham = mobileMenuBtn.querySelector('.hamburger-icon');
       const close = mobileMenuBtn.querySelector('.close-icon');
       if (ham) ham.style.display = 'block';
       if (close) close.style.display = 'none';
+      mobileMenuBtn.setAttribute('aria-expanded', 'false');
     }
     document.body.style.overflow = '';
   }
@@ -190,6 +202,46 @@ document.addEventListener('DOMContentLoaded', () => {
         closeMobileSidebar();
       }
     });
+  });
+
+  // Close sidebar on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (docSidebar && docSidebar.classList.contains('open')) {
+        closeMobileSidebar();
+      }
+      if (headerSearchBox && headerSearchBox.classList.contains('mobile-open')) {
+        headerSearchBox.classList.remove('mobile-open');
+      }
+    }
+  });
+
+  // Touch swipe left to close mobile sidebar
+  let touchStartX = 0;
+  let touchStartY = 0;
+  if (docSidebar) {
+    docSidebar.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    docSidebar.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].screenX;
+      const touchEndY = e.changedTouches[0].screenY;
+      const diffX = touchStartX - touchEndX;
+      const diffY = Math.abs(touchStartY - touchEndY);
+      // Swipe left by at least 45px
+      if (diffX > 45 && diffY < 100 && docSidebar.classList.contains('open')) {
+        closeMobileSidebar();
+      }
+    }, { passive: true });
+  }
+
+  // Close mobile sidebar if window resized to desktop
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 1024 && docSidebar && docSidebar.classList.contains('open')) {
+      closeMobileSidebar();
+    }
   });
 
   // Mobile search toggle button in header
