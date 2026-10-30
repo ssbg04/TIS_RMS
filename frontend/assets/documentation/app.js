@@ -1,27 +1,25 @@
 /**
  * TIS-RMS DOCUMENTATION INTERACTIVE CONTROLLER
  * Handles:
- * 1. Eye-Friendly Dark/Light Theme Switching with LocalStorage
+ * 1. Minimalist Dark/Light Theme Switching with Instant Sync & LocalStorage
  * 2. Dedicated Print Action
- * 3. Windows / Android Platform Filter with Persistent State
- * 4. Multi-Page Live Search with Keyboard Navigation (Arrows + Enter)
- * 5. Mockup Platform Tab Switching
- * 6. Responsive Mobile & Landscape Sidebar Navigation
- * 7. Image Lightbox Zoom Modal
- * 8. FAQ Accordion Interaction
+ * 3. Mockup Platform Tab Switching (Windows / Android)
+ * 4. Responsive Mobile & Landscape Sidebar Navigation
+ * 5. Lightbox Zoom Modal
+ * 6. FAQ Accordion Interaction
+ * 7. Multi-Page Live Search with Keyboard Navigation
+ * 8. Seamless Zero-Flicker Client-Side Navigation (SPA / Fast Page Swap)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
 
   // ==========================================
-  // 1. THEME TOGGLE (MINIMALIST LIGHT / DARK)
+  // 1. THEME CONTROLLER (MINIMALIST LIGHT / DARK)
   // ==========================================
   const themeToggleBtn = document.getElementById('themeToggleBtn');
-  const savedTheme = localStorage.getItem('tis_doc_theme') || 
-    (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  updateThemeButton(savedTheme);
+  const savedTheme = localStorage.getItem('tis_doc_theme');
+  const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const currentTheme = document.documentElement.getAttribute('data-theme') || savedTheme || (systemPrefersDark ? 'dark' : 'light');
 
   function updateThemeButton(theme) {
     if (!themeToggleBtn) return;
@@ -30,13 +28,26 @@ document.addEventListener('DOMContentLoaded', () => {
     themeToggleBtn.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
   }
 
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.style.backgroundColor = (theme === 'dark' ? '#09090B' : '#FFFFFF');
+    document.documentElement.style.colorScheme = theme;
+    localStorage.setItem('tis_doc_theme', theme);
+    updateThemeButton(theme);
+
+    const meta = document.getElementById('themeColorMeta') || document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.setAttribute('content', theme === 'dark' ? '#09090B' : '#FFFFFF');
+    }
+  }
+
+  applyTheme(currentTheme);
+
   if (themeToggleBtn) {
     themeToggleBtn.addEventListener('click', () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('tis_doc_theme', newTheme);
-      updateThemeButton(newTheme);
+      const activeTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      const newTheme = activeTheme === 'dark' ? 'light' : 'dark';
+      applyTheme(newTheme);
     });
   }
 
@@ -52,90 +63,36 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 3. GLOBAL PLATFORM FILTER (ALL / WINDOWS / ANDROID)
+  // 3. MOCKUP TAB SWITCHING
   // ==========================================
-  const platformFilterBtns = document.querySelectorAll('.platform-pill-toggle .platform-btn');
-  const savedPlatform = localStorage.getItem('tis_doc_platform') || 'all';
-
-  function applyPlatformFilter(filter) {
-    // 1. Update button states in header
-    platformFilterBtns.forEach(btn => {
-      const bFilter = btn.getAttribute('data-platform-filter');
-      btn.classList.toggle('active', bFilter === filter);
-    });
-
-    // 2. Set root attribute for CSS styling
-    document.documentElement.setAttribute('data-doc-platform', filter);
-
-    // 3. Save to localStorage
-    localStorage.setItem('tis_doc_platform', filter);
-
-    // 4. Update mockup container tabs on the current page
+  function initMockupTabs() {
     document.querySelectorAll('.mockup-container').forEach(container => {
-      const winTabBtn = container.querySelector('[data-tab-target^="win-"]');
-      const andTabBtn = container.querySelector('[data-tab-target^="and-"]');
+      const tabBtns = container.querySelectorAll('.mockup-tab-btn');
+      const panes = container.querySelectorAll('.mockup-pane');
 
-      if (filter === 'windows' && winTabBtn) {
-        winTabBtn.click();
-      } else if (filter === 'android' && andTabBtn) {
-        andTabBtn.click();
-      } else if (filter === 'all' && winTabBtn) {
-        winTabBtn.click();
-      }
-    });
+      tabBtns.forEach(btn => {
+        btn.onclick = () => {
+          const targetId = btn.getAttribute('data-tab-target');
 
-    // 5. In shortcut tables or platform badges, adjust visual state
-    document.querySelectorAll('.shortcut-group-windows, .shortcut-group-android').forEach(el => {
-      if (filter === 'all') {
-        el.style.opacity = '';
-      } else if (filter === 'windows') {
-        el.style.opacity = el.classList.contains('shortcut-group-windows') ? '1' : '0.35';
-      } else if (filter === 'android') {
-        el.style.opacity = el.classList.contains('shortcut-group-android') ? '1' : '0.35';
-      }
+          tabBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          panes.forEach(pane => {
+            if (pane.id === targetId) {
+              pane.style.display = 'block';
+              pane.classList.add('active');
+            } else {
+              pane.style.display = 'none';
+              pane.classList.remove('active');
+            }
+          });
+        };
+      });
     });
   }
 
-  // Initialize platform filter from storage
-  applyPlatformFilter(savedPlatform);
-
-  // Attach click listener to platform pill buttons
-  platformFilterBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const filter = btn.getAttribute('data-platform-filter');
-      applyPlatformFilter(filter);
-    });
-  });
-
   // ==========================================
-  // 4. MOCKUP TAB SWITCHING (IN-PAGE WINDOWS / ANDROID)
-  // ==========================================
-  document.querySelectorAll('.mockup-container').forEach(container => {
-    const tabBtns = container.querySelectorAll('.mockup-tab-btn');
-    const panes = container.querySelectorAll('.mockup-pane');
-
-    tabBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const targetId = btn.getAttribute('data-tab-target');
-
-        tabBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        panes.forEach(pane => {
-          if (pane.id === targetId) {
-            pane.style.display = 'block';
-            pane.classList.add('active');
-          } else {
-            pane.style.display = 'none';
-            pane.classList.remove('active');
-          }
-        });
-      });
-    });
-  });
-
-  // ==========================================
-  // 5. MOBILE NAVIGATION & SEARCH
+  // 4. MOBILE NAVIGATION & SEARCH
   // ==========================================
   const mobileMenuBtn = document.getElementById('mobileMenuBtn');
   const docSidebar = document.getElementById('docSidebar');
@@ -195,27 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebarBackdrop.addEventListener('click', closeMobileSidebar);
   }
 
-  // Close mobile sidebar when clicking any navigation link
-  document.querySelectorAll('.doc-sidebar .nav-link').forEach(link => {
-    link.addEventListener('click', () => {
-      if (window.innerWidth <= 1024) {
-        closeMobileSidebar();
-      }
-    });
-  });
-
-  // Close sidebar on Escape key
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (docSidebar && docSidebar.classList.contains('open')) {
-        closeMobileSidebar();
-      }
-      if (headerSearchBox && headerSearchBox.classList.contains('mobile-open')) {
-        headerSearchBox.classList.remove('mobile-open');
-      }
-    }
-  });
-
   // Touch swipe left to close mobile sidebar
   let touchStartX = 0;
   let touchStartY = 0;
@@ -230,21 +166,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const touchEndY = e.changedTouches[0].screenY;
       const diffX = touchStartX - touchEndX;
       const diffY = Math.abs(touchStartY - touchEndY);
-      // Swipe left by at least 45px
       if (diffX > 45 && diffY < 100 && docSidebar.classList.contains('open')) {
         closeMobileSidebar();
       }
     }, { passive: true });
   }
 
-  // Close mobile sidebar if window resized to desktop
   window.addEventListener('resize', () => {
     if (window.innerWidth > 1024 && docSidebar && docSidebar.classList.contains('open')) {
       closeMobileSidebar();
     }
   });
 
-  // Mobile search toggle button in header
   if (mobileSearchBtn && headerSearchBox) {
     mobileSearchBtn.addEventListener('click', () => {
       const isOpen = headerSearchBox.classList.toggle('mobile-open');
@@ -255,20 +188,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 6. FAQ ACCORDION HANDLER
+  // 5. FAQ ACCORDION HANDLER
   // ==========================================
-  document.querySelectorAll('.faq-item').forEach(item => {
-    const questionBtn = item.querySelector('.faq-question');
-    if (questionBtn) {
-      questionBtn.addEventListener('click', () => {
-        const isActive = item.classList.contains('active');
-        item.classList.toggle('active', !isActive);
-      });
-    }
-  });
+  function initFaqAccordions() {
+    document.querySelectorAll('.faq-item').forEach(item => {
+      const questionBtn = item.querySelector('.faq-question');
+      if (questionBtn) {
+        questionBtn.onclick = () => {
+          const isActive = item.classList.contains('active');
+          item.classList.toggle('active', !isActive);
+        };
+      }
+    });
+  }
 
   // ==========================================
-  // 7. LIGHTBOX ZOOM MODAL
+  // 6. LIGHTBOX ZOOM MODAL
   // ==========================================
   const lightboxModal = document.getElementById('lightboxModal');
   const lightboxImg = document.getElementById('lightboxImg');
@@ -291,13 +226,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.style.overflow = '';
   }
 
-  document.querySelectorAll('[data-lightbox]').forEach(el => {
-    el.addEventListener('click', () => {
-      const src = el.getAttribute('data-lightbox');
-      const caption = el.getAttribute('data-caption') || '';
-      openLightbox(src, caption);
+  function initLightboxTriggers() {
+    document.querySelectorAll('[data-lightbox]').forEach(el => {
+      el.onclick = () => {
+        const src = el.getAttribute('data-lightbox');
+        const caption = el.getAttribute('data-caption') || '';
+        openLightbox(src, caption);
+      };
     });
-  });
+  }
 
   if (lightboxCloseBtn) {
     lightboxCloseBtn.addEventListener('click', closeLightbox);
@@ -312,10 +249,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 8. MULTI-PAGE LIVE SEARCH & QUICK NAVIGATION
+  // 7. MULTI-PAGE LIVE SEARCH & QUICK NAVIGATION
   // ==========================================
   const searchInput = document.getElementById('docSearchInput');
-  const searchableSections = document.querySelectorAll('.doc-section, .hero-banner');
+  let searchableSections = document.querySelectorAll('.doc-main .doc-section, .doc-main .hero-banner');
+
+  function updateSearchableSections() {
+    searchableSections = document.querySelectorAll('.doc-main .doc-section, .doc-main .hero-banner');
+  }
 
   const DOC_PAGES = [
     { title: 'System Overview', url: 'index.html', desc: 'System overview, school background, key capabilities, and handbook introduction' },
@@ -359,7 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const query = e.target.value.trim().toLowerCase();
       selectedResultIndex = -1;
 
-      // Current page element filtering
       if (!query) {
         if (searchDropdown) {
           searchDropdown.classList.remove('active');
@@ -385,7 +325,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      // Multi-page suggestion dropdown
       if (searchDropdown) {
         const matches = DOC_PAGES.filter(p =>
           p.title.toLowerCase().includes(query) ||
@@ -410,7 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Keyboard navigation in search input: ArrowDown, ArrowUp, Enter, Escape
     searchInput.addEventListener('keydown', (e) => {
       if (!searchDropdown || !searchDropdown.classList.contains('active')) return;
       const items = searchDropdown.querySelectorAll('.search-result-item');
@@ -440,7 +378,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Global keyboard shortcut: Ctrl+F, Ctrl+K, or / focuses search
     window.addEventListener('keydown', (e) => {
       if ((e.ctrlKey && (e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 'k')) || (e.key === '/' && document.activeElement !== searchInput)) {
         e.preventDefault();
@@ -458,17 +395,151 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 9. ACTIVE PAGE SIDEBAR HIGHLIGHTING & LANDSCAPE SCROLL
+  // 8. ACTIVE PAGE SIDEBAR HIGHLIGHTING
   // ==========================================
-  const navLinks = document.querySelectorAll('.doc-sidebar .nav-link');
-  const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+  function updateActiveSidebarLink(targetHref) {
+    const rawPath = targetHref || window.location.pathname;
+    let filename = rawPath.split('/').pop().split('?')[0].split('#')[0] || 'index.html';
+    if (filename === '' || filename === 'overview.html') filename = 'index.html';
 
-  navLinks.forEach(link => {
-    const linkHref = link.getAttribute('href');
-    if (linkHref === currentPath || (currentPath === '' && linkHref === 'index.html') || (currentPath === 'overview.html' && linkHref === 'index.html')) {
-      link.classList.add('active');
-      // On landscape or small screens, ensure active link is visible in scrollable sidebar
-      link.scrollIntoView({ block: 'nearest' });
+    const navLinks = document.querySelectorAll('.doc-sidebar .nav-link');
+    navLinks.forEach(link => {
+      const linkHref = link.getAttribute('href');
+      if (linkHref === filename) {
+        link.classList.add('active');
+        link.scrollIntoView({ block: 'nearest' });
+      } else {
+        link.classList.remove('active');
+      }
+    });
+  }
+
+  // ==========================================
+  // 9. COMPONENT RE-INITIALIZER
+  // ==========================================
+  function initPageFeatures() {
+    initMockupTabs();
+    initFaqAccordions();
+    initLightboxTriggers();
+    updateSearchableSections();
+    updateActiveSidebarLink();
+  }
+
+  // ==========================================
+  // 10. SEAMLESS ZERO-FLICKER CLIENT NAVIGATION
+  // ==========================================
+  async function loadPage(url, pushState = true) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const htmlText = await response.text();
+      const parser = new DOMParser();
+      const newDoc = parser.parseFromString(htmlText, 'text/html');
+
+      const newMain = newDoc.querySelector('.doc-main');
+      const currentMain = document.querySelector('.doc-main');
+      if (!newMain || !currentMain) {
+        window.location.href = url;
+        return;
+      }
+
+      // Smoothly replace the main content without destroying the root DOM/canvas
+      currentMain.replaceWith(newMain);
+
+      // Update page title
+      if (newDoc.title) {
+        document.title = newDoc.title;
+      }
+
+      // Push history state
+      if (pushState) {
+        window.history.pushState({ docUrl: url }, '', url);
+      }
+
+      // Update active nav-link in sidebar
+      updateActiveSidebarLink(url);
+
+      // Close mobile sidebar immediately
+      if (window.innerWidth <= 1024) {
+        closeMobileSidebar();
+      }
+
+      // Close search dropdown and clear inputs
+      if (headerSearchBox && headerSearchBox.classList.contains('mobile-open')) {
+        headerSearchBox.classList.remove('mobile-open');
+      }
+      if (searchDropdown) {
+        searchDropdown.classList.remove('active');
+      }
+      if (searchInput) {
+        searchInput.value = '';
+      }
+
+      // Scroll to anchor or top
+      const targetHash = new URL(url, window.location.href).hash;
+      if (targetHash) {
+        const targetEl = document.querySelector(targetHash);
+        if (targetEl) {
+          targetEl.scrollIntoView();
+        } else {
+          window.scrollTo(0, 0);
+        }
+      } else {
+        window.scrollTo(0, 0);
+      }
+
+      // Re-init interactive components
+      initPageFeatures();
+    } catch (_) {
+      // Fallback to normal navigation if fetch fails
+      window.location.href = url;
+    }
+  }
+
+  // Global click interceptor for seamless documentation links
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (!link) return;
+
+    if (link.target && link.target !== '_self') return;
+    if (link.hasAttribute('download')) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+
+    const href = link.getAttribute('href');
+    if (!href) return;
+    if (href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+
+    let targetUrl;
+    try {
+      targetUrl = new URL(href, window.location.href);
+    } catch (_) {
+      return;
+    }
+
+    if (targetUrl.origin !== window.location.origin) return;
+
+    // Same-page hash navigation
+    if (targetUrl.pathname === window.location.pathname) {
+      if (targetUrl.hash) {
+        if (window.innerWidth <= 1024) {
+          closeMobileSidebar();
+        }
+        return;
+      }
+    }
+
+    const targetPath = targetUrl.pathname;
+    if (targetPath.endsWith('.html') || targetPath.endsWith('/') || targetPath === '') {
+      e.preventDefault();
+      loadPage(targetUrl.href, true);
     }
   });
+
+  // Browser/WebView Back & Forward history navigation
+  window.addEventListener('popstate', () => {
+    loadPage(window.location.href, false);
+  });
+
+  // Run initial page setup
+  initPageFeatures();
 });

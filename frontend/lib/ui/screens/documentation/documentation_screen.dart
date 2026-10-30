@@ -308,7 +308,7 @@ class _WindowsDocViewState extends State<_WindowsDocView> {
       }));
 
       await _controller.setBackgroundColor(
-        widget.isDark ? const Color(0xFF161D19) : Colors.white,
+        widget.isDark ? const Color(0xFF09090B) : Colors.white,
       );
       await _controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
       await _controller.loadUrl(widget.url);
@@ -513,7 +513,7 @@ class _AndroidDocViewState extends State<_AndroidDocView> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(
-        widget.isDark ? const Color(0xFF161D19) : Colors.white,
+        widget.isDark ? const Color(0xFF09090B) : Colors.white,
       )
       ..setNavigationDelegate(
         NavigationDelegate(
