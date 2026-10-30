@@ -153,7 +153,11 @@ class _UpdateDialogWidgetState extends State<_UpdateDialogWidget> {
     });
 
     try {
-      await AppUpdateService.installDownloadedUpdate(path);
+      await AppUpdateService.recordPendingUpdateVersion(widget.updateInfo.latestVersion);
+      await AppUpdateService.installDownloadedUpdate(
+        path,
+        targetVersion: widget.updateInfo.latestVersion,
+      );
       if (mounted) {
         setState(() => _isInstalling = false);
       }

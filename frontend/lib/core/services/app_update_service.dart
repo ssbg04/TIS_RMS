@@ -7,6 +7,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 /// Structured information about an available app update.
@@ -349,6 +350,20 @@ class AppUpdateService {
     final sanitizedName = fileName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
     final savePath = '${updatesDir.path}/$sanitizedName';
 
+    // Pre-clean old/stale update installers so multiple versions don't accumulate
+    try {
+      if (await updatesDir.exists()) {
+        final entries = updatesDir.listSync(recursive: false, followLinks: false);
+        for (final entry in entries) {
+          if (entry is File) {
+            try {
+              await entry.delete();
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+
     // Delete incomplete/old update file if present
     final existingFile = File(savePath);
     if (await existingFile.exists()) {
@@ -371,10 +386,20 @@ class AppUpdateService {
   /// Installs or launches the downloaded installer.
   /// On Android: Prompts the user to install via default Android package installer.
   /// On Windows: Launches the installer executable detached and closes the Windows app.
-  static Future<void> installDownloadedUpdate(String filePath) async {
+  static Future<void> installDownloadedUpdate(String filePath, {String? targetVersion}) async {
     var file = File(filePath);
     if (!await file.exists()) {
       throw Exception('Downloaded installer file does not exist at $filePath');
+    }
+
+    if (targetVersion != null && targetVersion.isNotEmpty) {
+      await recordPendingUpdateVersion(targetVersion);
+    } else {
+      final fileName = file.uri.pathSegments.isNotEmpty ? file.uri.pathSegments.last : '';
+      final match = RegExp(r'v?(\d+\.\d+\.\d+)').firstMatch(fileName);
+      if (match != null) {
+        await recordPendingUpdateVersion(match.group(0)!);
+      }
     }
 
     if (!kIsWeb && Platform.isAndroid) {
@@ -455,6 +480,246 @@ class AppUpdateService {
     } else {
       // Generic fallback
       await OpenFilex.open(filePath);
+    }
+  }
+
+  static const String _pendingUpdateVersionKey = 'pref_pending_update_version';
+
+  /// Records the version of the installer being launched so the app can auto-clear
+  /// the installer cache after successful installation on next app startup.
+  static Future<void> recordPendingUpdateVersion(String version) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_pendingUpdateVersionKey, version.trim());
+    } catch (e) {
+      debugPrint('[AppUpdateService] Failed to record pending update version: $e');
+    }
+  }
+
+  /// Returns all potential directories where APK or Windows installer files may be cached.
+  static Future<List<Directory>> getInstallerCacheDirectories() async {
+    if (kIsWeb) return const [];
+    final dirs = <Directory>[];
+
+    // 1. Temporary directory updates/
+    try {
+      final tempDir = await getTemporaryDirectory();
+      dirs.add(Directory('${tempDir.path}/updates'));
+    } catch (_) {}
+
+    // 2. Application cache directory updates/
+    try {
+      final appCacheDir = await getApplicationCacheDirectory();
+      dirs.add(Directory('${appCacheDir.path}/updates'));
+    } catch (_) {}
+
+    // 3. Android external storage updates/
+    if (Platform.isAndroid) {
+      try {
+        final extDir = await getExternalStorageDirectory();
+        if (extDir != null) {
+          dirs.add(Directory('${extDir.path}/updates'));
+        }
+      } catch (_) {}
+
+      try {
+        final extCacheDirs = await getExternalCacheDirectories();
+        if (extCacheDirs != null) {
+          for (final d in extCacheDirs) {
+            dirs.add(Directory('${d.path}/updates'));
+          }
+        }
+      } catch (_) {}
+    }
+
+    return dirs;
+  }
+
+  /// Returns a list of all installer cache files (APKs, EXEs, and partial downloads).
+  static Future<List<File>> getInstallerCacheFiles() async {
+    if (kIsWeb) return const [];
+    final files = <File>[];
+    final seenPaths = <String>{};
+
+    final updateDirs = await getInstallerCacheDirectories();
+    for (final dir in updateDirs) {
+      if (await dir.exists()) {
+        try {
+          final entries = dir.listSync(recursive: true, followLinks: false);
+          for (final entity in entries) {
+            if (entity is File) {
+              if (seenPaths.add(entity.path)) {
+                files.add(entity);
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('[AppUpdateService] Error listing update dir ${dir.path}: $e');
+        }
+      }
+    }
+
+    // Also inspect temp root for any orphaned installer files
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        final entries = tempDir.listSync(recursive: false, followLinks: false);
+        for (final entity in entries) {
+          if (entity is File) {
+            final lower = entity.path.toLowerCase();
+            if (lower.endsWith('.apk') ||
+                (lower.endsWith('.exe') &&
+                    (lower.contains('tis_rms') ||
+                        lower.contains('setup') ||
+                        lower.contains('update')))) {
+              if (seenPaths.add(entity.path)) {
+                files.add(entity);
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Also on Android inspect extDir root for orphaned APKs
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        final extDir = await getExternalStorageDirectory();
+        if (extDir != null && await extDir.exists()) {
+          final entries = extDir.listSync(recursive: false, followLinks: false);
+          for (final entity in entries) {
+            if (entity is File && entity.path.toLowerCase().endsWith('.apk')) {
+              if (seenPaths.add(entity.path)) {
+                files.add(entity);
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    return files;
+  }
+
+  /// Calculates the total size in bytes of all cached installer files.
+  static Future<int> getInstallerCacheSizeBytes() async {
+    if (kIsWeb) return 0;
+    try {
+      final files = await getInstallerCacheFiles();
+      int total = 0;
+      for (final file in files) {
+        try {
+          if (await file.exists()) {
+            total += await file.length();
+          }
+        } catch (_) {}
+      }
+      return total;
+    } catch (e) {
+      debugPrint('[AppUpdateService] Error calculating cache size: $e');
+      return 0;
+    }
+  }
+
+  /// Human-readable formatting of byte size (e.g. "16.4 MB", "512 KB", "0 B").
+  static String formatBytes(int bytes) {
+    if (bytes <= 0) return '0 B';
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
+
+  /// Clears all cached APK and Windows installer files and deletes empty cache folders.
+  /// Returns the total number of bytes freed.
+  static Future<int> clearInstallerCache() async {
+    if (kIsWeb) return 0;
+    int freedBytes = 0;
+    try {
+      final files = await getInstallerCacheFiles();
+      for (final file in files) {
+        try {
+          if (await file.exists()) {
+            final len = await file.length();
+            await file.delete();
+            freedBytes += len;
+          }
+        } catch (e) {
+          debugPrint('[AppUpdateService] Failed to delete cache file ${file.path}: $e');
+        }
+      }
+
+      // Cleanup empty update directories
+      final updateDirs = await getInstallerCacheDirectories();
+      for (final dir in updateDirs) {
+        try {
+          if (await dir.exists() && dir.listSync().isEmpty) {
+            await dir.delete(recursive: true);
+          }
+        } catch (_) {}
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] Error clearing installer cache: $e');
+    }
+    return freedBytes;
+  }
+
+  /// Automatically called during app startup (e.g. in SplashScreen).
+  /// Checks whether an update was pending or completed, or cleans orphaned installers
+  /// when the app is running on the latest version.
+  static Future<void> autoClearInstallerCacheOnStartup() async {
+    if (kIsWeb) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pendingVersion = prefs.getString(_pendingUpdateVersionKey);
+
+      String currentVersion = defaultFallbackVersion;
+      try {
+        final pkg = await PackageInfo.fromPlatform();
+        if (pkg.version.trim().isNotEmpty) {
+          currentVersion = pkg.version.trim();
+        }
+      } catch (_) {}
+
+      bool shouldClean = false;
+
+      if (pendingVersion != null && pendingVersion.isNotEmpty) {
+        // If pendingVersion is no longer newer than currentVersion,
+        // then the update has been installed successfully!
+        final isPendingStillNewer = isRemoteNewer(
+          remoteTag: pendingVersion,
+          currentVersion: currentVersion,
+        );
+        if (!isPendingStillNewer) {
+          debugPrint(
+            '[AppUpdateService] Update to $currentVersion completed successfully. Cleaning installer cache.',
+          );
+          shouldClean = true;
+          await prefs.remove(_pendingUpdateVersionKey);
+        }
+      } else {
+        // If no pending flag is stored, but installer files exist in update directory:
+        // Any installer currently in the cache from a previous session is obsolete once the app is open.
+        final cacheSize = await getInstallerCacheSizeBytes();
+        if (cacheSize > 0) {
+          shouldClean = true;
+        }
+      }
+
+      if (shouldClean) {
+        final freed = await clearInstallerCache();
+        if (freed > 0) {
+          debugPrint(
+            '[AppUpdateService] Auto-cleared installer cache on startup (${formatBytes(freed)} freed).',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] Startup cache cleanup error: $e');
     }
   }
 }

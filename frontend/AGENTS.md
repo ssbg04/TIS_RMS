@@ -1188,6 +1188,7 @@ Files backup/restore - mirror mode or zip -->
 
 
 # SETTINGS SCREEN
+- [x] add clear cache that clears apk installers and for windows installer too show size of the cache, and add after installation of latest version clear the cache (implemented getInstallerCacheSizeBytes, clearInstallerCache, and autoClearInstallerCacheOnStartup in AppUpdateService; added responsive Installer Cache card in Settings with live size badge & Clear Cache button; wired auto-clear on startup in SplashScreen)
 - [x] appearance & feedback, when i press dark and press system theme, system theme cannot toggle, my system default theme is dark (fixed Consumer to watch themeModeProvider directly so UI immediately re-renders when switching to system theme)
 - [x] Academic & Class Management, in manage academic years the bulk import remove it, add new modal for select start year to end that automates making of academic year, in edit academic year separate the start and end date and add label for this it has no label (replaced bulk import in AcademicYearsOverviewModal with AutoGenerateAcademicYearsModal, added year range labels, and separated start/end dates into individual picker fields)
 - [x] when the accordion is active make it scrolls to the top to fit the expanded accordion (wrapped collapsible card with Builder, added Scrollable.ensureVisible with alignment 0.0 upon expansion, and dynamic bottom clearance to prevent clamp)

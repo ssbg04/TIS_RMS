@@ -15,6 +15,7 @@ import '../../providers/auth_provider.dart';
 import '../../shared/widgets/abstract_background.dart';
 import '../../shared/widgets/app_button_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/app_update_service.dart';
 import '../setup/setup_wizard_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -77,6 +78,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Future<void> _initializeApp({bool isRetry = false}) async {
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
+
+    // ── Auto-clear installer cache if app was just updated or leftovers exist ──
+    try {
+      await AppUpdateService.autoClearInstallerCacheOnStartup();
+    } catch (_) {}
 
     // ── Step 1: Resolve server URL silently in background ───────────────────
     final resolved = await _resolveServer(isRetry: isRetry);

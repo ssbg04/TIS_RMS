@@ -137,6 +137,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String? _updateStatusMessage;
   PackageInfo? _packageInfo;
   String? _architectureLabel;
+  int _installerCacheSizeBytes = 0;
+  bool _isClearingCache = false;
 
   void _collapseAllSections() {
     _isProfileExpanded = false;
@@ -2094,7 +2096,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       _buildCollapsibleCard(
                         title: 'About, Support & System Information',
                         isExpanded: _isAboutExpanded,
-                        onToggle: () => _toggleSection(() => _isAboutExpanded = !_isAboutExpanded),
+                        onToggle: () {
+                          _toggleSection(() => _isAboutExpanded = !_isAboutExpanded);
+                          if (_isAboutExpanded) {
+                            _refreshInstallerCacheSize();
+                          }
+                        },
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -2590,6 +2597,146 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   ),
                               ],
                             ),
+                            const SizedBox(height: AppSizes.p20),
+                            // ── Installer Cache Management Banner ──
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppColors.darkSurface2
+                                    : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isDark
+                                      ? AppColors.darkBorder
+                                      : Colors.grey.withValues(alpha: 0.25),
+                                ),
+                              ),
+                              child: LayoutBuilder(
+                                builder: (context, cacheConstraints) {
+                                  final isNarrow = cacheConstraints.maxWidth < 460;
+                                  final sizeLabel = AppUpdateService.formatBytes(_installerCacheSizeBytes);
+                                  final hasCache = _installerCacheSizeBytes > 0;
+
+                                  final cacheInfo = Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: const Icon(
+                                          Icons.cleaning_services_rounded,
+                                          color: AppColors.primaryGreen,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  'Installer Cache',
+                                                  style: TextStyle(
+                                                    fontSize: 13.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Theme.of(context).colorScheme.onSurface,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: hasCache
+                                                        ? Colors.amber.withValues(alpha: isDark ? 0.25 : 0.15)
+                                                        : (isDark ? Colors.white10 : Colors.grey.shade200),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    sizeLabel,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: hasCache
+                                                          ? (isDark ? Colors.amber.shade300 : Colors.amber.shade900)
+                                                          : (isDark ? AppColors.darkTextMuted : Colors.grey.shade600),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Downloaded APK and Windows setup packages',
+                                              style: TextStyle(
+                                                fontSize: 11.5,
+                                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  );
+
+                                  final clearButton = OutlinedButton.icon(
+                                    onPressed: (hasCache && !_isClearingCache) ? _clearInstallerCache : null,
+                                    icon: _isClearingCache
+                                        ? const SizedBox(
+                                            width: 13,
+                                            height: 13,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: AppColors.primaryGreen,
+                                            ),
+                                          )
+                                        : const Icon(Icons.delete_sweep_rounded, size: 16),
+                                    label: Text(_isClearingCache ? 'Clearing...' : 'Clear Cache'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.primaryGreen,
+                                      disabledForegroundColor: isDark ? Colors.white24 : Colors.grey.shade400,
+                                      side: BorderSide(
+                                        color: hasCache
+                                            ? AppColors.primaryGreen
+                                            : (isDark ? Colors.white12 : Colors.grey.shade300),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                                      textStyle: const TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  );
+
+                                  if (isNarrow) {
+                                    return Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        cacheInfo,
+                                        const SizedBox(height: 12),
+                                        clearButton,
+                                      ],
+                                    );
+                                  }
+
+                                  return Row(
+                                    children: [
+                                      Expanded(child: cacheInfo),
+                                      const SizedBox(width: 12),
+                                      clearButton,
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -2842,13 +2989,65 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         archLabel = 'x64 (64-bit)';
       }
 
+      int cacheSize = 0;
+      try {
+        cacheSize = await AppUpdateService.getInstallerCacheSizeBytes();
+      } catch (_) {}
+
       if (mounted) {
         setState(() {
           _packageInfo = info;
           _architectureLabel = archLabel;
+          _installerCacheSizeBytes = cacheSize;
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _refreshInstallerCacheSize() async {
+    try {
+      final size = await AppUpdateService.getInstallerCacheSizeBytes();
+      if (mounted) {
+        setState(() => _installerCacheSizeBytes = size);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _clearInstallerCache() async {
+    if (_isClearingCache || _installerCacheSizeBytes <= 0) return;
+    setState(() => _isClearingCache = true);
+
+    try {
+      final freed = await AppUpdateService.clearInstallerCache();
+      if (!mounted) return;
+      setState(() {
+        _installerCacheSizeBytes = 0;
+        _isClearingCache = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Text('Installer cache cleared (${AppUpdateService.formatBytes(freed)} freed)'),
+            ],
+          ),
+          backgroundColor: AppColors.primaryGreen,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isClearingCache = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to clear installer cache: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _checkForUpdates() async {
@@ -2877,6 +3076,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       if (updateInfo != null && updateInfo.hasUpdate && mounted) {
         await showUpdateAvailableDialog(context, updateInfo: updateInfo);
+        if (mounted) {
+          await _refreshInstallerCacheSize();
+        }
       }
     } catch (e) {
       if (!mounted) return;
