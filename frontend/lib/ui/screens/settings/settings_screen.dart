@@ -1837,12 +1837,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     // System Theme Mode Switch Toggle
                                     Row(
                                       children: [
-                                        Icon(
-                                          Icons.brightness_auto_rounded,
-                                          color: isSystem
-                                              ? AppColors.primaryGreen
-                                              : (isDark ? Colors.white54 : Colors.grey.shade600),
-                                          size: 22,
+                                        TweenAnimationBuilder<Color?>(
+                                          duration: const Duration(milliseconds: 300),
+                                          curve: Curves.easeInOutCubic,
+                                          tween: ColorTween(
+                                            end: isSystem
+                                                ? AppColors.primaryGreen
+                                                : (isDark ? Colors.white54 : Colors.grey.shade600),
+                                          ),
+                                          builder: (context, iconColor, _) => Icon(
+                                            Icons.brightness_auto_rounded,
+                                            color: iconColor,
+                                            size: 22,
+                                          ),
                                         ),
                                         const SizedBox(width: AppSizes.p12),
                                         Expanded(
@@ -1857,14 +1864,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                 ),
                                               ),
                                               const SizedBox(height: 2),
-                                              Text(
-                                                'Match device system theme automatically',
+                                              AnimatedDefaultTextStyle(
+                                                duration: const Duration(milliseconds: 300),
+                                                curve: Curves.easeInOutCubic,
                                                 style: TextStyle(
                                                   fontSize: 13,
                                                   color: isDark
                                                       ? AppColors.darkTextSecondary
                                                       : Colors.grey.shade600,
                                                 ),
+                                                child: const Text('Match device system theme automatically'),
                                               ),
                                             ],
                                           ),
@@ -1873,6 +1882,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                           value: isSystem,
                                           activeThumbColor: AppColors.primaryGreen,
                                           onChanged: (val) {
+                                            HapticService.selection();
                                             if (val) {
                                               themeNotifier.setThemeMode('system');
                                             } else {
@@ -2771,7 +2781,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: AnimatedOpacity(
                       opacity: _showTopFade ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 200),
-                      child: Container(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOutCubic,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
@@ -2801,7 +2813,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: AnimatedOpacity(
                       opacity: _showBottomFade ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 200),
-                      child: Container(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOutCubic,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
@@ -2835,7 +2849,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOutCubic,
       width: double.infinity,
       padding: const EdgeInsets.all(AppSizes.p24),
       decoration: BoxDecoration(
@@ -2870,7 +2886,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return Builder(
       builder: (cardContext) {
-        return Container(
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOutCubic,
           width: double.infinity,
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
@@ -3197,10 +3215,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final isSelected = isActive && (value == currentValue);
 
     return InkWell(
-      onTap: onSelect,
+      onTap: () {
+        HapticService.selection();
+        onSelect();
+      },
       borderRadius: BorderRadius.circular(12),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
@@ -3217,16 +3239,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 19,
-              color: isSelected
-                  ? AppColors.primaryGreen
-                  : (isDark ? Colors.white70 : AppColors.textSecondary),
+            TweenAnimationBuilder<Color?>(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOutCubic,
+              tween: ColorTween(
+                end: isSelected
+                    ? AppColors.primaryGreen
+                    : (isDark ? Colors.white70 : AppColors.textSecondary),
+              ),
+              builder: (context, iconColor, _) {
+                return AnimatedScale(
+                  scale: isSelected ? 1.08 : 1.0,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutBack,
+                  child: Icon(
+                    icon,
+                    size: 19,
+                    color: iconColor,
+                  ),
+                );
+              },
             ),
             const SizedBox(width: 8),
-            Text(
-              label,
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOutCubic,
               style: TextStyle(
                 fontSize: 13.5,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
@@ -3234,6 +3271,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ? AppColors.primaryGreen
                     : (isDark ? Colors.white : AppColors.textPrimary),
               ),
+              child: Text(label),
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              child: isSelected
+                  ? const Padding(
+                      padding: EdgeInsets.only(left: 6),
+                      child: Icon(
+                        Icons.check_rounded,
+                        size: 16,
+                        color: AppColors.primaryGreen,
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
           ],
         ),

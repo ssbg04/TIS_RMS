@@ -128,6 +128,8 @@ class TisRmsApp extends ConsumerWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: themeMode,
+        themeAnimationDuration: const Duration(milliseconds: 300),
+        themeAnimationCurve: Curves.easeInOutCubic,
 
         builder: (context, child) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -141,7 +143,9 @@ class TisRmsApp extends ConsumerWidget {
                   isDark ? Brightness.light : Brightness.dark,
               systemNavigationBarDividerColor: Colors.transparent,
             ),
-            child: ColoredBox(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOutCubic,
               color: isDark
                   ? AppColors.darkPageBackground
                   : AppColors.pageBackground,
