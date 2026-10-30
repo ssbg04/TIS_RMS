@@ -9,7 +9,7 @@ class DashboardLayoutNotifier extends Notifier<List<DashboardCardConfig>> {
 
   @override
   List<DashboardCardConfig> build() {
-    final user = ref.watch(authProvider).value;
+    final user = ref.watch(authProvider).valueOrNull;
     final isAdmin = user?.role == 'admin';
     final initialCards = isAdmin
         ? DashboardCardConfig.defaultAdminCards()
@@ -130,7 +130,7 @@ class DashboardLayoutNotifier extends Notifier<List<DashboardCardConfig>> {
     items.insert(targetIndex, item);
     state = items;
 
-    final user = ref.read(authProvider).value;
+    final user = ref.read(authProvider).valueOrNull;
     _saveLayout(user?.role == 'admin');
   }
 
@@ -147,7 +147,7 @@ class DashboardLayoutNotifier extends Notifier<List<DashboardCardConfig>> {
     items.insert(newIndex, item);
     state = items;
 
-    final user = ref.read(authProvider).value;
+    final user = ref.read(authProvider).valueOrNull;
     _saveLayout(user?.role == 'admin');
   }
 
@@ -157,7 +157,7 @@ class DashboardLayoutNotifier extends Notifier<List<DashboardCardConfig>> {
       for (final card in state)
         if (card.id == id) card.copyWith(colSpan: colSpan) else card,
     ];
-    final user = ref.read(authProvider).value;
+    final user = ref.read(authProvider).valueOrNull;
     _saveLayout(user?.role == 'admin');
   }
 
@@ -170,13 +170,13 @@ class DashboardLayoutNotifier extends Notifier<List<DashboardCardConfig>> {
         else
           card,
     ];
-    final user = ref.read(authProvider).value;
+    final user = ref.read(authProvider).valueOrNull;
     _saveLayout(user?.role == 'admin');
   }
 
   /// Resets card order and spans to default
   Future<void> resetToDefault() async {
-    final user = ref.read(authProvider).value;
+    final user = ref.read(authProvider).valueOrNull;
     final isAdmin = user?.role == 'admin';
     final defaults = isAdmin
         ? DashboardCardConfig.defaultAdminCards()

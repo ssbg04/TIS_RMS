@@ -6,6 +6,7 @@ import '../../shared/buttons/primary_button.dart';
 import '../../shared/widgets/app_button_loader.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/dialogs/error_dialog.dart';
+import '../../shared/widgets/app_error_state.dart';
 import '../../providers/document_provider.dart';
 import '../../../domain/entities/document_requirement_model.dart';
 import '../../shared/modals/custom_modal.dart';
@@ -333,25 +334,9 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
                 child: CircularProgressIndicator(color: AppColors.primaryGreen),
               ),
               error: (e, _) => Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, size: 40, color: AppColors.error),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Failed to load requirements',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => ref.invalidate(requirementsSettingsProvider),
-                      child: const Text('RETRY'),
-                    ),
-                  ],
+                child: AppErrorState.fromError(
+                  error: e,
+                  onRetry: () => ref.invalidate(requirementsSettingsProvider),
                 ),
               ),
               data: (_) => TabBarView(

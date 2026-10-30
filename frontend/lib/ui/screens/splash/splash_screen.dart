@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:io' show Platform, exit;
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/services.dart' show SystemNavigator;
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/network/api_constants.dart';
 import '../../../core/network/server_discovery.dart';
 import '../login/login_screen.dart';
 import '../../layouts/windows_sidebar_layout.dart';
@@ -14,6 +12,7 @@ import '../../layouts/android_bottom_nav_layout.dart';
 import '../../providers/auth_provider.dart';
 import '../../shared/widgets/abstract_background.dart';
 import '../../shared/widgets/app_button_loader.dart';
+import '../../shared/dialogs/disconnected_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/app_update_service.dart';
 import '../setup/setup_wizard_screen.dart';
@@ -159,176 +158,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     return false;
   }
 
-  Future<void> _showManualConfigDialog() async {
-    final controller = TextEditingController(text: ApiConstants.baseUrl);
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Configure Server URL'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter the local IP address or host name of your TIS RMS server:',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: 'http://192.168.1.100:18484/api',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.primaryGreen),
-            onPressed: () async {
-              final newUrl = controller.text.trim();
-              if (newUrl.isNotEmpty) {
-                ApiConstants.setBaseUrl(newUrl);
-                await ServerDiscoveryService.save(ApiConstants.baseUrl);
-              }
-              if (ctx.mounted) Navigator.pop(ctx);
-              _initializeApp(isRetry: true);
-            },
-            child: const Text('Connect'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _showConnectionFailedDialog({bool isRetry = false}) async {
     if (!mounted) return;
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        icon: const Icon(
-          Icons.cloud_off_rounded,
-          color: Colors.redAccent,
-          size: 40,
-        ),
-        title: Text(
-          isRetry ? 'Still Not Connected' : 'Server Connection Failed',
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isRetry
-                  ? 'Reconnection attempt failed. The TIS RMS server is unreachable on your Local Network (LAN) and Cloud Tunnel.\n\nWould you like to try again or close the application?'
-                  : 'No local TIS RMS server was detected on your Local Network (LAN) and the Cloud Tunnel domain is unreachable.\n\nPlease check your Wi-Fi/Internet connection or ensure the server is online.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primaryGreen),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Checks LAN first, then Tunnel fallback automatically.',
-                      style: TextStyle(
-                        color: AppColors.primaryGreen,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
-              await ServerDiscoveryService.save(ApiConstants.tunnelUrl);
-              _initializeApp(isRetry: true);
-            },
-            child: const Text(
-              'USE TUNNEL',
-              style: TextStyle(
-                color: AppColors.primaryGreen,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _showManualConfigDialog();
-            },
-            child: const Text(
-              'MANUAL IP',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _initializeApp(isRetry: true);
-            },
-            child: Text(
-              isRetry ? 'RETRY' : 'RECONNECT',
-              style: const TextStyle(
-                color: AppColors.primaryGreen,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-            ),
-            onPressed: () {
-              _closeApp();
-            },
-            child: const Text('CLOSE APP'),
-          ),
-        ],
-      ),
+    await DisconnectedDialog.show(
+      context,
+      onReconnected: () {
+        _initializeApp(isRetry: true);
+      },
     );
-  }
-
-  void _closeApp() {
-    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-      SystemNavigator.pop();
-    } else if (!kIsWeb &&
-        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-      exit(0);
-    }
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────

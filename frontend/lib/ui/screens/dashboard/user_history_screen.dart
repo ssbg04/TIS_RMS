@@ -7,6 +7,7 @@ import '../../../domain/entities/dashboard_models.dart';
 import '../../providers/activity_provider.dart';
 import '../../shared/modals/view_activity_modal.dart';
 import '../../shared/widgets/app_pagination.dart';
+import '../../shared/widgets/app_error_state.dart';
 
 /// Admin-only screen — accessible from Dashboard only (not main nav).
 class UserHistoryScreen extends ConsumerStatefulWidget {
@@ -689,14 +690,9 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
             child: historyAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Text(
-                    'Failed to load user history: $e',
-                    style: TextStyle(
-                      color: isDark ? Colors.red.shade300 : Colors.red,
-                    ),
-                  ),
+                child: AppErrorState.fromError(
+                  error: e,
+                  onRetry: () => ref.invalidate(userHistoryPageProvider),
                 ),
               ),
               data: (data) => data.history.isEmpty

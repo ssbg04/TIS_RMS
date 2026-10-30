@@ -771,7 +771,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                             // 3. Profile Avatar Dropdown
                             Consumer(
                               builder: (context, ref, _) {
-                                final user = ref.watch(authProvider).value;
+                                final user = ref.watch(authProvider).valueOrNull;
                                 return Padding(
                                   padding: const EdgeInsets.only(left: 4, right: 12),
                                   child: ProfileDropdownMenu(
@@ -1142,7 +1142,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                       children: [
                         Builder(
                           builder: (context) {
-                            final user = ref.watch(authProvider).value;
+                            final user = ref.watch(authProvider).valueOrNull;
                             final initials =
                                 user != null &&
                                     user.firstName.isNotEmpty &&
@@ -1170,7 +1170,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                ref.watch(authProvider).value?.fullName ??
+                                ref.watch(authProvider).valueOrNull?.fullName ??
                                     'Unknown User',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,

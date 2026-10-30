@@ -94,7 +94,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted &&
-          ref.read(authProvider).value != null &&
+          ref.read(authProvider).valueOrNull != null &&
           ref.read(activeTabProvider) == 'Archives') {
         ref.invalidate(archiveStudentFoldersProvider);
         ref.invalidate(archiveDocumentPageProvider);
@@ -354,7 +354,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       final token = await const FlutterSecureStorage().read(key: 'jwt_token');
       if (token == null) return;
 
-      final docs = ref.read(archiveDocumentPageProvider).value?.documents ?? [];
+      final docs = ref.read(archiveDocumentPageProvider).valueOrNull?.documents ?? [];
       int successCount = 0;
       String? lastSavedPath;
       final dirPath = await DownloadService.getDownloadDirectoryPath();
@@ -415,7 +415,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   Widget _buildInlineMultiSelectHeader() {
-    final pageDocs = ref.watch(archiveDocumentPageProvider).value?.documents ?? [];
+    final pageDocs = ref.watch(archiveDocumentPageProvider).valueOrNull?.documents ?? [];
     final pageIds = pageDocs.map((d) => d.id).toSet();
     final bool allSelected = pageIds.isNotEmpty && pageIds.every((id) => _selectedDocumentIds.contains(id));
 
@@ -1246,6 +1246,48 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   // ════════════════════════════════════════════════════════════════
+  // CARD CONTAINER WRAPPER
+  // ════════════════════════════════════════════════════════════════
+  Widget _buildCardContainer({
+    required Widget child,
+    required bool isMobile,
+    required bool isDark,
+    double? topMargin,
+    double? bottomMargin,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(
+        left: isMobile ? 12 : 16,
+        right: isMobile ? 12 : 16,
+        top: topMargin ?? (isMobile ? 12 : 16),
+        bottom: bottomMargin ?? (isMobile ? 6 : 16),
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: isMobile
+            ? Border.all(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              )
+            : null,
+        boxShadow: isMobile
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: child,
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════
   // STUDENT FOLDERS TAB
   // ════════════════════════════════════════════════════════════════
   Widget _buildFoldersTab(
@@ -1267,13 +1309,39 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
     return foldersAsync.when(
       loading: () => _isGridView
-          ? const FolderSkeletonLoader(count: 8)
+          ? _buildCardContainer(
+              child: const FolderSkeletonLoader(count: 8),
+              isMobile: isMobile,
+              isDark: isDark,
+            )
           : const DocumentListSkeletonLoader(count: 8, isFolder: true),
-      error: (e, _) => _buildErrorState(e.toString()),
+      error: (e, _) => Column(
+        children: [
+          Expanded(
+            child: _buildCardContainer(
+              child: _buildErrorState(e.toString()),
+              isMobile: isMobile,
+              isDark: isDark,
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
       data: (folders) {
         if (folders.isEmpty) {
-          return _buildEmptyState(
-            'No archived student folders found.\nFolders of students marked as graduated, transferred, dropped, or inactive are archived here.',
+          return Column(
+            children: [
+              Expanded(
+                child: _buildCardContainer(
+                  child: _buildEmptyState(
+                    'No archived student folders found.\nFolders of students marked as graduated, transferred, dropped, or inactive are archived here.',
+                  ),
+                  isMobile: isMobile,
+                  isDark: isDark,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
           );
         }
 
@@ -1569,7 +1637,15 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
         return Column(
           children: [
-            Expanded(child: !_isGridView ? containerList : gridView),
+            Expanded(
+              child: !_isGridView
+                  ? containerList
+                  : _buildCardContainer(
+                      child: gridView,
+                      isMobile: isMobile,
+                      isDark: isDark,
+                    ),
+            ),
             if (totalPages > 1 && !_searchFocusNode.hasFocus)
               _buildFoldersPagination(totalPages, _foldersPage),
           ],
@@ -1706,42 +1782,64 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     required bool isMobile,
     bool isFolderMode = false,
   }) {
-    if (docState.hasValue && docState.value != null && docState.value!.totalPages > 0) {
-      _lastDocTotalPages = docState.value!.totalPages;
+    final DocumentPage? pageData = docState.valueOrNull;
+    if (pageData != null && pageData.totalPages > 0) {
+      _lastDocTotalPages = pageData.totalPages;
     }
 
     final bool isLoading = docState.isLoading;
     final bool hasError = docState.hasError && !isLoading;
-    final DocumentPage? pageData = docState.asData?.value ?? docState.value;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Widget content;
     if (isLoading) {
       // Use list skeleton loader when in list mode, grid skeleton loader in grid mode
       content = _isGridView
-          ? const FolderSkeletonLoader(count: 6)
+          ? _buildCardContainer(
+              child: const FolderSkeletonLoader(count: 6),
+              isMobile: isMobile,
+              isDark: isDark,
+            )
           : const DocumentListSkeletonLoader(count: 8, isFolder: false);
     } else if (hasError) {
-      content = _buildErrorState(docState.error.toString());
+      content = _buildCardContainer(
+        child: _buildErrorState(docState.error.toString()),
+        isMobile: isMobile,
+        isDark: isDark,
+      );
     } else if (pageData == null) {
       content = _isGridView
-          ? const FolderSkeletonLoader(count: 6)
+          ? _buildCardContainer(
+              child: const FolderSkeletonLoader(count: 6),
+              isMobile: isMobile,
+              isDark: isDark,
+            )
           : const DocumentListSkeletonLoader(count: 8, isFolder: false);
     } else {
       final List<DocumentModel> documents = pageData.documents;
       if (documents.isEmpty) {
-        content = _buildEmptyState(
-          isFolderMode
-              ? 'No archived documents for this student.'
-              : 'No archived documents found.\nAdjust filters or search terms.',
+        content = _buildCardContainer(
+          child: _buildEmptyState(
+            isFolderMode
+                ? 'No archived documents for this student.'
+                : 'No archived documents found.\nAdjust filters or search terms.',
+          ),
+          isMobile: isMobile,
+          isDark: isDark,
         );
       } else {
         content = _isGridView
-            ? _buildArchiveGridView(documents, isMobile)
+            ? _buildCardContainer(
+                child: _buildArchiveGridView(documents, isMobile),
+                isMobile: isMobile,
+                isDark: isDark,
+              )
             : _buildArchiveListView(documents, isMobile);
       }
     }
 
-    final bool showPagination = _lastDocTotalPages > 1 && !_searchFocusNode.hasFocus;
+    final bool showPagination = !hasError && _lastDocTotalPages > 1 && !_searchFocusNode.hasFocus;
 
     return Column(
       children: [

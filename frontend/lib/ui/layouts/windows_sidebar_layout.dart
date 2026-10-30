@@ -688,7 +688,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                   child: Tooltip(
                                     message: ref
                                             .watch(authProvider)
-                                            .value
+                                            .valueOrNull
                                             ?.fullName ??
                                         'User Profile',
                                     waitDuration:
@@ -696,7 +696,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                     child: Builder(
                                       builder: (context) {
                                         final user =
-                                            ref.watch(authProvider).value;
+                                            ref.watch(authProvider).valueOrNull;
                                         final initials = user != null &&
                                                 user.firstName.isNotEmpty &&
                                                 user.lastName.isNotEmpty
@@ -731,7 +731,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                     Builder(
                                       builder: (context) {
                                         final user =
-                                            ref.watch(authProvider).value;
+                                            ref.watch(authProvider).valueOrNull;
                                         final initials = user != null &&
                                                 user.firstName.isNotEmpty &&
                                                 user.lastName.isNotEmpty
@@ -763,7 +763,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                           Text(
                                             ref
                                                     .watch(authProvider)
-                                                    .value
+                                                    .valueOrNull
                                                     ?.fullName ??
                                                 'Unknown User',
                                             style: TextStyle(

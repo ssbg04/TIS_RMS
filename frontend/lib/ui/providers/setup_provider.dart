@@ -18,7 +18,7 @@ final academicYearsListProvider = FutureProvider<List<AcademicYearModel>>((
 
 final sectionsListProvider = FutureProvider<List<SectionModel>>((ref) async {
   final repo = ref.read(setupRepositoryProvider);
-  final user = ref.watch(authProvider).value;
+  final user = ref.watch(authProvider).valueOrNull;
 
   if (user?.role == 'teacher') {
     return repo.getTeacherSections(user!.id);

@@ -19,59 +19,50 @@ class AppErrorState extends StatelessWidget {
     this.icon,
   });
 
-  /// Factory constructor that inspects the raw error to present
-  /// an appropriate title, icon, and user-friendly explanation.
+  /// Factory constructor that presents a polite, non-technical message
+  /// guiding the user to check network connection (Wi-Fi, internet, mobile data).
   factory AppErrorState.fromError({
     Key? key,
-    required dynamic error,
+    dynamic error,
     VoidCallback? onRetry,
     String retryLabel = 'Retry',
     String? customTitle,
+    String? customMessage,
   }) {
-    final isConn = _isConnectionError(error);
-    final title = customTitle ?? (isConn ? 'No Connection to Server' : 'Unable to Load Data');
-    final message = _formatErrorMessage(error, isConn);
-    final icon = isConn ? Icons.wifi_off_rounded : Icons.error_outline_rounded;
-
     return AppErrorState(
       key: key,
-      title: title,
-      message: message,
+      title: customTitle ?? 'Unable to Load Data',
+      message: customMessage ?? _friendlyMessage(error),
       onRetry: onRetry,
       retryLabel: retryLabel,
-      icon: icon,
+      icon: Icons.wifi_off_rounded,
     );
   }
 
-  static bool _isConnectionError(dynamic error) {
-    if (error == null) return false;
-    final str = error.toString().toLowerCase();
-    return str.contains('socketexception') ||
-        str.contains('connection refused') ||
-        str.contains('network is unreachable') ||
-        str.contains('connection timed out') ||
-        str.contains('connecttimeout') ||
-        str.contains('connectionerror') ||
-        str.contains('failed host lookup') ||
-        str.contains('clientexception') ||
-        str.contains('handshakeexception') ||
-        str.contains('no internet') ||
-        str.contains('offline') ||
-        str.contains('network error');
-  }
+  static String _friendlyMessage(dynamic error) {
+    // If a clean custom message was passed, keep it only if not raw technical jargon
+    if (error != null) {
+      final str = error.toString();
+      final lower = str.toLowerCase();
+      final isTechnical = lower.contains('exception') ||
+          lower.contains('socket') ||
+          lower.contains('xmlhttprequest') ||
+          lower.contains('host lookup') ||
+          lower.contains('handshake') ||
+          lower.contains('dio') ||
+          lower.contains('http') ||
+          lower.contains('stack trace') ||
+          lower.contains('status code') ||
+          lower.contains('typeerror') ||
+          lower.contains('nosuchmethod') ||
+          lower.contains('internal server');
 
-  static String _formatErrorMessage(dynamic error, bool isConnection) {
-    if (isConnection) {
-      return 'Could not connect to the server. Please check your network connection and try again.';
+      if (!isTechnical && str.length < 120 && !str.startsWith('Error:')) {
+        return str;
+      }
     }
-    if (error == null) {
-      return 'An unexpected error occurred while retrieving data.';
-    }
-    final raw = error.toString();
-    if (raw.startsWith('Exception: ')) {
-      return raw.substring(11);
-    }
-    return raw;
+
+    return 'Please check your Wi-Fi, internet connection, or mobile data and try again.';
   }
 
   @override
@@ -86,35 +77,41 @@ class AppErrorState extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon ?? Icons.wifi_off_rounded,
-              size: 56,
-              color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon ?? Icons.wifi_off_rounded,
+                size: 44,
+                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
+              ),
             ),
             const SizedBox(height: AppSizes.p16),
             Text(
               title,
               style: TextStyle(
-                fontSize: 17,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
-            if (message != null) ...[
-              const SizedBox(height: AppSizes.p8),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Text(
-                  message!,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
+            const SizedBox(height: AppSizes.p8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Text(
+                message ?? 'Please check your Wi-Fi, internet connection, or mobile data and try again.',
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 ),
+                textAlign: TextAlign.center,
               ),
-            ],
+            ),
             if (onRetry != null) ...[
               const SizedBox(height: AppSizes.p20),
               ElevatedButton.icon(

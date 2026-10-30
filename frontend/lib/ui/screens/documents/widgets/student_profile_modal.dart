@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../shared/widgets/app_error_state.dart';
 import '../../../../core/services/haptic_service.dart';
 import '../../../../domain/entities/student_model.dart';
 import '../../../../domain/entities/document_model.dart';
@@ -463,17 +464,10 @@ class _StudentProfileModalBodyState
       loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.primaryGreen),
       ),
-      error: (e, _) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-              const SizedBox(height: 12),
-              Text('Error: $e', style: const TextStyle(color: AppColors.error)),
-            ],
-          ),
+      error: (e, _) => Center(
+        child: AppErrorState.fromError(
+          error: e,
+          onRetry: () => ref.invalidate(studentDetailProvider(widget.studentId)),
         ),
       ),
       data: (student) {
@@ -1164,25 +1158,10 @@ class _StudentProfileModalBodyState
               child: CircularProgressIndicator(color: AppColors.primaryGreen),
             ),
           ),
-          error: (e, _) => Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.error_outline_rounded,
-                    color: AppColors.error, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Failed to load documents: $e',
-                    style: const TextStyle(color: AppColors.error, fontSize: 12),
-                  ),
-                ),
-              ],
+          error: (e, _) => Center(
+            child: AppErrorState.fromError(
+              error: e,
+              onRetry: () => ref.invalidate(studentDocumentsProvider(widget.studentId)),
             ),
           ),
           data: (docs) {
@@ -1577,25 +1556,10 @@ class _StudentProfileModalBodyState
               child: CircularProgressIndicator(color: AppColors.primaryGreen),
             ),
           ),
-          error: (e, _) => Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.error_outline_rounded,
-                    color: AppColors.error, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Failed to load history: $e',
-                    style: const TextStyle(color: AppColors.error, fontSize: 12),
-                  ),
-                ),
-              ],
+          error: (e, _) => Center(
+            child: AppErrorState.fromError(
+              error: e,
+              onRetry: () => ref.invalidate(studentActivitiesProvider(widget.studentId)),
             ),
           ),
           data: (activities) {

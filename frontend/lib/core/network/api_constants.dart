@@ -76,7 +76,7 @@ class ApiConstants {
         return 'Connection timed out. Check your internet or server connection.';
       }
       if (error.type == DioExceptionType.connectionError) {
-        return 'Could not connect to server at $_baseUrl. Check your network connection.';
+        return 'Could not connect to server. Please check your network connection.';
       }
       if (error.error is FormatException) {
         return 'Server returned an invalid response (non-JSON). Check that server URL points to TIS RMS.';

@@ -4,6 +4,7 @@ import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart' as pht;
 import '../../shared/widgets/app_pagination.dart';
+import '../../shared/widgets/app_error_state.dart';
 import '../../../domain/entities/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -690,14 +691,9 @@ class _RecentActivitiesScreenState
             child: activitiesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Text(
-                    'Failed to load activities: $e',
-                    style: TextStyle(
-                      color: isDark ? Colors.red.shade300 : Colors.red,
-                    ),
-                  ),
+                child: AppErrorState.fromError(
+                  error: e,
+                  onRetry: () => ref.invalidate(recentActivitiesPageProvider),
                 ),
               ),
               data: (data) => data.activities.isEmpty

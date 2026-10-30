@@ -18,6 +18,9 @@ import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../shared/widgets/app_skeleton_loader.dart';
+import '../../shared/widgets/app_error_state.dart';
+import 'widgets/reports_skeleton_loader.dart';
 import 'widgets/transparency_board_section.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -369,14 +372,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 if (_selectedViewMode == 1) ...[
                   statsAsync.when(
                     skipLoadingOnReload: true,
-                    loading: () => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(100),
-                        child: CircularProgressIndicator(),
+                    loading: () => const ReportsComplianceSkeletonLoader(),
+                    error: (err, st) => Center(
+                      child: AppErrorState.fromError(
+                        error: err,
+                        onRetry: () => ref.invalidate(reportStatsProvider),
                       ),
                     ),
-                    error: (err, st) =>
-                        _errorWidget('Error fetching analytics: $err'),
                     data: (data) => LayoutBuilder(
                       builder: (context, constraints) {
                         final isWindowsApp =
@@ -1206,12 +1208,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             // Dropdown 1: Academic Year
                             yearsAsync.when(
                               skipLoadingOnReload: true,
-                              loading: () => const SizedBox(
-                                height: 48,
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              ),
+                              loading: () => const AppSkeletonLoader(height: 48, borderRadius: 8),
                               error: (e, st) => const SizedBox.shrink(),
                               data: (yearsList) {
                                 final sortedYears = List<AcademicYear>.from(yearsList)
@@ -2780,7 +2777,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         children: [
                           yearsAsync.when(
                             skipLoadingOnReload: true,
-                            loading: () => const LinearProgressIndicator(),
+                            loading: () => const AppSkeletonLoader(height: 48, borderRadius: 8),
                             error: (_, _) => const SizedBox.shrink(),
                             data: (yearsList) {
                               final sortedYears = List<AcademicYear>.from(yearsList)
@@ -4114,28 +4111,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
 
-  Widget _errorWidget(String msg) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, color: isDark ? Colors.red.shade300 : Colors.red),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              msg,
-              style: TextStyle(color: isDark ? Colors.red.shade300 : Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _emptyWidget(String msg) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -4327,22 +4303,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             skipLoadingOnReload: true,
             loading: () => isDesktop
                 ? const Expanded(
+                    child: ReportsChartSkeletonLoader(height: 240),
+                  )
+                : const ReportsChartSkeletonLoader(height: 200),
+            error: (e, st) => isDesktop
+                ? Expanded(
                     child: Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: CircularProgressIndicator(),
+                      child: AppErrorState.fromError(
+                        error: e,
+                        onRetry: () => ref.invalidate(yearlyComparisonProvider),
                       ),
                     ),
                   )
-                : const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: CircularProgressIndicator(),
+                : Center(
+                    child: AppErrorState.fromError(
+                      error: e,
+                      onRetry: () => ref.invalidate(yearlyComparisonProvider),
                     ),
                   ),
-            error: (e, st) => isDesktop
-                ? Expanded(child: Center(child: _errorWidget('Error loading yearly data: $e')))
-                : _errorWidget('Error loading yearly data: $e'),
             data: (rawData) {
               if (rawData.isEmpty) {
                 return isDesktop

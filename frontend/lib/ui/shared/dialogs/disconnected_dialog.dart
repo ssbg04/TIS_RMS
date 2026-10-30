@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemNavigator;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
-import '../../../core/network/api_constants.dart';
 import '../../../core/network/server_discovery.dart';
 import '../../../core/services/haptic_service.dart';
 import '../../../core/services/sound_service.dart';
@@ -45,23 +44,14 @@ class DisconnectedDialog extends StatefulWidget {
 
 class _DisconnectedDialogState extends State<DisconnectedDialog> {
   bool _isReconnecting = false;
-  bool _stillNotConnected = false;
-  String _statusMessage = '';
-  String? _errorMessage;
 
   Future<void> _handleReconnect() async {
     setState(() {
       _isReconnecting = true;
-      _statusMessage = 'Checking LAN connection…';
-      _errorMessage = null;
     });
 
     try {
-      final found = await ServerDiscoveryService.resolveServerWithFallback(
-        onProgress: (msg) {
-          if (mounted) setState(() => _statusMessage = msg);
-        },
-      );
+      final found = await ServerDiscoveryService.resolveServerWithFallback();
 
       if (!mounted) return;
 
@@ -71,45 +61,34 @@ class _DisconnectedDialogState extends State<DisconnectedDialog> {
         Navigator.of(context).pop();
         widget.onReconnected?.call();
 
-        // Show feedback snackbar
-        final isLan = found.contains('192.168.') ||
-            found.contains('10.') ||
-            found.contains('172.');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             backgroundColor: AppColors.primaryGreen,
             behavior: SnackBarBehavior.floating,
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 10),
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    isLan
-                        ? 'Connected to Local Server: $found'
-                        : 'Connected to Tunnel Domain ($found)',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    'Connection restored successfully.',
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
             ),
-            duration: const Duration(seconds: 4),
+            duration: Duration(seconds: 3),
           ),
         );
       } else {
         setState(() {
           _isReconnecting = false;
-          _stillNotConnected = true;
-          _errorMessage =
-              'Reconnection attempt failed. The TIS RMS server is unreachable on your Local Network (LAN) and Cloud Tunnel.';
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() {
           _isReconnecting = false;
-          _stillNotConnected = true;
-          _errorMessage = 'Reconnection error: $e';
         });
       }
     }
@@ -133,214 +112,201 @@ class _DisconnectedDialogState extends State<DisconnectedDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
       ),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 24 : 40,
+        vertical: 24,
+      ),
       contentPadding: EdgeInsets.all(isMobile ? 20 : 24),
       content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
+        constraints: const BoxConstraints(maxWidth: 380),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Disconnected Pulse Icon Badge
+            // Centered icon container (matching AppErrorState)
             Container(
-              width: 64,
-              height: 64,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.redAccent.withValues(alpha: isDark ? 0.18 : 0.1),
+                color: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade100,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.redAccent.withValues(alpha: 0.35),
-                  width: 2,
-                ),
               ),
               child: Icon(
-                _stillNotConnected
-                    ? Icons.cloud_off_rounded
-                    : Icons.wifi_off_rounded,
-                color: Colors.redAccent,
-                size: 32,
+                Icons.wifi_off_rounded,
+                size: 40,
+                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: AppSizes.p16),
 
             // Title
             Text(
-              _stillNotConnected ? 'Still Not Connected' : 'Connection Lost',
-              style: const TextStyle(
-                fontSize: 20,
+              'Connection Lost',
+              style: TextStyle(
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
-                letterSpacing: 0.3,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSizes.p8),
 
-            // Description
-            Text(
-              _stillNotConnected
-                  ? 'Reconnection attempt failed. The TIS RMS server remains unreachable on your Local Network (LAN) and Cloud Tunnel.\n\nWould you like to try again or close the application?'
-                  : 'Unable to reach the TIS RMS server. The system checks your Local Network (LAN) first, then falls back to the Cloud Tunnel.',
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-
-            // Target URL info box
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+            // Friendly, non-technical message
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: Text(
+                'Please check your Wi-Fi, internet connection, or mobile data and try again.',
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.dns_outlined,
-                    size: 16,
-                    color: isDark ? Colors.white70 : Colors.black54,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Target: ${ApiConstants.baseUrl}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                        color: isDark ? Colors.white70 : Colors.black87,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+                textAlign: TextAlign.center,
               ),
             ),
 
             if (_isReconnecting) ...[
-              const SizedBox(height: 18),
-              Row(
+              const SizedBox(height: AppSizes.p16),
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const AppButtonLoader(
-                    size: 18,
-                    strokeWidth: 2.2,
+                  AppButtonLoader(
+                    size: 16,
+                    strokeWidth: 2.0,
                     color: AppColors.primaryGreen,
                   ),
-                  const SizedBox(width: 12),
-                  Flexible(
-                    child: Text(
-                      _statusMessage,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primaryGreen,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                  SizedBox(width: 10),
+                  Text(
+                    'Reconnecting…',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryGreen,
                     ),
                   ),
                 ],
               ),
             ],
 
-            if (_errorMessage != null && !_isReconnecting) ...[
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: isDark ? 0.15 : 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.red.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.redAccent,
-                          height: 1.3,
-                        ),
+            const SizedBox(height: AppSizes.p24),
+
+            // Action Buttons: Stacked on mobile, side-by-side on desktop
+            if (isMobile)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isReconnecting ? null : _handleReconnect,
+                    icon: _isReconnecting
+                        ? const SizedBox.shrink()
+                        : const Icon(Icons.refresh_rounded, size: 18),
+                    label: Text(
+                      _isReconnecting ? 'Reconnecting…' : 'Reconnect',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      minimumSize: const Size.fromHeight(48),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 24),
-
-            // Action Buttons
-            Row(
-              children: [
-                // Secondary: Close App
-                Expanded(
-                  child: SizedBox(
-                    height: 46,
-                    child: FilledButton.icon(
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: _isReconnecting ? null : _closeApp,
+                    icon: const Icon(Icons.power_settings_new_rounded, size: 18),
+                    label: const Text(
+                      'Close App',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                      side: BorderSide(
+                        color: (isDark ? Colors.red.shade300 : Colors.red.shade700).withValues(alpha: 0.4),
+                      ),
+                      minimumSize: const Size.fromHeight(48),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _isReconnecting ? null : _closeApp,
                       icon: const Icon(Icons.power_settings_new_rounded, size: 18),
                       label: const Text(
-                        'CLOSE APP',
+                        'Close App',
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          letterSpacing: 0.4,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                        side: BorderSide(
+                          color: (isDark ? Colors.red.shade300 : Colors.red.shade700).withValues(alpha: 0.4),
+                        ),
+                        minimumSize: const Size(0, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
                         ),
                       ),
-                      onPressed: _isReconnecting ? null : _closeApp,
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-
-                // Primary: Reconnect / Retry
-                Expanded(
-                  child: SizedBox(
-                    height: 46,
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: ElevatedButton.icon(
+                      onPressed: _isReconnecting ? null : _handleReconnect,
                       icon: _isReconnecting
                           ? const SizedBox.shrink()
                           : const Icon(Icons.refresh_rounded, size: 18),
                       label: Text(
-                        _isReconnecting
-                            ? 'RECONNECTING…'
-                            : (_stillNotConnected ? 'RETRY' : 'RECONNECT'),
+                        _isReconnecting ? 'Reconnecting…' : 'Reconnect',
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                          fontSize: 12,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryGreen,
                         foregroundColor: Colors.white,
                         elevation: 0,
+                        minimumSize: const Size(0, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
                         ),
                       ),
-                      onPressed: _isReconnecting ? null : _handleReconnect,
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
       ),

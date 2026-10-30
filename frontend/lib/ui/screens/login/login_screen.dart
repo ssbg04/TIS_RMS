@@ -15,6 +15,8 @@ import '../../layouts/windows_sidebar_layout.dart';
 import '../../layouts/android_bottom_nav_layout.dart';
 import '../../providers/auth_provider.dart';
 import 'package:frontend/ui/providers/navigation_provider.dart';
+import 'package:dio/dio.dart';
+import '../../shared/dialogs/disconnected_dialog.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/widgets/abstract_background.dart';
@@ -202,9 +204,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       );
     } else {
       final rawError = ref.read(authProvider).error;
+      final errorStr = rawError?.toString().toLowerCase() ?? '';
+      final isConnectionIssue = (rawError is DioException &&
+              (rawError.type == DioExceptionType.connectionError ||
+                  rawError.type == DioExceptionType.connectionTimeout ||
+                  rawError.type == DioExceptionType.receiveTimeout)) ||
+          errorStr.contains('socketexception') ||
+          errorStr.contains('connection refused') ||
+          errorStr.contains('network is unreachable') ||
+          errorStr.contains('failed host lookup') ||
+          errorStr.contains('connection closed') ||
+          errorStr.contains('handshake');
+
+      if (isConnectionIssue) {
+        DisconnectedDialog.show(context);
+        return;
+      }
       final cleanMessage = ApiConstants.extractErrorMessage(
         rawError,
-        'Failed to log in. Please check your credentials and server connection.',
+        'Failed to log in. Please check your credentials.',
       );
       showErrorDialog(
         context,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../shared/widgets/app_error_state.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/repositories/document_repository.dart'
     show PrintQueueItem, PrintHistoryItem;
@@ -1024,19 +1025,9 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
 
   Widget _buildErrorState(String message) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-          const SizedBox(height: 12),
-          const Text('Failed to load print list',
-              style: TextStyle(color: AppColors.error)),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => ref.invalidate(printQueueProvider),
-            child: const Text('Retry'),
-          ),
-        ],
+      child: AppErrorState.fromError(
+        error: message,
+        onRetry: () => ref.invalidate(printQueueProvider),
       ),
     );
   }

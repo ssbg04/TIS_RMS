@@ -8,6 +8,7 @@ import '../../../providers/student_provider.dart';
 import 'requirements_settings_modal.dart';
 import 'student_profile_modal.dart';
 import 'upload_ocr_modal.dart';
+import '../../../shared/widgets/app_error_state.dart';
 
 class DocumentRequirementsView extends ConsumerStatefulWidget {
   final String userRole;
@@ -50,44 +51,9 @@ class _DocumentRequirementsViewState
         child: CircularProgressIndicator(color: AppColors.primaryGreen),
       ),
       error: (e, _) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-              const SizedBox(height: 12),
-              Text(
-                'Failed to load document requirements',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '$e',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? Colors.white70 : AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () {
-                  ref.invalidate(requirementsSettingsProvider);
-                },
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
+        child: AppErrorState.fromError(
+          error: e,
+          onRetry: () => ref.invalidate(requirementsSettingsProvider),
         ),
       ),
       data: (settings) {

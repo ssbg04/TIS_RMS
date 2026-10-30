@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../shared/inputs/custom_text_field.dart';
 import '../../shared/buttons/primary_button.dart';
+import '../../shared/widgets/app_error_state.dart';
 import '../../providers/users_provider.dart';
 import '../../providers/setup_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -358,7 +359,7 @@ class _TeacherAdvisersTabState extends ConsumerState<_TeacherAdvisersTab> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error loading teachers: $e')),
+      error: (e, _) => Center(child: AppErrorState.fromError(error: e, onRetry: () => ref.invalidate(usersProvider))),
     );
   }
 }
@@ -1030,7 +1031,7 @@ class AcademicYearsOverviewModal extends ConsumerWidget {
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                error: (e, _) => Center(child: AppErrorState.fromError(error: e, onRetry: () => ref.invalidate(academicYearsListProvider))),
               ),
             ),
           ],
@@ -1511,7 +1512,7 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                error: (e, _) => Center(child: AppErrorState.fromError(error: e)),
               ),
             ),
           ],
@@ -1922,7 +1923,7 @@ class _SectionAdviserSelectorModalState
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error loading teachers: $e')),
+                error: (e, _) => Center(child: AppErrorState.fromError(error: e)),
               ),
             ),
           ],

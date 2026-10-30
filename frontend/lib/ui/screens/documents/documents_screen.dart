@@ -108,7 +108,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted &&
-          ref.read(authProvider).value != null &&
+          ref.read(authProvider).valueOrNull != null &&
           ref.read(activeTabProvider) == 'Documents') {
         if (_tabController.index == 0) {
           ref.invalidate(foldersProvider);
@@ -597,7 +597,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       final token = await const FlutterSecureStorage().read(key: 'jwt_token');
       if (token == null) return;
 
-      final docs = ref.read(documentPageProvider).value?.documents ?? [];
+      final docs = ref.read(documentPageProvider).valueOrNull?.documents ?? [];
       int successCount = 0;
 
       for (final docId in _selectedDocumentIds) {
@@ -714,7 +714,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   Widget _buildInlineMultiSelectHeader() {
-    final pageDocs = ref.watch(documentPageProvider).value?.documents ?? [];
+    final pageDocs = ref.watch(documentPageProvider).valueOrNull?.documents ?? [];
     final pageIds = pageDocs.map((d) => d.id).toSet();
     final bool allSelected = pageIds.isNotEmpty && pageIds.every((id) => _selectedDocumentIds.contains(id));
 
@@ -1808,6 +1808,48 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
+  // CARD CONTAINER WRAPPER
+  // ══════════════════════════════════════════════════════════════
+  Widget _buildCardContainer({
+    required Widget child,
+    required bool isMobile,
+    required bool isDark,
+    double? topMargin,
+    double? bottomMargin,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(
+        left: isMobile ? 12 : 16,
+        right: isMobile ? 12 : 16,
+        top: topMargin ?? (isMobile ? 8 : 16),
+        bottom: bottomMargin ?? (isMobile ? 6 : 16),
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: isMobile
+            ? Border.all(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              )
+            : null,
+        boxShadow: isMobile
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: child,
+      ),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════
   // FOLDERS TAB
   // ══════════════════════════════════════════════════════════════
   Widget _buildFoldersTab(
@@ -1830,9 +1872,24 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
     return foldersAsync.when(
       loading: () => _isGridView
-          ? const FolderSkeletonLoader(count: 8)
+          ? _buildCardContainer(
+              child: const FolderSkeletonLoader(count: 8),
+              isMobile: isMobile,
+              isDark: isDark,
+            )
           : const DocumentListSkeletonLoader(count: 8, isFolder: true),
-      error: (e, _) => _buildErrorState(e.toString()),
+      error: (e, _) => Column(
+        children: [
+          Expanded(
+            child: _buildCardContainer(
+              child: _buildErrorState(e.toString()),
+              isMobile: isMobile,
+              isDark: isDark,
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
       data: (folders) {
         if (folders.isEmpty) {
           final hasNoSections =
@@ -1843,8 +1900,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               query.gradeLevel.isEmpty &&
               query.schoolYear.isEmpty;
 
+          final Widget emptyWidget;
           if (hasNoSections) {
-            return Center(
+            emptyWidget = Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1885,22 +1943,35 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 ],
               ),
             );
+          } else {
+            final hasActiveFilter = query.search.isNotEmpty ||
+                query.status.isNotEmpty ||
+                query.documentType.isNotEmpty ||
+                query.gradeLevel.isNotEmpty ||
+                query.schoolYear.isNotEmpty;
+
+            emptyWidget = AppEmptyState(
+              icon: Icons.folder_off_outlined,
+              title: hasActiveFilter ? 'No Matching Folders' : 'No Student Folders',
+              subtitle: hasActiveFilter
+                  ? 'No student folders match the current search or filters.'
+                  : 'No student folders are currently available in this section.',
+              actionLabel: hasActiveFilter ? 'Clear Filters' : null,
+              onAction: hasActiveFilter ? _clearFilters : null,
+            );
           }
 
-          final hasActiveFilter = query.search.isNotEmpty ||
-              query.status.isNotEmpty ||
-              query.documentType.isNotEmpty ||
-              query.gradeLevel.isNotEmpty ||
-              query.schoolYear.isNotEmpty;
-
-          return AppEmptyState(
-            icon: Icons.folder_off_outlined,
-            title: hasActiveFilter ? 'No Matching Folders' : 'No Student Folders',
-            subtitle: hasActiveFilter
-                ? 'No student folders match the current search or filters.'
-                : 'No student folders are currently available in this section.',
-            actionLabel: hasActiveFilter ? 'Clear Filters' : null,
-            onAction: hasActiveFilter ? _clearFilters : null,
+          return Column(
+            children: [
+              Expanded(
+                child: _buildCardContainer(
+                  child: emptyWidget,
+                  isMobile: isMobile,
+                  isDark: isDark,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
           );
         }
 
@@ -2184,7 +2255,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             );
             return Column(
               children: [
-                Expanded(child: grid),
+                Expanded(
+                  child: _buildCardContainer(
+                    child: grid,
+                    isMobile: isMobile,
+                    isDark: isDark,
+                  ),
+                ),
                 if (totalPages > 1 && !_searchFocusNode.hasFocus)
                   _buildFoldersPagination(totalPages, _foldersPage),
               ],
@@ -2305,25 +2382,38 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     bool isFolderMode = false,
   }) {
     // Preserve and update last known total pages so pagination stays steady during page switching
-    if (docState.hasValue && docState.value != null && docState.value.totalPages > 0) {
-      _lastDocTotalPages = docState.value.totalPages;
+    final dynamic pageData = docState.valueOrNull;
+    if (pageData != null && (pageData.totalPages ?? 0) > 0) {
+      _lastDocTotalPages = pageData.totalPages;
     }
 
     final bool isLoading = docState.isLoading;
     final bool hasError = docState.hasError && !isLoading;
-    final dynamic pageData = docState.asData?.value ?? docState.value;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Widget content;
     if (isLoading) {
       // Use list skeleton loader when in list mode, grid skeleton loader in grid mode
       content = _isGridView
-          ? const FolderSkeletonLoader(count: 6)
+          ? _buildCardContainer(
+              child: const FolderSkeletonLoader(count: 6),
+              isMobile: isMobile,
+              isDark: isDark,
+            )
           : const DocumentListSkeletonLoader(count: 8, isFolder: false);
     } else if (hasError) {
-      content = _buildErrorState(docState.error.toString());
+      content = _buildCardContainer(
+        child: _buildErrorState(docState.error.toString()),
+        isMobile: isMobile,
+        isDark: isDark,
+      );
     } else if (pageData == null) {
       content = _isGridView
-          ? const FolderSkeletonLoader(count: 6)
+          ? _buildCardContainer(
+              child: const FolderSkeletonLoader(count: 6),
+              isMobile: isMobile,
+              isDark: isDark,
+            )
           : const DocumentListSkeletonLoader(count: 8, isFolder: false);
     } else {
       final List rawDocs = pageData.documents ?? [];
@@ -2342,16 +2432,24 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             query.gradeLevel.isEmpty &&
             query.schoolYear.isEmpty &&
             pageData.total == 0;
-        content = _buildEmptyState(noSections: hasNoSections);
+        content = _buildCardContainer(
+          child: _buildEmptyState(noSections: hasNoSections),
+          isMobile: isMobile,
+          isDark: isDark,
+        );
       } else {
         content = _isGridView
-            ? _buildGridView(activeDocuments)
+            ? _buildCardContainer(
+                child: _buildGridView(activeDocuments),
+                isMobile: isMobile,
+                isDark: isDark,
+              )
             : _buildListView(activeDocuments);
       }
     }
 
     // Keep pagination visible whenever there are multiple pages, even while loading a new page
-    final bool showPagination = _lastDocTotalPages > 1 && !_searchFocusNode.hasFocus;
+    final bool showPagination = !hasError && _lastDocTotalPages > 1 && !_searchFocusNode.hasFocus;
 
     return Column(
       children: [
@@ -2619,6 +2717,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       onRetry: () {
         ref.invalidate(documentPageProvider);
         ref.invalidate(foldersProvider);
+        ref.invalidate(studentFoldersProvider);
       },
     );
   }

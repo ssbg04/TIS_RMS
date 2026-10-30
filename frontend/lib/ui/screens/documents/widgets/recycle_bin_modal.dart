@@ -7,6 +7,7 @@ import 'package:frontend/ui/shared/dialogs/error_dialog.dart';
 import 'package:frontend/ui/shared/dialogs/success_dialog.dart';
 import 'package:frontend/ui/shared/inputs/app_search_bar.dart';
 import 'package:frontend/ui/shared/modals/custom_modal.dart';
+import 'package:frontend/ui/shared/widgets/app_error_state.dart';
 import 'package:frontend/domain/repositories/document_repository.dart'
     show TrashDocumentModel;
 import 'package:frontend/core/utils/file_icon_helper.dart';
@@ -78,41 +79,9 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                   ),
                 ),
                 error: (err, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: AppColors.error,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Failed to load Recycle Bin',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$err',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.tonal(
-                          onPressed: () => ref.invalidate(trashDocumentsProvider),
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
+                  child: AppErrorState.fromError(
+                    error: err,
+                    onRetry: () => ref.invalidate(trashDocumentsProvider),
                   ),
                 ),
                 data: (items) {

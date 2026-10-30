@@ -11,6 +11,8 @@ import '../../../providers/reports_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../shared/dialogs/file_save_preview_dialog.dart';
 import '../../../shared/dialogs/success_dialog.dart';
+import '../../../shared/widgets/app_error_state.dart';
+import 'reports_skeleton_loader.dart';
 
 class TransparencyBoardSection extends ConsumerWidget {
   const TransparencyBoardSection({super.key});
@@ -21,22 +23,11 @@ class TransparencyBoardSection extends ConsumerWidget {
 
     return asyncData.when(
       skipLoadingOnReload: true,
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(40),
-          child: CircularProgressIndicator(),
-        ),
-      ),
-      error: (err, _) => Container(
-        padding: const EdgeInsets.all(AppSizes.p20),
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-        ),
-        child: Text(
-          'Error loading DepEd Transparency Board: $err',
-          style: const TextStyle(color: Colors.red),
+      loading: () => const TransparencyBoardSkeletonLoader(),
+      error: (err, _) => Center(
+        child: AppErrorState.fromError(
+          error: err,
+          onRetry: () => ref.invalidate(transparencyBoardProvider),
         ),
       ),
       data: (data) => _TransparencyBoardContent(data: data),

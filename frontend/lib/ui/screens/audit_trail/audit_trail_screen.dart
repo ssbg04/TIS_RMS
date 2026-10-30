@@ -12,6 +12,7 @@ import '../../providers/login_sessions_provider.dart';
 import '../../../core/utils/ip_location_helper.dart';
 import '../../shared/modals/view_activity_modal.dart';
 import '../../shared/widgets/app_pagination.dart';
+import '../../shared/widgets/app_error_state.dart';
 import '../../shared/inputs/app_search_bar.dart';
 
 enum AuditTab { activities, users, sessions }
@@ -1243,40 +1244,10 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
       loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.primaryGreen),
       ),
-      error: (err, stack) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                'Failed to load activities',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                err.toString(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () => ref.invalidate(recentActivitiesPageProvider),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Try Again'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
+      error: (err, _) => Center(
+        child: AppErrorState.fromError(
+          error: err,
+          onRetry: () => ref.invalidate(recentActivitiesPageProvider),
         ),
       ),
       data: (data) {
@@ -1599,40 +1570,10 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
       loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.primaryGreen),
       ),
-      error: (err, stack) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                'Failed to load user history',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                err.toString(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () => ref.invalidate(userHistoryPageProvider),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Try Again'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
+      error: (err, _) => Center(
+        child: AppErrorState.fromError(
+          error: err,
+          onRetry: () => ref.invalidate(userHistoryPageProvider),
         ),
       ),
       data: (data) {
@@ -1955,40 +1896,10 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
       loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.primaryGreen),
       ),
-      error: (err, stack) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                'Failed to load sessions',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                err.toString(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () => ref.invalidate(loginSessionsPageProvider),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Try Again'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
+      error: (err, _) => Center(
+        child: AppErrorState.fromError(
+          error: err,
+          onRetry: () => ref.invalidate(loginSessionsPageProvider),
         ),
       ),
       data: (data) {

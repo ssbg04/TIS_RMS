@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../shared/widgets/app_error_state.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/download_service.dart';
@@ -373,45 +374,9 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
                   ),
                 ),
                 error: (err, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: AppColors.error,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Failed to load archives',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$err',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.tonal(
-                          onPressed: _refresh,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
+                  child: AppErrorState.fromError(
+                    error: err,
+                    onRetry: _refresh,
                   ),
                 ),
                 data: (items) {

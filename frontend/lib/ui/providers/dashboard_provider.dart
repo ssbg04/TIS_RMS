@@ -22,7 +22,7 @@ class DashboardData {
 }
 
 final dashboardDataProvider = FutureProvider.autoDispose<DashboardData>((ref) async {
-  final user = ref.watch(authProvider).value;
+  final user = ref.watch(authProvider).valueOrNull;
   if (user == null) {
     throw Exception('User not authenticated');
   }
@@ -51,7 +51,7 @@ final dashboardDataProvider = FutureProvider.autoDispose<DashboardData>((ref) as
 
 // ── KPI chart data (all 7 chart datasets) ──────────────────────────────────
 final dashboardKpisProvider = FutureProvider.autoDispose<DashboardKpis>((ref) async {
-  final user = ref.watch(authProvider).value;
+  final user = ref.watch(authProvider).valueOrNull;
   if (user == null) {
     throw Exception('User not authenticated');
   }
@@ -62,7 +62,7 @@ final dashboardKpisProvider = FutureProvider.autoDispose<DashboardKpis>((ref) as
 // ── Needs Attention dedicated provider ─────────────────────────────────────
 final dashboardNeedsAttentionProvider =
     FutureProvider.autoDispose<NeedsAttentionData>((ref) async {
-  final user = ref.watch(authProvider).value;
+  final user = ref.watch(authProvider).valueOrNull;
   if (user == null) {
     throw Exception('User not authenticated');
   }
@@ -137,7 +137,7 @@ final recentActivitiesPageProvider =
     FutureProvider.autoDispose<PaginatedActivities>((ref) async {
       final query = ref.watch(activityQueryProvider);
       final repo = ref.read(dashboardRepositoryProvider);
-      final user = ref.read(authProvider).value;
+      final user = ref.read(authProvider).valueOrNull;
       final isTeacher = user?.role == 'teacher';
 
       return repo.getRecentActivities(
