@@ -40,7 +40,7 @@ flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/sym
 2. Tap the `.apk` file in your file manager.
 3. If prompted, enable **"Install unknown apps"** or **"Allow from this source"** in Android Settings.
 4. Tap **Install** and open the app.
-5. On startup, the app will automatically scan the local Wi-Fi/LAN for the TIS RMS server (port `18484`) or connect to the secure tunnel domain (`https://tis-rms.cc.cd/api`).
+5. On startup, the app will automatically scan the local Wi-Fi/LAN for the TIS RMS server (port `18484`) or connect to the secure tunnel domain (`https://api.tisrms.de5.net/api`).
 
 ---
 
