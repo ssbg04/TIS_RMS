@@ -42,7 +42,7 @@ class AppErrorState extends StatelessWidget {
   static String _friendlyMessage(dynamic error) {
     // If a clean custom message was passed, keep it only if not raw technical jargon
     if (error != null) {
-      final str = error.toString();
+      final str = error.toString().replaceFirst(RegExp(r'^Exception:\s*'), '').trim();
       final lower = str.toLowerCase();
       final isTechnical = lower.contains('exception') ||
           lower.contains('socket') ||

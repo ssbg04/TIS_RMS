@@ -3132,9 +3132,35 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   }
 
   Widget _buildError(String message) {
-    return AppErrorState.fromError(
-      error: message,
-      onRetry: () => ref.invalidate(studentPageProvider),
+    return RefreshIndicator(
+      color: AppColors.primaryGreen,
+      onRefresh: () async {
+        ref.invalidate(studentPageProvider);
+        ref.invalidate(academicYearsListProvider);
+        ref.invalidate(gradeLevelsListProvider);
+        ref.invalidate(sectionsListProvider);
+      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight > 0 ? constraints.maxHeight : 300,
+              ),
+              child: AppErrorState.fromError(
+                error: message,
+                onRetry: () {
+                  ref.invalidate(studentPageProvider);
+                  ref.invalidate(academicYearsListProvider);
+                  ref.invalidate(gradeLevelsListProvider);
+                  ref.invalidate(sectionsListProvider);
+                },
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

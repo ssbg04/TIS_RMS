@@ -4,6 +4,7 @@ import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../ui/shared/dialogs/session_expired_dialog.dart';
 
 class ApiConstants {
   static const int port = 18484;
@@ -186,11 +187,19 @@ class ApiConstants {
         },
         onError: (DioException err, handler) async {
           final statusCode = err.response?.statusCode;
-          final isDeactivated = err.response?.data is Map &&
-              (err.response?.data as Map)['isDeactivated'] == true;
+          final data = err.response?.data;
+          final isDeactivated = data is Map && data['isDeactivated'] == true;
+          final isExpired = data is Map &&
+              data['message']?.toString().toLowerCase().contains('expired') == true;
 
-          if (statusCode == 401 || (statusCode == 403 && isDeactivated)) {
-            // Expire / wipe stored JWT token immediately on deactivation or invalidation
+          // Only trigger re-login for authenticated requests, ignoring unauthenticated endpoints
+          final authHeader = err.requestOptions.headers['Authorization']?.toString() ?? '';
+          final hasAuth = authHeader.startsWith('Bearer ') &&
+              authHeader != 'Bearer null' &&
+              authHeader != 'Bearer undefined';
+
+          if (hasAuth && (statusCode == 401 || (statusCode == 403 && (isDeactivated || isExpired)))) {
+            // Expire / wipe stored JWT token immediately on deactivation or expiration
             try {
               const storage = FlutterSecureStorage();
               await storage.delete(key: 'jwt_token');
@@ -201,6 +210,11 @@ class ApiConstants {
               await prefs.remove('jwt_token');
               await prefs.remove('rememberMe');
             } catch (_) {}
+
+            // Trigger non-technical re-login modal and navigate to LoginScreen
+            Future.microtask(() {
+              SessionExpiredDialog.show();
+            });
           }
 
           return handler.next(err);

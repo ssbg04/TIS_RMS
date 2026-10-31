@@ -82,6 +82,10 @@ class StudentRepository {
     return Options(headers: {'Authorization': 'Bearer $token'});
   }
 
+  String _extractErrorMessage(dynamic error, String fallback) {
+    return ApiConstants.extractErrorMessage(error, fallback);
+  }
+
   // ----------------------------------------------------------------
   // Initialize WebSocket for Real-Time LAN Sync
   // ----------------------------------------------------------------
@@ -155,10 +159,12 @@ class StudentRepository {
         },
         options: options,
       );
+      if (response.data is! Map) {
+        throw Exception('Server returned an unexpected response. Please verify connection.');
+      }
       return StudentPage.fromJson(response.data as Map<String, dynamic>);
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to fetch students.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to fetch students.'));
     }
   }
 
@@ -169,10 +175,12 @@ class StudentRepository {
     try {
       final options = await _getAuthOptions();
       final response = await _dio.get('/students/$id', options: options);
+      if (response.data is! Map) {
+        throw Exception('Server returned an unexpected response.');
+      }
       return StudentModel.fromJson(response.data as Map<String, dynamic>);
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to fetch student.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to fetch student.'));
     }
   }
 
@@ -214,10 +222,12 @@ class StudentRepository {
         },
         options: options,
       );
+      if (response.data is! Map || response.data['id'] == null) {
+        throw Exception('Server did not return a valid student ID.');
+      }
       return (response.data['id'] as num).toInt();
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to create student.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to create student.'));
     }
   }
 
@@ -262,9 +272,8 @@ class StudentRepository {
         },
         options: options,
       );
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to update student.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to update student.'));
     }
   }
 
@@ -294,11 +303,8 @@ class StudentRepository {
         },
         options: options,
       );
-    } on DioException catch (e) {
-      final msg =
-          e.response?.data?['message'] ??
-          'Failed to update student to inactive.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to update student to inactive.'));
     }
   }
 
@@ -325,10 +331,8 @@ class StudentRepository {
         },
         options: options,
       );
-    } on DioException catch (e) {
-      final msg =
-          e.response?.data?['message'] ?? 'Failed to bulk enroll students.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to bulk enroll students.'));
     }
   }
 
@@ -343,10 +347,8 @@ class StudentRepository {
         data: {'studentIds': studentIds},
         options: options,
       );
-    } on DioException catch (e) {
-      final msg =
-          e.response?.data?['message'] ?? 'Failed to bulk graduate students.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to bulk graduate students.'));
     }
   }
 
@@ -368,10 +370,8 @@ class StudentRepository {
         data: {'studentIds': studentIds, 'status': newStatus},
         options: options,
       );
-    } on DioException catch (e) {
-      throw Exception(
-        e.response?.data['message'] ?? 'Failed to perform bulk status change.',
-      );
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to perform bulk status change.'));
     }
   }
 
@@ -397,10 +397,8 @@ class StudentRepository {
         },
         options: options,
       );
-    } on DioException catch (e) {
-      final msg =
-          e.response?.data?['message'] ?? 'Failed to update enrollment.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to update enrollment.'));
     }
   }
 
@@ -414,10 +412,8 @@ class StudentRepository {
         '/students/enrollments/$enrollmentId',
         options: options,
       );
-    } on DioException catch (e) {
-      final msg =
-          e.response?.data?['message'] ?? 'Failed to delete enrollment.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to delete enrollment.'));
     }
   }
 
@@ -443,9 +439,8 @@ class StudentRepository {
         },
         options: options,
       );
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to add enrollment.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to add enrollment.'));
     }
   }
 
@@ -465,10 +460,12 @@ class StudentRepository {
         data: {'students': students},
         options: options,
       );
+      if (response.data is! Map) {
+        throw Exception('Server returned an unexpected response format.');
+      }
       return response.data as Map<String, dynamic>;
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to bulk import students.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to bulk import students.'));
     }
   }
 
@@ -487,9 +484,8 @@ class StudentRepository {
       return (records ?? [])
           .map((r) => OcrEnrollmentRecord.fromJson(r as Map<String, dynamic>))
           .toList();
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to scan SF10/SF9 for enrollment.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to scan SF10/SF9 for enrollment.'));
     }
   }
 
@@ -507,11 +503,12 @@ class StudentRepository {
         data: {'enrollments': enrollments},
         options: options,
       );
+      if (response.data is! Map) {
+        throw Exception('Server returned an unexpected response format.');
+      }
       return response.data as Map<String, dynamic>;
-    } on DioException catch (e) {
-      final msg =
-          e.response?.data?['message'] ?? 'Failed to verify enrollments.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to verify enrollments.'));
     }
   }
 
@@ -529,11 +526,12 @@ class StudentRepository {
         data: {'enrollments': enrollments},
         options: options,
       );
+      if (response.data is! Map) {
+        throw Exception('Server returned an unexpected response format.');
+      }
       return response.data as Map<String, dynamic>;
-    } on DioException catch (e) {
-      final msg =
-          e.response?.data?['message'] ?? 'Failed to import enrollments.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to import enrollments.'));
     }
   }
 
@@ -548,13 +546,14 @@ class StudentRepository {
         options: options,
       );
       final list = (response.data['activities'] as List?) ?? [];
+      if (response.data is! Map) {
+        throw Exception('Server returned an unexpected response format.');
+      }
       return list
           .map((a) => RecentActivity.fromJson(a as Map<String, dynamic>))
           .toList();
-    } on DioException catch (e) {
-      final msg =
-          e.response?.data?['message'] ?? 'Failed to fetch student activities.';
-      throw Exception(msg);
+    } catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to fetch student activities.'));
     }
   }
 }

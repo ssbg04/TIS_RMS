@@ -5,7 +5,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/network/api_constants.dart';
 import '../../domain/repositories/student_repository.dart';
 import '../../domain/entities/student_model.dart';
-import '../../domain/entities/setup_models.dart';
 import '../../domain/entities/dashboard_models.dart' show RecentActivity;
 import 'setup_provider.dart';
 
@@ -292,13 +291,8 @@ final studentPageProvider = FutureProvider.autoDispose<StudentPage>((
   String effectiveSchoolYear = query.schoolYear;
   if (tab == StudentViewTab.enrolled &&
       effectiveSchoolYear.isEmpty) {
-    List<AcademicYearModel> years =
-        ref.watch(academicYearsListProvider).asData?.value ?? [];
-    if (years.isEmpty) {
-      try {
-        years = await ref.watch(academicYearsListProvider.future);
-      } catch (_) {}
-    }
+    final years =
+        ref.watch(academicYearsListProvider).valueOrNull ?? [];
     try {
       effectiveSchoolYear =
           years.firstWhere((y) => y.status.toLowerCase() == 'active').yearRange;

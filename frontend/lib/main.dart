@@ -9,6 +9,7 @@ import 'package:window_manager/window_manager.dart';
 
 // UI Imports
 import 'ui/screens/splash/splash_screen.dart';
+import 'core/navigation/navigation_service.dart';
 // Core Imports
 import 'core/theme/app_theme.dart'; // Add this import
 import 'core/constants/app_colors.dart';
@@ -109,7 +110,7 @@ void main() async {
   runApp(const ProviderScope(child: TisRmsApp()));
 }
 
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> navigatorKey = NavigationService.navigatorKey;
 
 class TisRmsApp extends ConsumerWidget {
   const TisRmsApp({super.key});
