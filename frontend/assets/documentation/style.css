@@ -1057,6 +1057,714 @@ table.doc-table tr:hover td {
   border: 1px solid var(--accent-rose-border);
 }
 
+/* ── Staff Roles Overview Cards & Matrix Redesign ────────── */
+.roles-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 20px 0 28px;
+}
+
+.role-summary-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.role-summary-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.role-summary-card.admin-card {
+  border-top: 3px solid var(--primary);
+}
+
+.role-summary-card.teacher-card {
+  border-top: 3px solid var(--accent-blue);
+}
+
+.role-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.role-icon.admin-icon {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+}
+
+.role-icon.teacher-icon {
+  background: var(--accent-blue-light);
+  color: var(--accent-blue);
+  border: 1px solid var(--accent-blue-border);
+}
+
+.role-card-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.role-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.role-subtitle {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.role-pill {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.role-pill.admin-pill {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+}
+
+.role-pill.teacher-pill {
+  background: var(--accent-blue-light);
+  color: var(--accent-blue);
+  border: 1px solid var(--accent-blue-border);
+}
+
+.role-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.role-highlights {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 12px;
+}
+
+.role-highlights li {
+  position: relative;
+  padding-left: 18px;
+}
+
+.role-highlights li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 7px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.role-summary-card.teacher-card .role-highlights li::before {
+  background: var(--accent-blue);
+}
+
+.role-highlights strong {
+  color: var(--text-primary);
+}
+
+/* ── Interactive Roles Toolbar ────────────────────────────── */
+.roles-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 24px 0 14px;
+}
+
+.roles-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.role-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+
+.role-filter-btn:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.role-filter-btn.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary-border);
+  font-weight: 600;
+}
+
+.role-filter-btn .filter-count {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+}
+
+.role-filter-btn.active .filter-count {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] .role-filter-btn.active .filter-count {
+  background: var(--primary);
+  color: #09090B;
+  font-weight: 700;
+}
+
+.roles-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 240px;
+  flex: 1;
+  max-width: 320px;
+}
+
+.roles-search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.roles-search-input {
+  width: 100%;
+  padding: 7px 28px 7px 32px;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  outline: none;
+  transition: var(--transition);
+}
+
+.roles-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-border);
+}
+
+.roles-search-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.roles-search-clear:hover {
+  color: var(--text-primary);
+}
+
+/* ── Roles Matrix Table ───────────────────────────────────── */
+.roles-table-wrap {
+  position: relative;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+  margin: 14px 0 28px;
+  overflow-x: auto;
+}
+
+.roles-table-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 16px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.roles-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-dot.allowed {
+  background: var(--primary);
+}
+
+.legend-dot.scoped {
+  background: var(--accent-blue);
+}
+
+.legend-dot.restricted {
+  background: var(--accent-rose);
+}
+
+table.roles-matrix-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.86rem;
+  text-align: left;
+}
+
+table.roles-matrix-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-surface);
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-subtle);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+table.roles-matrix-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+  transition: background 0.15s ease;
+}
+
+table.roles-matrix-table tr.role-row:hover td {
+  background: var(--bg-subtle);
+}
+
+table.roles-matrix-table tr.role-row:last-child td {
+  border-bottom: none;
+}
+
+/* Category Separator Header */
+table.roles-matrix-table tr.role-cat-row td {
+  background: var(--bg-subtle) !important;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.role-cat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.role-cat-header .cat-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.role-cat-header .cat-badge {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Feature Name & Subtitle */
+.feature-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.feature-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.feature-sub {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+/* Role Badges with Icons */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+
+.role-badge svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.role-badge.allowed {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+}
+
+.role-badge.scoped {
+  background: var(--accent-blue-light);
+  color: var(--accent-blue);
+  border: 1px solid var(--accent-blue-border);
+}
+
+.role-badge.restricted {
+  background: var(--accent-rose-light);
+  color: var(--accent-rose);
+  border: 1px solid var(--accent-rose-border);
+}
+
+.role-cell-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.role-scope-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+/* Notes Column */
+.notes-text {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.notes-pill {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono, monospace);
+  margin: 0 1px;
+}
+
+/* Empty State */
+.roles-empty-row td {
+  padding: 40px 20px !important;
+  text-align: center;
+  background: var(--bg-surface) !important;
+}
+
+.roles-empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.roles-empty-content svg {
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.empty-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.empty-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.roles-reset-btn {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.roles-reset-btn:hover {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+/* ── Mobile / Responsive Card Transformation (< 768px) ── */
+@media (max-width: 768px) {
+  .roles-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .roles-search-wrap {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .roles-table-wrap {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .roles-table-status-bar {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    margin-bottom: 12px;
+  }
+
+  table.roles-matrix-table {
+    border: none;
+    background: transparent;
+  }
+
+  table.roles-matrix-table thead {
+    display: none;
+  }
+
+  table.roles-matrix-table,
+  table.roles-matrix-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  table.roles-matrix-table tr.role-cat-row {
+    display: block;
+    margin: 20px 0 10px;
+    background: transparent;
+  }
+
+  table.roles-matrix-table tr.role-cat-row:first-child {
+    margin-top: 4px;
+  }
+
+  table.roles-matrix-table tr.role-cat-row td {
+    display: block;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .role-cat-header {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--primary);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+  }
+
+  table.roles-matrix-table tr.role-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+  }
+
+  table.roles-matrix-table tr.role-row:hover {
+    border-color: var(--border-strong);
+  }
+
+  table.roles-matrix-table tr.role-row td {
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  table.roles-matrix-table td.cell-feature {
+    grid-column: 1 / -1;
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+  }
+
+  table.roles-matrix-table td.cell-admin {
+    grid-column: 1 / 2;
+    background: var(--bg-subtle) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-sm);
+    padding: 10px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  table.roles-matrix-table td.cell-admin::before {
+    content: "Administrator";
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  table.roles-matrix-table td.cell-teacher {
+    grid-column: 2 / 3;
+    background: var(--bg-subtle) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-sm);
+    padding: 10px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  table.roles-matrix-table td.cell-teacher::before {
+    content: "Teacher / Adviser";
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  table.roles-matrix-table td.cell-notes {
+    grid-column: 1 / -1;
+    background: var(--bg-subtle) !important;
+    border-left: 3px solid var(--primary) !important;
+    border-radius: var(--radius-xs);
+    padding: 10px 12px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  table.roles-matrix-table td.cell-notes::before {
+    content: "Scope & Policy Guidance";
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--primary);
+  }
+}
+
+@media (max-width: 480px) {
+  table.roles-matrix-table tr.role-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  table.roles-matrix-table td.cell-admin {
+    grid-column: 1 / -1;
+  }
+
+  table.roles-matrix-table td.cell-teacher {
+    grid-column: 1 / -1;
+  }
+
+  .roles-legend {
+    display: none;
+  }
+}
+
 /* ── FAQ Accordion Section ─────────────────────────────── */
 .faq-category {
   margin: 32px 0 16px;

@@ -415,6 +415,126 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
+  // 8.5. ROLES MATRIX FILTER & LIVE SEARCH
+  // ==========================================
+  function initRolesMatrixFilter() {
+    const table = document.getElementById('rolesMatrixTable');
+    if (!table) return;
+
+    const filterBtns = document.querySelectorAll('.role-filter-btn');
+    const searchInput = document.getElementById('roleMatrixSearch');
+    const clearBtn = document.getElementById('roleSearchClear');
+    const resetBtn = document.getElementById('rolesResetFiltersBtn');
+    const countEl = document.getElementById('rolesFilterCount');
+    const emptyRow = document.getElementById('rolesEmptyState');
+    const rows = table.querySelectorAll('tbody tr.role-row');
+    const catRows = table.querySelectorAll('tbody tr.role-cat-row');
+
+    let currentFilter = 'all';
+    let searchQuery = '';
+
+    function applyFilter() {
+      let visibleCount = 0;
+      const q = searchQuery.trim().toLowerCase();
+
+      rows.forEach(row => {
+        const roleType = row.getAttribute('data-role-type') || '';
+        const textContent = row.textContent.toLowerCase();
+
+        // 1. Role filter match
+        let matchesFilter = false;
+        if (currentFilter === 'all') {
+          matchesFilter = true;
+        } else if (currentFilter === 'shared') {
+          matchesFilter = roleType.includes('shared');
+        } else if (currentFilter === 'teacher') {
+          matchesFilter = roleType.includes('teacher');
+        } else if (currentFilter === 'admin-only') {
+          matchesFilter = roleType.includes('admin-only');
+        }
+
+        // 2. Search query match
+        const matchesSearch = !q || textContent.includes(q);
+
+        if (matchesFilter && matchesSearch) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      // Update category rows visibility
+      catRows.forEach(catRow => {
+        const cat = catRow.getAttribute('data-cat');
+        const childRows = table.querySelectorAll(`.role-row[data-cat="${cat}"]`);
+        let hasVisibleChild = false;
+        childRows.forEach(r => {
+          if (r.style.display !== 'none') hasVisibleChild = true;
+        });
+        catRow.style.display = hasVisibleChild ? '' : 'none';
+      });
+
+      // Update empty state
+      if (emptyRow) {
+        emptyRow.style.display = (visibleCount === 0) ? '' : 'none';
+      }
+
+      // Update counter
+      if (countEl) {
+        countEl.innerHTML = `Showing <strong>${visibleCount}</strong> of ${rows.length} features`;
+      }
+
+      // Toggle clear button
+      if (clearBtn) {
+        clearBtn.style.display = q ? 'block' : 'none';
+      }
+    }
+
+    filterBtns.forEach(btn => {
+      btn.onclick = () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.getAttribute('data-filter') || 'all';
+        applyFilter();
+      };
+    });
+
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        searchQuery = e.target.value;
+        applyFilter();
+      };
+    }
+
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        if (searchInput) {
+          searchInput.value = '';
+          searchInput.focus();
+        }
+        searchQuery = '';
+        applyFilter();
+      };
+    }
+
+    if (resetBtn) {
+      resetBtn.onclick = () => {
+        if (searchInput) searchInput.value = '';
+        searchQuery = '';
+        currentFilter = 'all';
+        filterBtns.forEach(b => {
+          if (b.getAttribute('data-filter') === 'all') b.classList.add('active');
+          else b.classList.remove('active');
+        });
+        applyFilter();
+      };
+    }
+
+    applyFilter();
+  }
+
+  // ==========================================
   // 9. COMPONENT RE-INITIALIZER
   // ==========================================
   function initPageFeatures() {
@@ -423,6 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initLightboxTriggers();
     updateSearchableSections();
     updateActiveSidebarLink();
+    initRolesMatrixFilter();
   }
 
   // ==========================================
