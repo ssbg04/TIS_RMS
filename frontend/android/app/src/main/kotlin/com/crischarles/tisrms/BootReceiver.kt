@@ -1,4 +1,4 @@
-package com.teamsb.tis_rms
+package com.crischarles.tisrms
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -14,3 +14,4 @@ class BootReceiver : BroadcastReceiver() {
         }
     }
 }
+

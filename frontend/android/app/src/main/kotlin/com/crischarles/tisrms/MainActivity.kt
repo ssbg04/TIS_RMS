@@ -1,4 +1,4 @@
-package com.teamsb.tis_rms
+package com.crischarles.tisrms
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

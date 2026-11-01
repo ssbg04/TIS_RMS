@@ -1,4 +1,4 @@
-package com.teamsb.tis_rms
+package com.crischarles.tisrms
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -10,7 +10,7 @@ import android.util.Log
 
 object AlarmScheduler {
     private const val TAG = "AlarmScheduler"
-    const val ACTION = "com.teamsb.tis_rms.ALARM_NOTIFICATION_CHECK"
+    const val ACTION = "com.crischarles.tisrms.ALARM_NOTIFICATION_CHECK"
     private const val INTERVAL_MS = 2 * 60 * 1000L // 2 minutes
 
     fun schedule(context: Context) {
@@ -57,3 +57,4 @@ object AlarmScheduler {
         )
     }
 }
+

@@ -13,3 +13,4 @@ key.properties
 **/*.keystore
 **/*.jks
 KEYSTORE_BASE64.txt
+app/google-services.json.old
