@@ -8,7 +8,8 @@ import '../../ui/shared/dialogs/session_expired_dialog.dart';
 
 class ApiConstants {
   static const int port = 18484;
-  static const String tunnelUrl = 'https://api.tisrms.de5.net/api';
+  static const String tunnelUrl = 'https://tis-rms.cc.cd/api';
+  static const String legacyTunnelUrl = 'https://api.tisrms.de5.net/api';
   static const String vpsUrl = 'http://198.252.101.35:$port/api';
   static const String localhostUrl = 'http://127.0.0.1:$port/api';
 

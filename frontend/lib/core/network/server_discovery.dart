@@ -10,7 +10,7 @@ import 'api_constants.dart';
 /// 2. Verifies physical network interfaces, filtering out virtual/bridge/loopback adapters.
 /// 3. Probes local subnet hosts with bounded concurrency (pools of 25) using lightweight raw TCP checks first.
 /// 4. Confirms identity via HTTP X-TIS-RMS response header.
-/// 5. Prioritizes LAN for speed and offline resilience, seamlessly falling back to Cloud Tunnel (https://api.tisrms.de5.net/api).
+/// 5. Prioritizes LAN for speed and offline resilience, seamlessly falling back to Cloud Tunnel (https://tis-rms.cc.cd/api).
 class ServerDiscoveryService {
   static const int _port = 18484;
   static const int _discoveryPort = 18485;
@@ -339,7 +339,7 @@ class ServerDiscoveryService {
   /// 2. Instant UDP LAN discovery beacon (instant <50ms auto-connect on Wi-Fi).
   /// 3. Fast check of previously working saved LAN server.
   /// 4. Subnet port scan fallback.
-  /// 5. Cloud Tunnel fallback (https://api.tisrms.de5.net/api).
+  /// 5. Cloud Tunnel fallback (https://tis-rms.cc.cd/api).
   /// 6. VPS fallback.
   static Future<String?> resolveServerWithFallback({
     void Function(String message)? onProgress,
@@ -393,7 +393,7 @@ class ServerDiscoveryService {
       }
     }
 
-    // 5. Cloudflare Tunnel Domain Fallback (https://api.tisrms.de5.net/api)
+    // 5. Cloudflare Tunnel Domain Fallback (https://tis-rms.cc.cd/api)
     onProgress?.call('Connecting to Cloud Tunnel…');
     final tunnelAlive = await ping(
       ApiConstants.tunnelUrl,
@@ -403,6 +403,18 @@ class ServerDiscoveryService {
       await save(ApiConstants.tunnelUrl);
       ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
       return ApiConstants.tunnelUrl;
+    }
+
+    // 5b. Legacy Cloud Tunnel Fallback (https://api.tisrms.de5.net/api)
+    onProgress?.call('Connecting to legacy Cloud Tunnel fallback...');
+    final legacyTunnelAlive = await ping(
+      ApiConstants.legacyTunnelUrl,
+      timeout: const Duration(seconds: 3),
+    );
+    if (legacyTunnelAlive) {
+      await save(ApiConstants.legacyTunnelUrl);
+      ApiConstants.setBaseUrl(ApiConstants.legacyTunnelUrl);
+      return ApiConstants.legacyTunnelUrl;
     }
 
     // 6. Cloud VPS Fallback (http://198.252.101.35:18484/api)
@@ -417,7 +429,7 @@ class ServerDiscoveryService {
       return ApiConstants.vpsUrl;
     }
 
-    // Fallback default: Tunnel URL (https://api.tisrms.de5.net/api)
+    // Fallback default: Tunnel URL (https://tis-rms.cc.cd/api)
     ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
     return null;
   }
