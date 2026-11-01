@@ -16,6 +16,7 @@ import 'ocr_enrollment_validation_modal.dart';
 import 'student_form_helpers.dart';
 import 'bulk_ocr_import_dialog.dart';
 import '../../../shared/widgets/app_button_loader.dart';
+import '../../../shared/widgets/ocr_scanning_animation.dart';
 
 class AddStudentModal extends ConsumerStatefulWidget {
   final bool isDialog;
@@ -459,30 +460,13 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   Widget _buildOcrStep() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_isLoading) {
+      final scannedName = _ocrScannedFile?.path.split(RegExp(r'[/\\]')).last;
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: AppSizes.p32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                color: AppColors.primaryGreen,
-                backgroundColor:
-                    isDark ? AppColors.darkSurface2 : const Color(0xFFE0E0E0),
-                minHeight: 8,
-              ),
-            ),
-            const SizedBox(height: AppSizes.p16),
-            Text(
-              'Processing document with OCR... Please wait',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-              ),
-            ),
-          ],
+        padding: const EdgeInsets.symmetric(vertical: AppSizes.p12),
+        child: OcrScanningAnimation(
+          title: 'Scanning Student Document',
+          subtitle: 'Automatically extracting student profile and enrollment records',
+          fileName: scannedName,
         ),
       );
     }

@@ -15,6 +15,7 @@ import '../../../providers/student_provider.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../shared/widgets/app_button_loader.dart';
+import '../../../shared/widgets/ocr_scanning_animation.dart';
 import 'package:flutter/services.dart';
 import 'student_form_helpers.dart';
 
@@ -1072,39 +1073,13 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryGreen,
-                    strokeWidth: 3.5,
-                  ),
-                ),
+              OcrScanningAnimation(
+                compact: true,
+                title: 'Processing Documents ($processed of $total)',
+                subtitle: 'Extracting student records and matching against school requirements',
+                fileName: currentItem?.fileName,
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Processing Documents',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Extracting student records and matching against school requirements...',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
@@ -1136,37 +1111,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              if (currentItem != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.description_outlined, size: 16, color: AppColors.primaryGreen),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          currentItem.fileName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: isDark ? Colors.white : AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

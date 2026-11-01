@@ -16,6 +16,7 @@ import 'student_csv_enrollment_modal.dart';
 import 'ocr_enrollment_validation_modal.dart';
 import 'student_form_helpers.dart';
 import '../../../shared/widgets/app_button_loader.dart';
+import '../../../shared/widgets/ocr_scanning_animation.dart';
 
 class EditStudentModal extends ConsumerStatefulWidget {
   final StudentModel student;
@@ -981,7 +982,25 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                 ),
               ),
               const SizedBox(height: 14),
-              if (sorted.isEmpty)
+              if (_isOcrScanning)
+                const Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      child: OcrScanningAnimation(
+                        compact: true,
+                        title: 'Scanning SF9 / SF10 Documents',
+                        subtitle: 'Extracting Grade 7-12 enrollment history from student records',
+                        customSteps: [
+                          'Locating uploaded SF9 & SF10 documents...',
+                          'Running optical character recognition...',
+                          'Detecting school years & grade levels (7-12)...',
+                          'Matching sections, tracks & strands...',
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              else if (sorted.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(32),
                   alignment: Alignment.center,
