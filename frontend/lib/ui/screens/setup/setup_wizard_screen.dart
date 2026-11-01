@@ -299,7 +299,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen>
                                     ),
                                     padding: const EdgeInsets.all(12),
                                     child: Image.asset(
-                                      'assets/images/logo.png',
+                                      'assets/images/logo.webp',
                                       fit: BoxFit.contain,
                                       errorBuilder: (context, error, stackTrace) => const Icon(
                                         Icons.school_rounded,

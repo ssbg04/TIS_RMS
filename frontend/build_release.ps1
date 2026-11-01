@@ -42,7 +42,7 @@ Set-Content -Path pubspec.yaml -Value $updatedPubspec -Encoding utf8
 Write-Host "Version bumped successfully to $verName+$buildNumber!"
 
 Write-Host "Building for Android..."
-flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols --build-name=$verName --build-number=$buildNumber
+flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/app/outputs/symbols --build-name=$verName --build-number=$buildNumber
 
 Write-Host "Building for Windows..."
 flutter build windows --release --obfuscate --split-debug-info=build/windows/symbols --build-name=$verName --build-number=$buildNumber
