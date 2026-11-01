@@ -190,7 +190,7 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
           children: [
             Flexible(
               child: Text(
-                'Document Templates',
+                isWide ? 'Document Templates' : 'Templates',
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
                 style: TextStyle(
@@ -482,21 +482,24 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
           borderRadius: BorderRadius.circular(10),
           onTap: () => _showVersionHistory(template),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.symmetric(
+              horizontal: isWide ? 14 : 10,
+              vertical: isWide ? 14 : 10,
+            ),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Leading Icon
                 Container(
-                  width: 44,
-                  height: 44,
-                  margin: const EdgeInsets.only(right: 12),
+                  width: isWide ? 44 : 38,
+                  height: isWide ? 44 : 38,
+                  margin: EdgeInsets.only(right: isWide ? 12 : 8),
                   decoration: BoxDecoration(
                     color: fileColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: fileColor.withValues(alpha: 0.25)),
                   ),
-                  child: Icon(fileIcon, color: fileColor, size: 24),
+                  child: Icon(fileIcon, color: fileColor, size: isWide ? 24 : 20),
                 ),
 
                 // Center details
@@ -510,26 +513,29 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 14.5,
+                          fontSize: isWide ? 14.5 : 13.5,
                           fontWeight: FontWeight.w600,
                           color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 6),
 
-                      // Badges Wrap
+                      // Badges Wrap (Responsive and bounded against overflow)
                       Wrap(
-                        spacing: 6,
+                        spacing: 5,
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           // Linked requirement badge
                           if (template.requirementName != null) ...[
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                              constraints: BoxConstraints(
+                                maxWidth: isWide ? 300 : 160,
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(5),
                                 border: Border.all(
                                   color: AppColors.primaryGreen.withValues(alpha: 0.3),
                                   width: 0.8,
@@ -540,25 +546,20 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
                                 children: [
                                   const Icon(Icons.link_rounded, size: 12, color: AppColors.primaryGreen),
                                   const SizedBox(width: 4),
-                                  Text(
-                                    template.requirementName!,
-                                    style: const TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primaryGreen,
-                                    ),
-                                  ),
-                                  if (template.requirementCategory != null) ...[
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '(${template.requirementCategory})',
-                                      style: TextStyle(
+                                  Flexible(
+                                    child: Text(
+                                      template.requirementCategory != null
+                                          ? '${template.requirementName!} (${template.requirementCategory})'
+                                          : template.requirementName!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
                                         fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryGreen,
                                       ),
                                     ),
-                                  ],
+                                  ),
                                 ],
                               ),
                             ),
@@ -566,7 +567,10 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
 
                           // Version Count badge
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                            constraints: BoxConstraints(
+                              maxWidth: isWide ? 200 : 130,
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                             decoration: BoxDecoration(
                               color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
                               borderRadius: BorderRadius.circular(4),
@@ -584,14 +588,18 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
                                   color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                 ),
                                 const SizedBox(width: 3),
-                                Text(
-                                  template.currentVersionNumber != null
-                                      ? 'v${template.currentVersionNumber} (${template.versionCount} ver)'
-                                      : '${template.versionCount} ver',
-                                  style: TextStyle(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                Flexible(
+                                  child: Text(
+                                    template.currentVersionNumber != null
+                                        ? 'v${template.currentVersionNumber} (${template.versionCount} ver)'
+                                        : '${template.versionCount} ver',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -601,7 +609,10 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
                           // Current File Name snippet
                           if (template.currentFileName != null) ...[
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                              constraints: BoxConstraints(
+                                maxWidth: isWide ? 220 : 110,
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                               decoration: BoxDecoration(
                                 color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
                                 borderRadius: BorderRadius.circular(4),
@@ -619,14 +630,13 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
                                     color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                                   ),
                                   const SizedBox(width: 3),
-                                  ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 160),
+                                  Flexible(
                                     child: Text(
                                       template.currentFileName!,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        fontSize: 10.5,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w500,
                                         color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                                       ),
@@ -688,10 +698,10 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
                     // Download Button
                     isDownloading
                         ? const SizedBox(
-                            width: 28,
-                            height: 28,
+                            width: 24,
+                            height: 24,
                             child: Padding(
-                              padding: EdgeInsets.all(4),
+                              padding: EdgeInsets.all(3),
                               child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                           )
@@ -699,6 +709,8 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
                             icon: const Icon(Icons.download_rounded, size: 20),
                             color: AppColors.primaryGreen,
                             tooltip: 'Download Template',
+                            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                            padding: const EdgeInsets.all(5),
                             onPressed: () => _downloadTemplate(template),
                           ),
 
@@ -725,6 +737,8 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
                         PopupMenuButton<String>(
                           tooltip: 'Actions',
                           icon: const Icon(Icons.more_vert, size: 18),
+                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                          padding: const EdgeInsets.all(4),
                           color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                           onSelected: (val) {
                             if (val == 'history') {
@@ -772,6 +786,8 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
                         IconButton(
                           icon: const Icon(Icons.history_rounded, size: 19),
                           tooltip: 'Version History',
+                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                          padding: const EdgeInsets.all(4),
                           onPressed: () => _showVersionHistory(template),
                         ),
                     ],
@@ -1395,11 +1411,16 @@ class _TemplateVersionHistorySheetState
                                     ),
                                   ),
                                   if (v.uploadedByName != null)
-                                    Text(
-                                      'by ${v.uploadedByName}',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(maxWidth: 120),
+                                      child: Text(
+                                        'by ${v.uploadedByName}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+                                        ),
                                       ),
                                     ),
                                   if (v.createdAt != null)
