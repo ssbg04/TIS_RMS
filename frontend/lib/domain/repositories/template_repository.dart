@@ -61,8 +61,8 @@ class TemplateRepository {
     final options = await _authOptions();
     final formData = FormData.fromMap({
       'name': name,
-      if (description != null) 'description': description,
-      if (requirementId != null) 'requirementId': requirementId.toString(),
+      ?'description': description,
+      ?'requirementId': requirementId?.toString(),
       'isActive': isActive.toString(),
       if (file != null)
         'file': await MultipartFile.fromFile(

@@ -9,6 +9,7 @@ import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/widgets/app_error_state.dart';
 import '../../providers/document_provider.dart';
 import '../../../domain/entities/document_requirement_model.dart';
+import '../templates/templates_screen.dart';
 
 enum _SortMode { az, za, dueDateFirst }
 
@@ -423,11 +424,11 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
                 children: [
                   Flexible(
                     child: Text(
-                      'Document Requirements',
+                      isWide ? 'Document Requirements' : 'Requirements',
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                       style: TextStyle(
-                        fontSize: isWide ? 18 : 16.5,
+                        fontSize: isWide ? 18 : 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
@@ -448,6 +449,11 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
                 ],
               ),
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.file_present_rounded, color: Colors.white),
+                  tooltip: 'Document Templates',
+                  onPressed: () => TemplatesModal.open(context),
+                ),
                 IconButton(
                   icon: const Icon(Icons.refresh_rounded, color: Colors.white),
                   tooltip: 'Refresh',
@@ -601,6 +607,22 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
               ),
 
               if (isWide) ...[
+                const SizedBox(width: 8),
+                // Templates button
+                OutlinedButton.icon(
+                  onPressed: () => TemplatesModal.open(context),
+                  icon: const Icon(Icons.file_present_rounded, size: 16),
+                  label: const Text('Templates'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    side: BorderSide(
+                      color: isDark ? AppColors.darkBorder : const Color(0xFFCED4DA),
+                    ),
+                    minimumSize: const Size(0, 38),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 // Select button
                 OutlinedButton.icon(

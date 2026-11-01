@@ -9,6 +9,7 @@ import 'requirements_settings_modal.dart';
 import 'student_profile_modal.dart';
 import 'upload_ocr_modal.dart';
 import '../../../shared/widgets/app_error_state.dart';
+import '../../templates/templates_screen.dart';
 
 class DocumentRequirementsView extends ConsumerStatefulWidget {
   final String userRole;
@@ -225,7 +226,30 @@ class _DocumentRequirementsViewState
                 ),
               ),
               if (widget.userRole != 'teacher') ...[
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () => TemplatesModal.open(context),
+                  icon: const Icon(Icons.file_present_rounded, size: 16),
+                  label: Text(
+                    MediaQuery.of(context).size.width < 600
+                        ? 'Templates'
+                        : 'Templates Manager',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryGreen,
+                    side: const BorderSide(color: AppColors.primaryGreen),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    minimumSize: const Size(0, 36),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () => RequirementsSettingsModal.show(context),
                   icon: const Icon(Icons.tune_rounded, size: 16, color: Colors.white),

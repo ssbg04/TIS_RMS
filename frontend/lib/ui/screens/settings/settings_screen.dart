@@ -12,6 +12,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../../core/utils/validators.dart';
 import 'requirements_settings_screen.dart';
+import '../templates/templates_screen.dart';
 import '../../shared/widgets/app_error_state.dart';
 import 'package:dio/dio.dart';
 import '../../providers/setup_provider.dart';
@@ -807,6 +808,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               isDark: isDark,
             ),
             _buildSidebarActionTile(
+              icon: Icons.file_present_rounded,
+              title: 'Document Templates',
+              onTap: () => TemplatesModal.open(context),
+              isDark: isDark,
+            ),
+            _buildSidebarActionTile(
               icon: Icons.manage_accounts_outlined,
               title: 'Academic & Classes',
               onTap: () => TeacherManagementModal.open(context),
@@ -1050,6 +1057,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 subtitle: 'Configure JHS & SHS requirements',
                 trailing: const Icon(Icons.open_in_new_rounded, size: 18),
                 onTap: () => RequirementsModal.open(context),
+                isDark: isDark,
+              ),
+              _buildMobileTileDivider(isDark),
+              _buildMobileTile(
+                icon: Icons.file_present_rounded,
+                title: 'Document Templates',
+                subtitle: 'Manage DepEd form templates & files',
+                trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                onTap: () => TemplatesModal.open(context),
                 isDark: isDark,
               ),
               _buildMobileTileDivider(isDark),

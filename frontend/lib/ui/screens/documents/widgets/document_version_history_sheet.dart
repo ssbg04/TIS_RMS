@@ -291,34 +291,74 @@ class _VersionHistorySheetState extends State<_VersionHistorySheet> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 12, color: textSecondary),
               ),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 2,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  if (version.uploadedByName != null) ...[
-                    Icon(Icons.person_outline, size: 11, color: textSecondary),
-                    const SizedBox(width: 3),
-                    Text(
-                      version.uploadedByName!,
-                      style: TextStyle(fontSize: 11, color: textSecondary),
+                  if (version.uploadedByName != null && version.uploadedByName!.isNotEmpty)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.person_outline, size: 12, color: textSecondary),
+                        const SizedBox(width: 3),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 130),
+                          child: Text(
+                            version.uploadedByName!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 11, color: textSecondary),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                  ],
-                  Text(
-                    version.formattedSize,
-                    style: TextStyle(fontSize: 11, color: textSecondary),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.data_usage_rounded, size: 11, color: textSecondary),
+                      const SizedBox(width: 3),
+                      Text(
+                        version.formattedSize,
+                        style: TextStyle(fontSize: 11, color: textSecondary),
+                      ),
+                    ],
                   ),
-                  if (version.createdAt != null) ...[
-                    const SizedBox(width: 8),
-                    Text(
-                      _formatDate(version.createdAt!),
-                      style: TextStyle(fontSize: 11, color: textSecondary),
+                  if (version.createdAt != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.access_time_rounded, size: 11, color: textSecondary),
+                        const SizedBox(width: 3),
+                        Text(
+                          _formatDate(version.createdAt!),
+                          style: TextStyle(fontSize: 11, color: textSecondary),
+                        ),
+                      ],
                     ),
-                  ],
                 ],
               ),
-              if (version.templateName != null)
-                Text(
-                  'Template: ${version.templateName}',
-                  style: TextStyle(fontSize: 11, color: AppColors.primaryGreen),
+              if (version.templateName != null && version.templateName!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Row(
+                    children: [
+                      Icon(Icons.description_outlined, size: 11, color: AppColors.primaryGreen),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          'Template: ${version.templateName}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
             ],
           ),

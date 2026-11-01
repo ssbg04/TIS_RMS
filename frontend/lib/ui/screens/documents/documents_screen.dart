@@ -39,6 +39,7 @@ import '../../../domain/entities/document_model.dart';
 import 'widgets/folder_filter_dialog.dart';
 import 'widgets/document_requirements_view.dart';
 import 'widgets/requirements_settings_modal.dart';
+import '../templates/templates_screen.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -1610,6 +1611,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           }
         } else if (value == 'configure_requirements') {
           RequirementsSettingsModal.show(context);
+        } else if (value == 'manage_templates') {
+          TemplatesModal.open(context);
         } else if (value == 'recycle_bin') {
           showDialog(context: context, builder: (_) => const RecycleBinModal());
         } else if (value == 'download_guide') {
@@ -1633,6 +1636,26 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 const SizedBox(width: 8),
                 Text(
                   'Configure Requirements',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'manage_templates',
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.file_present_rounded,
+                  size: 20,
+                  color: AppColors.primaryGreen,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Document Templates',
                   style: TextStyle(
                     fontSize: 14,
                     color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
@@ -1701,6 +1724,25 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 ),
                 const SizedBox(width: 8),
                 const Text('Archives', style: TextStyle(fontSize: 14)),
+              ],
+            ),
+          ),
+        ],
+        if (_tabController.index != 2) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem(
+            value: 'manage_templates',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.file_present_rounded,
+                  size: 20,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                const Text('Document Templates', style: TextStyle(fontSize: 14)),
               ],
             ),
           ),
