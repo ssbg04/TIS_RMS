@@ -225,30 +225,30 @@ class _DocumentRequirementsViewState
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: () => TemplatesModal.open(context),
-                icon: const Icon(Icons.file_present_rounded, size: 16),
-                label: Text(
-                  MediaQuery.of(context).size.width < 600
-                      ? 'Templates'
-                      : 'Templates Manager',
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primaryGreen,
-                  side: const BorderSide(color: AppColors.primaryGreen),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  minimumSize: const Size(0, 36),
-                ),
-              ),
               if (widget.userRole != 'teacher') ...[
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () => TemplatesModal.open(context),
+                  icon: const Icon(Icons.file_present_rounded, size: 16),
+                  label: Text(
+                    MediaQuery.of(context).size.width < 600
+                        ? 'Templates'
+                        : 'Templates Manager',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryGreen,
+                    side: const BorderSide(color: AppColors.primaryGreen),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    minimumSize: const Size(0, 36),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () => RequirementsSettingsModal.show(context),

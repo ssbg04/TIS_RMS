@@ -9,6 +9,7 @@ import '../../../domain/entities/document_requirement_model.dart';
 import '../../../domain/entities/template_model.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/template_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/inputs/custom_text_field.dart';
@@ -34,6 +35,11 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
   String _searchQuery = '';
   int _selectedFilterIndex = 0; // 0: All, 1: Active, 2: Inactive, 3: JHS, 4: SHS
   final Set<int> _downloadingIds = {};
+
+  bool get _isAdmin {
+    final currentUser = ref.watch(authProvider).asData?.value;
+    return currentUser?.role == 'admin' || currentUser?.role == 'superadmin';
+  }
 
   @override
   void dispose() {
@@ -221,7 +227,7 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
             tooltip: 'Refresh',
             onPressed: () => ref.invalidate(templatesListProvider),
           ),
-          if (isWide)
+          if (isWide && _isAdmin)
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: ElevatedButton.icon(
@@ -283,7 +289,7 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
           ),
         ),
       ),
-      floatingActionButton: (!isWide)
+      floatingActionButton: (!isWide && _isAdmin)
           ? FloatingActionButton.extended(
               backgroundColor: AppColors.primaryGreen,
               foregroundColor: Colors.white,
@@ -431,7 +437,7 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
                 color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
               ),
             ),
-            if (isAbsoluteEmpty) ...[
+            if (isAbsoluteEmpty && _isAdmin) ...[
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: () => _showCreateOrEditModal(),
@@ -702,63 +708,72 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
                         tooltip: 'Version History',
                         onPressed: () => _showVersionHistory(template),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        tooltip: 'Edit Template',
-                        onPressed: () => _showCreateOrEditModal(template: template),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
-                        tooltip: 'Delete',
-                        onPressed: () => _confirmDelete(template),
-                      ),
+                      if (_isAdmin) ...[
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          tooltip: 'Edit Template',
+                          onPressed: () => _showCreateOrEditModal(template: template),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                          tooltip: 'Delete',
+                          onPressed: () => _confirmDelete(template),
+                        ),
+                      ],
                     ] else ...[
-                      PopupMenuButton<String>(
-                        tooltip: 'Actions',
-                        icon: const Icon(Icons.more_vert, size: 18),
-                        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-                        onSelected: (val) {
-                          if (val == 'history') {
-                            _showVersionHistory(template);
-                          } else if (val == 'edit') {
-                            _showCreateOrEditModal(template: template);
-                          } else if (val == 'delete') {
-                            _confirmDelete(template);
-                          }
-                        },
-                        itemBuilder: (_) => [
-                          const PopupMenuItem(
-                            value: 'history',
-                            child: Row(
-                              children: [
-                                Icon(Icons.history_rounded, size: 16),
-                                SizedBox(width: 8),
-                                Text('Version History'),
-                              ],
+                      if (_isAdmin)
+                        PopupMenuButton<String>(
+                          tooltip: 'Actions',
+                          icon: const Icon(Icons.more_vert, size: 18),
+                          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                          onSelected: (val) {
+                            if (val == 'history') {
+                              _showVersionHistory(template);
+                            } else if (val == 'edit') {
+                              _showCreateOrEditModal(template: template);
+                            } else if (val == 'delete') {
+                              _confirmDelete(template);
+                            }
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(
+                              value: 'history',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.history_rounded, size: 16),
+                                  SizedBox(width: 8),
+                                  Text('Version History'),
+                                ],
+                              ),
                             ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_outlined, size: 16),
-                                SizedBox(width: 8),
-                                Text('Edit'),
-                              ],
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_outlined, size: 16),
+                                  SizedBox(width: 8),
+                                  Text('Edit'),
+                                ],
+                              ),
                             ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_outline, size: 16, color: AppColors.error),
-                                SizedBox(width: 8),
-                                Text('Delete', style: TextStyle(color: AppColors.error)),
-                              ],
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline, size: 16, color: AppColors.error),
+                                  SizedBox(width: 8),
+                                  Text('Delete', style: TextStyle(color: AppColors.error)),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.history_rounded, size: 19),
+                          tooltip: 'Version History',
+                          onPressed: () => _showVersionHistory(template),
+                        ),
                     ],
                   ],
                 ),
@@ -1203,6 +1218,8 @@ class _TemplateVersionHistorySheetState
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final templateAsync = ref.watch(templateDetailsProvider(widget.templateId));
+    final currentUser = ref.watch(authProvider).asData?.value;
+    final isAdmin = currentUser?.role == 'admin' || currentUser?.role == 'superadmin';
 
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
@@ -1410,9 +1427,10 @@ class _TemplateVersionHistorySheetState
                 ),
               ),
 
-              // Upload New Version Button at bottom
-              Container(
-                padding: const EdgeInsets.all(16),
+              // Upload New Version Button at bottom (Admin only)
+              if (isAdmin)
+                Container(
+                  padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                   border: Border(
