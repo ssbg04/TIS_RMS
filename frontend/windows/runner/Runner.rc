@@ -90,7 +90,7 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.crischarles.tisrms" "\0"
-            VALUE "FileDescription", "TIS Record Management System" "\0"
+            VALUE "FileDescription", "TIS Records Management System" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "tis_rms" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.crischarles.tisrms. All rights reserved." "\0"

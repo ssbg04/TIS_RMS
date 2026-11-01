@@ -187,7 +187,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   brightness: Brightness.dark,
                   backgroundColor: AppColors.primaryGreen,
                   title: const Text(
-                    'TIS Record Management System',
+                    'TIS RMS',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,
@@ -238,7 +238,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Record Management System',
+                        'Records Management System',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,

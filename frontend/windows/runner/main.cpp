@@ -13,7 +13,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   if (::GetLastError() == ERROR_ALREADY_EXISTS) {
     // Bring the already-running instance to the foreground.
     HWND existing_window = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW",
-                                        L"TIS Record Management System");
+                                        L"TIS RMS");
     if (!existing_window) {
       existing_window =
           ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", nullptr);
@@ -50,7 +50,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"TIS Record Management System", origin, size)) {
+  if (!window.Create(L"TIS RMS", origin, size)) {
     if (single_instance_mutex) {
       ::ReleaseMutex(single_instance_mutex);
       ::CloseHandle(single_instance_mutex);

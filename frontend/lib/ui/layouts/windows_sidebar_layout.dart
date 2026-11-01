@@ -462,7 +462,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                   brightness: Brightness.dark,
                   backgroundColor: AppColors.primaryGreen,
                   title: const Text(
-                    'TIS Record Management System',
+                    'TIS RMS',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,

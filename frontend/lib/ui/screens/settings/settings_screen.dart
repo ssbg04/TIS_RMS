@@ -2649,7 +2649,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ),
                                       const SizedBox(height: 10),
                                       Text(
-                                        'A centralized school record management system designed for Talisay Integrated School to efficiently manage, archive, and verify student records (SF10, permanent forms, and scholastic documents) across Junior High School and Senior High School levels with optical character recognition (OCR) and audit tracking.',
+                                        'A centralized school records management system designed for Talisay Integrated School to efficiently manage, archive, and verify student records (SF10, permanent forms, and scholastic documents) across Junior High School and Senior High School levels with optical character recognition (OCR) and audit tracking.',
                                         style: TextStyle(
                                           fontSize: 13,
                                           height: 1.45,
@@ -2689,7 +2689,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            'A centralized school record management system designed for Talisay Integrated School to efficiently manage, archive, and verify student records (SF10, permanent forms, and scholastic documents) across Junior High School and Senior High School levels with optical character recognition (OCR) and audit tracking.',
+                                            'A centralized school records management system designed for Talisay Integrated School to efficiently manage, archive, and verify student records (SF10, permanent forms, and scholastic documents) across Junior High School and Senior High School levels with optical character recognition (OCR) and audit tracking.',
                                             style: TextStyle(
                                               fontSize: 13,
                                               height: 1.45,

@@ -123,7 +123,7 @@ class TisRmsApp extends ConsumerWidget {
       navigatorKey: navigatorKey,
       child: MaterialApp(
         navigatorKey: navigatorKey,
-        title: 'TIS Record Management System',
+        title: 'TIS RMS',
         debugShowCheckedModeBanner: false,
 
         theme: AppTheme.lightTheme,

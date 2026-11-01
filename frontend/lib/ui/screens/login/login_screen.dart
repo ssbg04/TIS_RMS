@@ -267,7 +267,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                 brightness: Brightness.dark,
                 backgroundColor: AppColors.primaryGreen,
                 title: const Text(
-                  'TIS Record Management System',
+                  'TIS RMS',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,
@@ -329,7 +329,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                             ),
                                             const SizedBox(height: AppSizes.p32),
                                             Text(
-                                              'Record Management System',
+                                              'Records Management System',
                                               style: TextStyle(
                                                 fontSize: 20,
                                                 color: isDark ? Colors.white : AppColors.primaryGreen,
@@ -457,7 +457,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                               ),
                                               const SizedBox(height: AppSizes.p16),
                                               Text(
-                                                'Record Management System',
+                                                'Records Management System',
                                                 style: TextStyle(
                                                   fontSize: 16,
                                                   color: isDark ? Colors.white : AppColors.primaryGreen,
@@ -628,7 +628,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         children: [
           Text(
             _revealAnimation.value < 0.5 
-                ? 'Login to TIS Record Management System' 
+                ? 'Login to TIS Records Management System' 
                 : 'Login',
             style: TextStyle(
               fontSize: 22,
