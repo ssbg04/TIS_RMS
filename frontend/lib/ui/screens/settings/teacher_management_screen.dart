@@ -27,19 +27,10 @@ class TeacherManagementModal extends ConsumerStatefulWidget {
   const TeacherManagementModal({super.key});
 
   static void open(BuildContext context) {
-    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
-    if (isAndroid) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const TeacherManagementModal()),
-      );
-    } else {
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (_) => const TeacherManagementModal(),
-      );
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TeacherManagementModal()),
+    );
   }
 
   @override
@@ -90,12 +81,32 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isNarrow = screenSize.width < 720;
+
+    final sectionsAsync = ref.watch(sectionsListProvider);
+    final usersAsync = ref.watch(usersProvider);
+
+    final allSections = sectionsAsync.value ?? [];
+    final allUsers = usersAsync.value ?? [];
+    final teachers = allUsers.where((u) => u.role == 'teacher' && u.isActive).toList();
+
+    final totalSections = allSections.length;
+    final assignedSections = allSections.where((s) => s.teacherId != null).length;
+    final unassignedSections = totalSections - assignedSections;
+    final totalTeachers = teachers.length;
 
     final content = Column(
       children: [
-        _buildTabBar(isAndroid),
+        _buildKpiBanner(
+          totalSections: totalSections,
+          assignedSections: assignedSections,
+          unassignedSections: unassignedSections,
+          totalTeachers: totalTeachers,
+          isDark: isDark,
+          isNarrow: isNarrow,
+        ),
+        _buildTabBar(isNarrow),
         Expanded(
           child: TabBarView(
             controller: _tabController,
@@ -108,53 +119,241 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
       ],
     );
 
-    if (isAndroid) {
-      return Scaffold(
-        backgroundColor: isDark ? AppColors.darkPageBackground : AppColors.surfaceWhite,
-        appBar: AppBar(
-          backgroundColor: AppColors.primaryGreen,
-          foregroundColor: Colors.white,
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: const Text(
-            'Academic & Class Management',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: AppColors.primaryGreen,
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          tooltip: 'Back',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Academic & Class Management',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-        body: SafeArea(child: content),
-      );
-    }
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            tooltip: 'Refresh',
+            onPressed: _refreshData,
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: content,
+          ),
+        ),
+      ),
+    );
+  }
 
-    return CustomModal(
-      title: 'Academic & Class Management',
-      maxWidth: 920,
-      content: SizedBox(height: screenSize.height * 0.8, child: content),
+  Widget _buildKpiBanner({
+    required int totalSections,
+    required int assignedSections,
+    required int unassignedSections,
+    required int totalTeachers,
+    required bool isDark,
+    required bool isNarrow,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _kpiCard(
+              label: 'Total Sections',
+              value: '$totalSections',
+              icon: Icons.meeting_room_outlined,
+              iconColor: const Color(0xFF0284C7),
+              bgColor: const Color(0xFF0284C7).withValues(alpha: 0.1),
+              isDark: isDark,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _kpiCard(
+              label: 'Assigned Advisers',
+              value: '$assignedSections',
+              icon: Icons.how_to_reg_outlined,
+              iconColor: AppColors.primaryGreen,
+              bgColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+              isDark: isDark,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _kpiCard(
+              label: 'Unassigned',
+              value: '$unassignedSections',
+              icon: Icons.warning_amber_rounded,
+              iconColor: unassignedSections > 0 ? const Color(0xFFD97706) : Colors.grey,
+              bgColor: unassignedSections > 0
+                  ? const Color(0xFFD97706).withValues(alpha: 0.12)
+                  : (isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5)),
+              isDark: isDark,
+              isAlert: unassignedSections > 0,
+            ),
+          ),
+          if (!isNarrow) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: _kpiCard(
+                label: 'Active Teachers',
+                value: '$totalTeachers',
+                icon: Icons.person_outline_rounded,
+                iconColor: const Color(0xFF7C3AED),
+                bgColor: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                isDark: isDark,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _kpiCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required bool isDark,
+    bool isAlert = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface2 : const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isAlert
+              ? iconColor.withValues(alpha: 0.4)
+              : (isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 17, color: iconColor),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: isAlert
+                        ? iconColor
+                        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                  ),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildTabBar(bool isNarrow) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-      child: TabBar(
-        controller: _tabController,
-        labelColor: AppColors.primaryGreen,
-        unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-        indicatorColor: AppColors.primaryGreen,
-        indicatorWeight: 2.5,
-        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-        tabs: isNarrow
-            ? const [
-                Tab(text: 'Academic'),
-                Tab(text: 'Advisers'),
-              ]
-            : const [
-                Tab(text: 'Academic Structure'),
-                Tab(text: 'Teacher Advisers'),
-              ],
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF),
+          ),
+        ),
+      ),
+      child: Container(
+        height: 42,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: TabBar(
+          controller: _tabController,
+          indicator: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
+          labelColor: AppColors.primaryGreen,
+          unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          tabs: [
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.account_tree_outlined, size: 16),
+                  const SizedBox(width: 8),
+                  Text(isNarrow ? 'Structure' : 'Academic Structure'),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.badge_outlined, size: 16),
+                  const SizedBox(width: 8),
+                  Text(isNarrow ? 'Advisers' : 'Teacher Advisers'),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -163,6 +362,8 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
 // ============================================================
 // TEACHER ADVISERS TAB
 // ============================================================
+enum _TeacherFilter { all, assigned, unassigned }
+
 class _TeacherAdvisersTab extends ConsumerStatefulWidget {
   const _TeacherAdvisersTab();
 
@@ -173,11 +374,50 @@ class _TeacherAdvisersTab extends ConsumerStatefulWidget {
 class _TeacherAdvisersTabState extends ConsumerState<_TeacherAdvisersTab> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  _TeacherFilter _teacherFilter = _TeacherFilter.all;
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Widget _buildFilterChip({
+    required _TeacherFilter filter,
+    required String label,
+    required bool isSelected,
+    required bool isDark,
+    Color? activeColor,
+  }) {
+    final color = activeColor ?? AppColors.primaryGreen;
+    return InkWell(
+      onTap: () => setState(() => _teacherFilter = filter),
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: isDark ? 0.25 : 0.12)
+              : (isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? color : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected
+                ? (isDark ? Colors.white : color)
+                : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -224,6 +464,12 @@ class _TeacherAdvisersTabState extends ConsumerState<_TeacherAdvisersTab> {
         final unassignedCount = teachers.length - assignedCount;
 
         final filteredTeachers = teachers.where((t) {
+          if (_teacherFilter == _TeacherFilter.assigned && !assignedTeacherIds.contains(t.id)) {
+            return false;
+          }
+          if (_teacherFilter == _TeacherFilter.unassigned && assignedTeacherIds.contains(t.id)) {
+            return false;
+          }
           if (_searchQuery.isEmpty) return true;
           final q = _searchQuery.toLowerCase();
           final text = '${t.firstName} ${t.lastName} ${t.username}'.toLowerCase();
@@ -232,7 +478,7 @@ class _TeacherAdvisersTabState extends ConsumerState<_TeacherAdvisersTab> {
 
         return Column(
           children: [
-            // Search & Stats Header
+            // Search & Filter Header
             Padding(
               padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, AppSizes.p8),
               child: Column(
@@ -270,61 +516,28 @@ class _TeacherAdvisersTabState extends ConsumerState<_TeacherAdvisersTab> {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${teachers.length} Active Teachers',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                          ),
-                        ),
+                      _buildFilterChip(
+                        filter: _TeacherFilter.all,
+                        label: 'All (${teachers.length})',
+                        isSelected: _teacherFilter == _TeacherFilter.all,
+                        isDark: isDark,
                       ),
                       const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.35 : 0.2),
-                          ),
-                        ),
-                        child: Text(
-                          '$assignedCount Advisers Assigned',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primaryGreen,
-                          ),
-                        ),
+                      _buildFilterChip(
+                        filter: _TeacherFilter.assigned,
+                        label: 'Assigned ($assignedCount)',
+                        isSelected: _teacherFilter == _TeacherFilter.assigned,
+                        isDark: isDark,
+                        activeColor: AppColors.primaryGreen,
                       ),
-                      if (unassignedCount > 0) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: isDark ? 0.15 : 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.amber.withValues(alpha: isDark ? 0.35 : 0.25),
-                            ),
-                          ),
-                          child: Text(
-                            '$unassignedCount Unassigned',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.amber.shade700,
-                            ),
-                          ),
-                        ),
-                      ],
+                      const SizedBox(width: 8),
+                      _buildFilterChip(
+                        filter: _TeacherFilter.unassigned,
+                        label: 'Unassigned ($unassignedCount)',
+                        isSelected: _teacherFilter == _TeacherFilter.unassigned,
+                        isDark: isDark,
+                        activeColor: Colors.amber.shade700,
+                      ),
                     ],
                   ),
                 ],

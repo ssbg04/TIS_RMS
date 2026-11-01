@@ -9,7 +9,6 @@ import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/widgets/app_error_state.dart';
 import '../../providers/document_provider.dart';
 import '../../../domain/entities/document_requirement_model.dart';
-import '../../shared/modals/custom_modal.dart';
 
 enum _SortMode { az, za, dueDateFirst }
 
@@ -17,19 +16,9 @@ class RequirementsModal extends ConsumerStatefulWidget {
   const RequirementsModal({super.key});
 
   static void open(BuildContext context) {
-    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
-    final isMobile = isAndroid || MediaQuery.of(context).size.width < 720;
-    if (isMobile) {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const RequirementsModal()));
-    } else {
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (_) => const RequirementsModal(),
-      );
-    }
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const RequirementsModal()));
   }
 
   @override
@@ -247,7 +236,6 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
     final screenSize = MediaQuery.of(context).size;
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     final isWide = screenSize.width >= 720;
-    final isMobile = isAndroid || !isWide;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final settingsAsync = ref.watch(requirementsSettingsProvider);
 
@@ -270,8 +258,9 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Header Segment / Tabs ──
+          // ── Segmented Pill Header / Tabs ──
           Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
               border: Border(
@@ -280,35 +269,58 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
                 ),
               ),
             ),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: AppColors.primaryGreen,
-              unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-              indicatorColor: AppColors.primaryGreen,
-              indicatorWeight: 3,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
-              tabs: [
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(isWide ? 'Junior High School' : 'JHS'),
-                      const SizedBox(width: 8),
-                      _countBadge(jhsList.length, isDark),
-                    ],
-                  ),
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicator: BoxDecoration(
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                  borderRadius: BorderRadius.circular(9),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(isWide ? 'Senior High School' : 'SHS'),
-                      const SizedBox(width: 8),
-                      _countBadge(shsList.length, isDark),
-                    ],
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                labelColor: AppColors.primaryGreen,
+                unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                tabs: [
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.school_outlined, size: 16),
+                        const SizedBox(width: 6),
+                        Text(isWide ? 'Junior High School' : 'JHS'),
+                        const SizedBox(width: 8),
+                        _countBadge(jhsList.length, isDark),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.account_balance_outlined, size: 16),
+                        const SizedBox(width: 6),
+                        Text(isWide ? 'Senior High School' : 'SHS'),
+                        const SizedBox(width: 8),
+                        _countBadge(shsList.length, isDark),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -352,104 +364,138 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
       ),
     );
 
-    if (isMobile) {
-      return PopScope(
-        canPop: !_multiSelectMode,
-        onPopInvokedWithResult: (didPop, _) {
-          if (didPop) return;
-          if (_multiSelectMode) {
-            setState(() {
-              _multiSelectMode = false;
-              _selectedIds.clear();
-            });
-          }
-        },
-        child: Scaffold(
-          backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
-          appBar: _multiSelectMode
-              ? AppBar(
-                  backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                  elevation: 1,
-                  leading: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    tooltip: 'Exit Selection',
-                    onPressed: _toggleMultiSelect,
+    final mainScaffold = Scaffold(
+      backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
+      appBar: _multiSelectMode
+          ? AppBar(
+              backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              elevation: 1,
+              leading: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                tooltip: 'Exit Selection',
+                onPressed: _toggleMultiSelect,
+              ),
+              title: Text(
+                '${_selectedIds.length} selected',
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: Icon(
+                    allCurrentSelected ? Icons.deselect : Icons.select_all,
+                    color: Colors.white,
                   ),
-                  title: Text(
-                    '${_selectedIds.length} selected',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                  tooltip: allCurrentSelected ? 'Unselect All' : 'Select All',
+                  onPressed: () => _selectAll(currentFiltered),
+                ),
+                if (_selectedIds.isNotEmpty) ...[
+                  IconButton(
+                    icon: const Icon(Icons.tune_rounded, color: Colors.white),
+                    tooltip: 'Bulk Edit',
+                    onPressed: () => _bulkEdit(selectedTargets),
                   ),
-                  actions: [
-                    IconButton(
-                      icon: Icon(
-                        allCurrentSelected ? Icons.deselect : Icons.select_all,
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                    tooltip: 'Delete Selected',
+                    onPressed: () => _confirmDelete(selectedTargets),
+                  ),
+                ],
+              ],
+            )
+          : AppBar(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              titleSpacing: isWide ? null : 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      'Document Requirements',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: isWide ? 18 : 16.5,
+                        fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
-                      tooltip: allCurrentSelected ? 'Unselect All' : 'Select All',
-                      onPressed: () => _selectAll(currentFiltered),
                     ),
-                    if (_selectedIds.isNotEmpty) ...[
-                      IconButton(
-                        icon: const Icon(Icons.tune_rounded, color: Colors.white),
-                        tooltip: 'Bulk Edit',
-                        onPressed: () => _bulkEdit(selectedTargets),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
-                        tooltip: 'Delete Selected',
-                        onPressed: () => _confirmDelete(selectedTargets),
-                      ),
-                    ],
-                  ],
-                )
-              : AppBar(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  title: const Text(
-                    'Document Requirements',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.checklist_rounded, color: Colors.white),
-                      tooltip: 'Select Multiple',
-                      onPressed: _toggleMultiSelect,
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
+                    child: Text(
+                      '${jhsList.length + shsList.length}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                  tooltip: 'Refresh',
+                  onPressed: () => ref.invalidate(requirementsSettingsProvider),
                 ),
-          body: SafeArea(child: bodyContent),
-          floatingActionButton: _multiSelectMode
-              ? null
-              : FloatingActionButton(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                  elevation: 3,
-                  onPressed: () {
-                    final activeCategory = _tabController.index == 0 ? 'JHS' : 'SHS';
-                    _showFormModal(defaultCategory: activeCategory);
-                  },
-                  child: const Icon(Icons.add),
+                IconButton(
+                  icon: Icon(
+                    _multiSelectMode ? Icons.check_box : Icons.checklist_rounded,
+                    color: Colors.white,
+                  ),
+                  tooltip: 'Select Multiple',
+                  onPressed: _toggleMultiSelect,
                 ),
-        ),
-      );
-    }
-
-    return CustomModal(
-      title: 'Document Requirements',
-      maxWidth: 840,
-      content: SizedBox(
-        height: screenSize.height * 0.78,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: bodyContent,
+              ],
+            ),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: bodyContent,
+          ),
         ),
       ),
+      floatingActionButton: (!isWide && !_multiSelectMode)
+          ? FloatingActionButton(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              elevation: 3,
+              onPressed: () {
+                final activeCategory = _tabController.index == 0 ? 'JHS' : 'SHS';
+                _showFormModal(defaultCategory: activeCategory);
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
+    );
+
+    return PopScope(
+      canPop: !_multiSelectMode,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_multiSelectMode) {
+          setState(() {
+            _multiSelectMode = false;
+            _selectedIds.clear();
+          });
+        }
+      },
+      child: mainScaffold,
     );
   }
 
@@ -789,7 +835,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
 
     return ListView.separated(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, isWide ? 16 : 84),
       itemCount: items.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
@@ -866,45 +912,87 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    req.name,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
+                            // 1. Title: Full width available
+                            Text(
+                              req.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
 
-                                // Mandatory Tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: req.isMandatory
-                                        ? AppColors.error.withValues(alpha: 0.1)
-                                        : (isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5)),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    req.isMandatory ? 'Required' : 'Optional',
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: req.isMandatory
-                                          ? AppColors.error
-                                          : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                            // 2. Badges & Tags: Wrapped to prevent horizontal squishing
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                // Inline Required / Optional Toggle Pill
+                                Tooltip(
+                                  message: req.isMandatory
+                                      ? 'Required document (Click to make optional)'
+                                      : 'Optional document (Click to make required)',
+                                  child: InkWell(
+                                    onTap: () async {
+                                      try {
+                                        await ref.read(requirementMutationProvider.notifier).updateRequirement(
+                                          req.copyWith(isMandatory: !req.isMandatory),
+                                        );
+                                      } catch (e) {
+                                        if (!context.mounted) return;
+                                        showErrorDialog(context, 'Update Failed', e.toString());
+                                      }
+                                    },
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 150),
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                      decoration: BoxDecoration(
+                                        color: req.isMandatory
+                                            ? AppColors.error.withValues(alpha: isDark ? 0.2 : 0.1)
+                                            : (isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5)),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: req.isMandatory
+                                              ? AppColors.error.withValues(alpha: 0.35)
+                                              : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            req.isMandatory ? Icons.star_rounded : Icons.star_border_rounded,
+                                            size: 13,
+                                            color: req.isMandatory
+                                                ? AppColors.error
+                                                : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            req.isMandatory ? 'Required' : 'Optional',
+                                            style: TextStyle(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: req.isMandatory
+                                                  ? AppColors.error
+                                                  : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
 
                                 // Max Files Tag
-                                const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                                   decoration: BoxDecoration(
                                     color: (isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5)),
                                     borderRadius: BorderRadius.circular(4),
@@ -918,7 +1006,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
                                     children: [
                                       Icon(
                                         Icons.file_copy_outlined,
-                                        size: 10,
+                                        size: 11,
                                         color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                       ),
                                       const SizedBox(width: 3),
@@ -934,14 +1022,79 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
                                   ),
                                 ),
 
+                                // File Format Tag
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                                  decoration: BoxDecoration(
+                                    color: (isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5)),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.description_outlined,
+                                        size: 11,
+                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        _formatFileTypes(req.acceptedFileTypes),
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w500,
+                                          color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Due Date
+                                if (req.dueDate != null) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                                    decoration: BoxDecoration(
+                                      color: (isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5)),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.event, size: 11, color: Colors.grey.shade500),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          '${req.dueDate!.month}/${req.dueDate!.day}/${req.dueDate!.year}',
+                                          style: TextStyle(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w500,
+                                            color: isDark ? AppColors.darkTextMuted : AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+
                                 // Inactive Tag
                                 if (!req.isEnabled) ...[
-                                  const SizedBox(width: 6),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                                     decoration: BoxDecoration(
                                       color: Colors.orange.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: Colors.orange.withValues(alpha: 0.3),
+                                        width: 0.5,
+                                      ),
                                     ),
                                     child: const Text(
                                       'Inactive',
@@ -956,92 +1109,105 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
                               ],
                             ),
 
-                            // Subtitle: Description snippet (if any) or format and due date
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                if (req.description != null && req.description!.trim().isNotEmpty) ...[
-                                  Expanded(
-                                    child: Text(
-                                      req.description!,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 11.5,
-                                        color: isDark ? AppColors.darkTextMuted : AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-
-                                // Format
-                                Flexible(
-                                  child: Text(
-                                    _formatFileTypes(req.acceptedFileTypes),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w500,
-                                      color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-                                    ),
-                                  ),
+                            // 3. Description snippet (if any)
+                            if (req.description != null && req.description!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 5),
+                              Text(
+                                req.description!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: isDark ? AppColors.darkTextMuted : AppColors.textSecondary,
                                 ),
-
-                                // Due Date
-                                if (req.dueDate != null) ...[
-                                  const SizedBox(width: 8),
-                                  Icon(Icons.event, size: 12, color: Colors.grey.shade500),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    '${req.dueDate!.month}/${req.dueDate!.day}/${req.dueDate!.year}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: isDark ? AppColors.darkTextMuted : AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
 
-                      // Trailing Actions (Desktop: Switch + Edit + Delete)
-                      if (isWide && !_multiSelectMode) ...[
-                        const SizedBox(width: 12),
-                        Tooltip(
-                          message: req.isEnabled ? 'Active (Click to disable)' : 'Inactive (Click to enable)',
-                          child: Switch(
-                            value: req.isEnabled,
-                            activeThumbColor: AppColors.primaryGreen,
-                            onChanged: (val) async {
-                              try {
-                                await ref
-                                    .read(requirementMutationProvider.notifier)
-                                    .updateRequirement(req.copyWith(isEnabled: val));
-                              } catch (e) {
-                                if (!context.mounted) return;
-                                showErrorDialog(context, 'Update Failed', e.toString());
-                              }
-                            },
-                          ),
+                      // Trailing Actions
+                      if (!_multiSelectMode) ...[
+                        const SizedBox(width: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Transform.scale(
+                              scale: 0.82,
+                              child: Tooltip(
+                                message: req.isEnabled ? 'Active (Click to disable)' : 'Inactive (Click to enable)',
+                                child: Switch(
+                                  value: req.isEnabled,
+                                  activeThumbColor: AppColors.primaryGreen,
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  onChanged: (val) async {
+                                    try {
+                                      await ref
+                                          .read(requirementMutationProvider.notifier)
+                                          .updateRequirement(req.copyWith(isEnabled: val));
+                                    } catch (e) {
+                                      if (!context.mounted) return;
+                                      showErrorDialog(context, 'Update Failed', e.toString());
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                            if (isWide) ...[
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, size: 18),
+                                tooltip: 'Edit',
+                                onPressed: () => _showFormModal(requirement: req, defaultCategory: defaultCategory),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                                tooltip: 'Delete',
+                                onPressed: () => _confirmDelete([req]),
+                              ),
+                            ] else ...[
+                              SizedBox(
+                                width: 32,
+                                height: 32,
+                                child: PopupMenuButton<String>(
+                                  tooltip: 'Actions',
+                                  padding: EdgeInsets.zero,
+                                  icon: const Icon(Icons.more_vert, size: 18),
+                                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                                  onSelected: (val) {
+                                    if (val == 'edit') {
+                                      _showFormModal(requirement: req, defaultCategory: defaultCategory);
+                                    } else if (val == 'delete') {
+                                      _confirmDelete([req]);
+                                    }
+                                  },
+                                  itemBuilder: (_) => [
+                                    const PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit_outlined, size: 16),
+                                          SizedBox(width: 8),
+                                          Text('Edit'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete_outline, size: 16, color: AppColors.error),
+                                          SizedBox(width: 8),
+                                          Text('Delete', style: TextStyle(color: AppColors.error)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          tooltip: 'Edit',
-                          onPressed: () => _showFormModal(requirement: req, defaultCategory: defaultCategory),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
-                          tooltip: 'Delete',
-                          onPressed: () => _confirmDelete([req]),
-                        ),
-                      ] else ...[
-                        const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
                       ],
                     ],
                   ),

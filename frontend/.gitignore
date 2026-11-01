@@ -35,6 +35,7 @@ migrate_working_dir/
 /coverage/
 AGENT.md
 SETUP.md
+flutter_*.png
 
 # Symbolication related
 app.*.symbols

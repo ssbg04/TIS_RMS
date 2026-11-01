@@ -33,6 +33,7 @@ import '../capstone_members/capstone_members_screen.dart';
 import '../documentation/documentation_screen.dart';
 import '../setup/setup_wizard_screen.dart';
 import 'widgets/report_issue_modal.dart';
+import '../../../domain/entities/user_model.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -72,6 +73,16 @@ class UpperCaseTextFormatter extends TextInputFormatter {
       selection: newValue.selection,
     );
   }
+}
+
+
+enum SettingsCategory {
+  profile,
+  academic,
+  autoEnroll,
+  reminders,
+  appearance,
+  about,
 }
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -115,23 +126,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  void _toggleSection(VoidCallback toggle) {
-    setState(toggle);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _onScroll();
-    });
-    Future.delayed(const Duration(milliseconds: 270), () {
-      if (mounted) _onScroll();
-    });
-  }
 
   // Collapsible sections state
-  bool _isProfileExpanded = false;
-  bool _isAcademicYearExpanded = false;
-  bool _isAutoEnrollExpanded = false;
-  bool _isTeacherRemindersExpanded = false;
-  bool _isAppearanceExpanded = false;
-  bool _isAboutExpanded = false;
+  SettingsCategory _selectedCategory = SettingsCategory.profile;
   bool _isCheckingUpdate = false;
   AppUpdateInfo? _updateInfo;
   String? _updateStatusMessage;
@@ -141,20 +138,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isClearingCache = false;
 
   void _collapseAllSections() {
-    _isProfileExpanded = false;
-    _isAcademicYearExpanded = false;
-    _isAutoEnrollExpanded = false;
-    _isTeacherRemindersExpanded = false;
-    _isAppearanceExpanded = false;
-    _isAboutExpanded = false;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _onScroll();
-    });
-    Future.delayed(const Duration(milliseconds: 270), () {
-      if (mounted) _onScroll();
-    });
+    _selectedCategory = SettingsCategory.profile;
   }
-
   void _refreshAllSettingsData() {
     ref.invalidate(academicYearsListProvider);
     ref.invalidate(sectionsListProvider);
@@ -651,60 +636,825 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             }
 
             final isDark = Theme.of(context).brightness == Brightness.dark;
-            final isMobileOrAndroid =
-                MediaQuery.of(context).size.width < 600 ||
-                Theme.of(context).platform == TargetPlatform.android;
+            final isMobile = MediaQuery.sizeOf(context).width < 800;
 
-            return Stack(
+            return isMobile
+                ? _buildMobileMasterMenu(user, isDark)
+                : _buildDesktopMasterDetail(user, isDark);
+          },
+        ),
+      ),
+    ),
+  ),
+);
+}
+
+  Widget _buildDesktopMasterDetail(UserModel user, bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p24, AppSizes.p24, AppSizes.p48),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 280,
+                child: _buildDesktopSidebar(user, isDark),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: _buildActiveDetail(user, isDark),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopSidebar(UserModel user, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.25)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface2 : const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? Colors.white12 : const Color(0xFFE5E7EB),
+              ),
+            ),
+            child: Row(
               children: [
-                Positioned.fill(
-                  child: NotificationListener<ScrollMetricsNotification>(
-                    onNotification: (notification) {
-                      if (notification.metrics.axis == Axis.vertical) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted) _onScroll();
-                        });
-                      }
-                      return false;
-                    },
-                    child: SingleChildScrollView(
-                      controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p32, AppSizes.p24, AppSizes.p32),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 700),
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.primaryGreen,
+                  child: Text(
+                    user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : 'U',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header
                       Text(
-                        'Account Settings',
-                        style: TextStyle(
-                          fontSize: 28,
+                        '${user.firstName} ${user.lastName}',
+                        style: const TextStyle(
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          user.role.toUpperCase().replaceAll('_', ' '),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryGreen,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: AppSizes.p8),
-                      Text(
-                        'Manage your profile information and security settings.',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.7),
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.p32),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          _buildSidebarGroupLabel('ACCOUNT', isDark),
+          _buildSidebarNavItem(
+            icon: Icons.person_outline_rounded,
+            title: 'Profile Details',
+            category: SettingsCategory.profile,
+            isDark: isDark,
+          ),
+          _buildSidebarActionTile(
+            icon: Icons.security_rounded,
+            title: 'Account Security',
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => SecurityScreen(
+                    user: user,
+                    onDeactivateAccount: _handleDeactivateAccount,
+                  ),
+                ),
+              );
+            },
+            isDark: isDark,
+          ),
+          const SizedBox(height: 12),
+          if (widget.userRole == 'admin') ...[
+            _buildSidebarGroupLabel('ADMINISTRATION', isDark),
+            _buildSidebarNavItem(
+              icon: Icons.school_outlined,
+              title: 'Academic & Graduation',
+              category: SettingsCategory.academic,
+              isDark: isDark,
+            ),
+            _buildSidebarNavItem(
+              icon: Icons.autorenew_rounded,
+              title: 'Student Auto-Enrollment',
+              category: SettingsCategory.autoEnroll,
+              isDark: isDark,
+            ),
+            _buildSidebarNavItem(
+              icon: Icons.mark_email_read_outlined,
+              title: 'Remind Teachers',
+              category: SettingsCategory.reminders,
+              isDark: isDark,
+            ),
+            _buildSidebarActionTile(
+              icon: Icons.folder_copy_outlined,
+              title: 'Document Requirements',
+              onTap: () => RequirementsModal.open(context),
+              isDark: isDark,
+            ),
+            _buildSidebarActionTile(
+              icon: Icons.manage_accounts_outlined,
+              title: 'Academic & Classes',
+              onTap: () => TeacherManagementModal.open(context),
+              isDark: isDark,
+            ),
+            const SizedBox(height: 12),
+          ],
+          _buildSidebarGroupLabel('PREFERENCES & SYSTEM', isDark),
+          _buildSidebarNavItem(
+            icon: Icons.palette_outlined,
+            title: 'Appearance & Feedback',
+            category: SettingsCategory.appearance,
+            isDark: isDark,
+          ),
+          _buildSidebarNavItem(
+            icon: Icons.info_outline_rounded,
+            title: 'About & Support',
+            category: SettingsCategory.about,
+            isDark: isDark,
+          ),
+        ],
+      ),
+    );
+  }
 
-                      // ── Profile Card (Collapsible) ──────────────────────────
-                      _buildCollapsibleCard(
-                        title: 'Profile Details',
-                        isExpanded: _isProfileExpanded,
-                        onToggle: () => _toggleSection(() => _isProfileExpanded = !_isProfileExpanded),
-                        child: Column(
+  Widget _buildSidebarNavItem({
+    required IconData icon,
+    required String title,
+    required SettingsCategory category,
+    required bool isDark,
+  }) {
+    final isSelected = _selectedCategory == category;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () {
+          HapticService.light();
+          setState(() => _selectedCategory = category);
+          if (category == SettingsCategory.about) {
+            _refreshInstallerCacheSize();
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            border: isSelected
+                ? const Border(
+                    left: BorderSide(
+                      color: AppColors.primaryGreen,
+                      width: 3.5,
+                    ),
+                  )
+                : null,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isSelected
+                    ? AppColors.primaryGreen
+                    : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade700),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected
+                        ? (isDark ? Colors.white : AppColors.primaryGreen)
+                        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidebarActionTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () {
+          HapticService.light();
+          onTap();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                size: 16,
+                color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidebarGroupLabel(String label, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.8,
+          color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActiveDetail(UserModel user, bool isDark) {
+    switch (_selectedCategory) {
+      case SettingsCategory.profile:
+        return _buildSectionCard(
+          title: 'Profile Details',
+          subtitle: 'Manage your personal details, credentials, and contact info.',
+          icon: Icons.person_outline_rounded,
+          child: _buildProfileSection(user, isDark),
+        );
+      case SettingsCategory.academic:
+        return _buildSectionCard(
+          title: 'Academic & Graduation',
+          subtitle: 'Manage school years, active enrollment status, and graduation schedules.',
+          icon: Icons.school_outlined,
+          child: _buildAcademicGraduationSection(isDark),
+        );
+      case SettingsCategory.autoEnroll:
+        return _buildSectionCard(
+          title: 'Student Enrollment Auto-Update',
+          subtitle: 'Configure automated grade-level advancement from School Forms.',
+          icon: Icons.autorenew_rounded,
+          child: _buildAutoEnrollSection(isDark),
+        );
+      case SettingsCategory.reminders:
+        return _buildSectionCard(
+          title: 'Remind Teachers',
+          subtitle: 'Automated email dispatch for grading deadlines and missing documents.',
+          icon: Icons.mark_email_read_outlined,
+          child: _buildTeacherRemindersSection(isDark),
+        );
+      case SettingsCategory.appearance:
+        return _buildSectionCard(
+          title: 'Appearance & Feedback',
+          subtitle: 'Personalize themes, haptic feedback, and audio effects.',
+          icon: Icons.palette_outlined,
+          child: _buildAppearanceSection(isDark),
+        );
+      case SettingsCategory.about:
+        return _buildSectionCard(
+          title: 'About, Support & System Information',
+          subtitle: 'App version, diagnostics, documentation, and local storage cache.',
+          icon: Icons.info_outline_rounded,
+          child: _buildAboutSection(isDark),
+        );
+    }
+  }
+
+  Widget _buildMobileMasterMenu(UserModel user, bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p20, AppSizes.p16, AppSizes.p48),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildMobileProfileCard(user, isDark),
+          const SizedBox(height: 20),
+          _buildSidebarGroupLabel('ACCOUNT SECURITY', isDark),
+          const SizedBox(height: 6),
+          _buildMobileGroupedCard([
+            _buildMobileTile(
+              icon: Icons.security_rounded,
+              title: 'Account Security',
+              subtitle: '2FA, session timeouts & password security',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SecurityScreen(
+                      user: user,
+                      onDeactivateAccount: _handleDeactivateAccount,
+                    ),
+                  ),
+                );
+              },
+              isDark: isDark,
+            ),
+          ], isDark),
+          const SizedBox(height: 20),
+          if (widget.userRole == 'admin') ...[
+            _buildSidebarGroupLabel('ADMINISTRATION', isDark),
+            const SizedBox(height: 6),
+            _buildMobileGroupedCard([
+              _buildMobileTile(
+                icon: Icons.school_outlined,
+                title: 'Academic & Graduation',
+                subtitle: 'School years & graduation settings',
+                onTap: () => _openSubpage(context, SettingsCategory.academic, user),
+                isDark: isDark,
+              ),
+              _buildMobileTileDivider(isDark),
+              _buildMobileTile(
+                icon: Icons.folder_copy_outlined,
+                title: 'Document Requirements',
+                subtitle: 'Configure JHS & SHS requirements',
+                trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                onTap: () => RequirementsModal.open(context),
+                isDark: isDark,
+              ),
+              _buildMobileTileDivider(isDark),
+              _buildMobileTile(
+                icon: Icons.manage_accounts_outlined,
+                title: 'Academic & Class Management',
+                subtitle: 'Years, sections & class advisers',
+                trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                onTap: () => TeacherManagementModal.open(context),
+                isDark: isDark,
+              ),
+              _buildMobileTileDivider(isDark),
+              _buildMobileTile(
+                icon: Icons.autorenew_rounded,
+                title: 'Student Auto-Enrollment',
+                subtitle: 'Automated grade-level advancement',
+                onTap: () => _openSubpage(context, SettingsCategory.autoEnroll, user),
+                isDark: isDark,
+              ),
+              _buildMobileTileDivider(isDark),
+              _buildMobileTile(
+                icon: Icons.mark_email_read_outlined,
+                title: 'Remind Teachers',
+                subtitle: 'Teacher deadline email reminders',
+                onTap: () => _openSubpage(context, SettingsCategory.reminders, user),
+                isDark: isDark,
+              ),
+            ], isDark),
+            const SizedBox(height: 20),
+          ],
+          _buildSidebarGroupLabel('PREFERENCES', isDark),
+          const SizedBox(height: 6),
+          _buildMobileGroupedCard([
+            _buildMobileTile(
+              icon: Icons.palette_outlined,
+              title: 'Appearance & Feedback',
+              subtitle: 'Themes, sound effects & haptics',
+              onTap: () => _openSubpage(context, SettingsCategory.appearance, user),
+              isDark: isDark,
+            ),
+          ], isDark),
+          const SizedBox(height: 20),
+          _buildSidebarGroupLabel('SYSTEM', isDark),
+          const SizedBox(height: 6),
+          _buildMobileGroupedCard([
+            _buildMobileTile(
+              icon: Icons.info_outline_rounded,
+              title: 'About & Support',
+              subtitle: 'v2.0.1 • Diagnostics, docs & cache',
+              onTap: () => _openSubpage(context, SettingsCategory.about, user),
+              isDark: isDark,
+            ),
+          ], isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileProfileCard(UserModel user, bool isDark) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _openSubpage(context, SettingsCategory.profile, user),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.25)
+                    : Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: AppColors.primaryGreen,
+                child: Text(
+                  user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : 'U',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${user.firstName} ${user.lastName}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      user.email ?? 'No email',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        user.role.toUpperCase().replaceAll('_', ' '),
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+                size: 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileGroupedCard(List<Widget> children, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.25)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildMobileTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    required bool isDark,
+    Widget? trailing,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticService.light();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: AppColors.primaryGreen, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              trailing ??
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+                    size: 22,
+                  ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileTileDivider(bool isDark) {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      indent: 52,
+      color: isDark ? Colors.white10 : Colors.grey.shade100,
+    );
+  }
+
+  void _openSubpage(BuildContext context, SettingsCategory category, UserModel user) {
+    HapticService.light();
+    if (category == SettingsCategory.about) {
+      _refreshInstallerCacheSize();
+    }
+
+    String title;
+    String subtitle;
+    IconData icon;
+    Widget Function(bool) builder;
+
+    switch (category) {
+      case SettingsCategory.profile:
+        title = 'Profile Details';
+        subtitle = 'Manage your personal details and credentials';
+        icon = Icons.person_outline_rounded;
+        builder = (isDark) => _buildProfileSection(user, isDark);
+        break;
+      case SettingsCategory.academic:
+        title = 'Academic & Graduation';
+        subtitle = 'School years & graduation settings';
+        icon = Icons.school_outlined;
+        builder = (isDark) => _buildAcademicGraduationSection(isDark);
+        break;
+      case SettingsCategory.autoEnroll:
+        title = 'Auto-Enrollment';
+        subtitle = 'Student enrollment auto-update rules';
+        icon = Icons.autorenew_rounded;
+        builder = (isDark) => _buildAutoEnrollSection(isDark);
+        break;
+      case SettingsCategory.reminders:
+        title = 'Remind Teachers';
+        subtitle = 'Teacher deadline email reminders';
+        icon = Icons.mark_email_read_outlined;
+        builder = (isDark) => _buildTeacherRemindersSection(isDark);
+        break;
+      case SettingsCategory.appearance:
+        title = 'Appearance & Feedback';
+        subtitle = 'Themes, sound effects & haptics';
+        icon = Icons.palette_outlined;
+        builder = (isDark) => _buildAppearanceSection(isDark);
+        break;
+      case SettingsCategory.about:
+        title = 'About & Support';
+        subtitle = 'System info, diagnostics & cache';
+        icon = Icons.info_outline_rounded;
+        builder = (isDark) => _buildAboutSection(isDark);
+        break;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          return Scaffold(
+            backgroundColor: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
+            appBar: AppBar(
+              backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              elevation: 1,
+              title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ),
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSizes.p16),
+              child: _buildSectionCard(
+                title: title,
+                subtitle: subtitle,
+                icon: icon,
+                child: builder(isDark),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.25)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+      ),
+      padding: const EdgeInsets.all(AppSizes.p24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: AppColors.primaryGreen, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          const Divider(),
+          const SizedBox(height: 18),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileSection(UserModel user, bool isDark) {
+    return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
@@ -913,198 +1663,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                            ),
                          ),
                        ],
-                     ),
-                   ),
+    );
+  }
 
-                      const SizedBox(height: AppSizes.p24),
-
-                      // ── Document Requirements Settings (Super Admin Only) ──
-                      if (widget.userRole == 'admin') ...[
-                        _buildCard(
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusLarge,
-                            ),
-                            onTap: () => RequirementsModal.open(context),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.folder_copy,
-                                      color: AppColors.primaryGreen,
-                                    ),
-                                    SizedBox(width: AppSizes.p8),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Document Requirements',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Configure required documents for JHS and SHS',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.chevron_right,
-                                      color: Colors.grey,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen.withValues(
-                                      alpha: 0.06,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: AppColors.primaryGreen.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                    ),
-                                  ),
-                                  child: const Row(
-                                    children: [
-                                      Icon(
-                                        Icons.info_outline,
-                                        size: 16,
-                                        color: AppColors.primaryGreen,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          'Define which documents are required for enrollment per grade level '
-                                          '(e.g., Form 137, Birth Certificate, Good Moral). Students with missing '
-                                          'required documents will appear in the Missing Docs dashboard tile.',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.primaryGreen,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSizes.p24),
-                        _buildCard(
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusLarge,
-                            ),
-                            onTap: () => TeacherManagementModal.open(context),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.school_outlined,
-                                      color: AppColors.primaryGreen,
-                                    ),
-                                    SizedBox(width: AppSizes.p8),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Academic & Class Management',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Manage academic years, sections, and class advisers',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.chevron_right,
-                                      color: Colors.grey,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withValues(alpha: 0.06),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: Colors.blue.withValues(alpha: 0.2),
-                                    ),
-                                  ),
-                                  child: const Row(
-                                    children: [
-                                      Icon(
-                                        Icons.info_outline,
-                                        size: 16,
-                                        color: Colors.blue,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          'Set up academic years, grade levels, and sections. Assign teachers to '
-                                          'their sections so they can view and manage their students\' records. '
-                                          'Changes here affect enrollment options across the system.',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.blue,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSizes.p24),
-
-                        // ── Active Academic Year Schedule & Auto-Graduation (Super Admin Only) ──
-                        Consumer(
+  Widget _buildAcademicGraduationSection(bool isDark) {
+    return Consumer(
                           builder: (context, ref, _) {
                             final academicYearsAsync = ref.watch(academicYearsListProvider);
                             final sysSettingsAsync = ref.watch(systemSettingsProvider);
                             final settingsMap = sysSettingsAsync.asData?.value ?? {};
                             final isDark = Theme.of(context).brightness == Brightness.dark;
-                            return _buildCollapsibleCard(
-                              title: 'Academic & Graduation',
-                              isExpanded: _isAcademicYearExpanded,
-                              onToggle: () => _toggleSection(() => _isAcademicYearExpanded = !_isAcademicYearExpanded),
-                              child: Column(
+            return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
@@ -1431,14 +2000,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                      settingsMap: settingsMap,
                                    ),
                                  ],
-                               ),
-                             );
-                          },
-                        ),
-                        const SizedBox(height: AppSizes.p24),
+            );
+          },
+        );
+  }
 
-                        // ── Student Enrollment Auto-Update (Admin Only) ──
-                        Consumer(
+  Widget _buildAutoEnrollSection(bool isDark) {
+    return Consumer(
                           builder: (context, ref, _) {
                             final sysSettingsAsync = ref.watch(systemSettingsProvider);
                             final settingsMap = sysSettingsAsync.asData?.value ?? {};
@@ -1448,11 +2016,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             final timeVal = settingsMap['auto_update_enrollment_from_sf_time'] ?? '00:00';
                             final isDark = Theme.of(context).brightness == Brightness.dark;
 
-                            return _buildCollapsibleCard(
-                              title: 'Student Enrollment Auto-Update',
-                              isExpanded: _isAutoEnrollExpanded,
-                              onToggle: () => _toggleSection(() => _isAutoEnrollExpanded = !_isAutoEnrollExpanded),
-                              child: Column(
+            return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
@@ -1581,14 +2145,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ],
                                   ],
                                 ],
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: AppSizes.p24),
+            );
+          },
+        );
+  }
 
-                        // ── Remind Teachers (Admin Only) ──────────────────────
-                        Consumer(
+  Widget _buildTeacherRemindersSection(bool isDark) {
+    return Consumer(
                           builder: (context, ref, _) {
                             final sysSettingsAsync = ref.watch(systemSettingsProvider);
                             final settingsMap = sysSettingsAsync.asData?.value ?? {};
@@ -1598,13 +2161,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 int.tryParse(settingsMap['remind_teachers_due_date_days'] ?? '3') ?? 3;
                             final isDark = Theme.of(context).brightness == Brightness.dark;
 
-                            return _buildCollapsibleCard(
-                              title: 'Remind Teachers',
-                              isExpanded: _isTeacherRemindersExpanded,
-                              onToggle: () => _toggleSection(
-                                () => _isTeacherRemindersExpanded = !_isTeacherRemindersExpanded,
-                              ),
-                              child: Column(
+            return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
@@ -1771,19 +2328,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ],
                                   ),
                                 ],
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: AppSizes.p24),
-                      ],
+            );
+          },
+        );
+  }
 
-                      // ── Appearance & Feedback Card (Collapsible) ───────────
-                      _buildCollapsibleCard(
-                        title: 'Appearance & Feedback',
-                        isExpanded: _isAppearanceExpanded,
-                        onToggle: () => _toggleSection(() => _isAppearanceExpanded = !_isAppearanceExpanded),
-                        child: Column(
+  Widget _buildAppearanceSection(bool isDark) {
+    return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
@@ -2030,89 +2581,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ),
                             ],
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.p24),
+    );
+  }
 
-                      // ── Security Screen Navigation Card ─────────────────────
-                      _buildCard(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-                          onTap: () {
-                            HapticService.light();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => SecurityScreen(
-                                  user: user,
-                                  onDeactivateAccount: _handleDeactivateAccount,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.security_rounded,
-                                  color: AppColors.primaryGreen,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: AppSizes.p16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Security',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Manage password, active login sessions, and account status',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: isDark
-                                            ? AppColors.darkTextSecondary
-                                            : Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 16,
-                                color: isDark
-                                    ? AppColors.darkTextSecondary
-                                    : Colors.grey.shade400,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: AppSizes.p24),
-
-                      // ── About & Support Card (Collapsible) ───────────
-                      _buildCollapsibleCard(
-                        title: 'About, Support & System Information',
-                        isExpanded: _isAboutExpanded,
-                        onToggle: () {
-                          _toggleSection(() => _isAboutExpanded = !_isAboutExpanded);
-                          if (_isAboutExpanded) {
-                            _refreshInstallerCacheSize();
-                          }
-                        },
-                        child: Column(
+  Widget _buildAboutSection(bool isDark) {
+    return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // ── System & Client Description ──
@@ -2376,19 +2849,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     children: [
                                       ElevatedButton.icon(
                                         onPressed: () async {
+                                          final messenger = ScaffoldMessenger.of(context);
                                           final uri = Uri.parse('mailto:crischarlesgarcia345@gmail.com?subject=TIS%20RMS%20Support%20Request');
                                           if (await canLaunchUrl(uri)) {
                                             await launchUrl(uri);
                                           } else {
                                             await Clipboard.setData(const ClipboardData(text: 'crischarlesgarcia345@gmail.com'));
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Developer email copied to clipboard: crischarlesgarcia345@gmail.com'),
-                                                  backgroundColor: AppColors.primaryGreen,
-                                                ),
-                                              );
-                                            }
+                                            messenger.showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Developer email copied to clipboard: crischarlesgarcia345@gmail.com'),
+                                                backgroundColor: AppColors.primaryGreen,
+                                              ),
+                                            );
                                           }
                                         },
                                         icon: const Icon(Icons.email_outlined, size: 15),
@@ -2748,243 +3220,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ),
                             ),
                           ],
-                        ),
-                      ),
-
-                      // Dynamic bottom clearance:
-                      // When bottom accordions are collapsed, keep normal compact padding (48px).
-                      // When a bottom accordion is expanded, dynamically provide just enough scroll headroom
-                      // so that section can scroll smoothly all the way to the top of the viewport.
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeInOut,
-                        height: _isAboutExpanded
-                            ? (MediaQuery.sizeOf(context).height - 400).clamp(180.0, 450.0)
-                            : (_isAppearanceExpanded
-                                ? (MediaQuery.sizeOf(context).height - 460).clamp(140.0, 380.0)
-                                : AppSizes.p48),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-                  ),
-                ),
-                // Top Fade Overlay (revealed when content scrolls underneath)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: isMobileOrAndroid ? 24 : 40,
-                  child: IgnorePointer(
-                    child: AnimatedOpacity(
-                      opacity: _showTopFade ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 200),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOutCubic,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: isDark
-                                ? [
-                                    AppColors.darkPageBackground.withValues(alpha: 0.9),
-                                    AppColors.darkPageBackground.withValues(alpha: 0.0),
-                                  ]
-                                : [
-                                    Colors.white.withValues(alpha: 0.9),
-                                    Colors.white.withValues(alpha: 0.0),
-                                  ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Bottom Bar Fade Overlay (revealed when more content is scrollable below)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: isMobileOrAndroid ? 30 : 60,
-                  child: IgnorePointer(
-                    child: AnimatedOpacity(
-                      opacity: _showBottomFade ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 200),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOutCubic,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: isDark
-                                ? [
-                                    AppColors.darkPageBackground.withValues(alpha: 0.0),
-                                    AppColors.darkPageBackground.withValues(alpha: 0.85),
-                                  ]
-                                : [
-                                    Colors.white.withValues(alpha: 0.0),
-                                    Colors.white.withValues(alpha: 0.85),
-                                  ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    ),
-  ),
-);
-}
-
-  Widget _buildCard({required Widget child}) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOutCubic,
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSizes.p24),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.25)
-                : Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-        ),
-      ),
-      child: child,
-    );
-  }
-
-
-  Widget _buildCollapsibleCard({
-    required String title,
-    required bool isExpanded,
-    required VoidCallback onToggle,
-    required Widget child,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Builder(
-      builder: (cardContext) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withValues(alpha: 0.25)
-                    : Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-            ),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    HapticService.light();
-                    final willExpand = !isExpanded;
-                    onToggle();
-                    if (willExpand) {
-                      void scrollToTop() {
-                        if (!cardContext.mounted) return;
-                        Scrollable.ensureVisible(
-                          cardContext,
-                          alignment: 0.0,
-                          duration: const Duration(milliseconds: 350),
-                          curve: Curves.easeInOutCubic,
-                        );
-                      }
-
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        scrollToTop();
-                      });
-                      Future.delayed(const Duration(milliseconds: 270), () {
-                        scrollToTop();
-                      });
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSizes.p24),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        AnimatedRotation(
-                          turns: isExpanded ? 0.5 : 0.0,
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeInOut,
-                          child: Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                            size: 24,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              AnimatedCrossFade(
-                firstChild: const SizedBox(width: double.infinity, height: 0),
-                secondChild: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSizes.p24, 0, AppSizes.p24, AppSizes.p24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Divider(),
-                      const SizedBox(height: AppSizes.p16),
-                      child,
-                    ],
-                  ),
-                ),
-                crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 250),
-                sizeCurve: Curves.easeInOut,
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
