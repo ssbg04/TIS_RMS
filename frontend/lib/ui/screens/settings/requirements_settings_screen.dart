@@ -408,8 +408,9 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
               ],
             )
           : AppBar(
-              backgroundColor: AppColors.primaryGreen,
+              backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
               foregroundColor: Colors.white,
+              iconTheme: const IconThemeData(color: Colors.white),
               elevation: 0,
               titleSpacing: isWide ? null : 0,
               leading: IconButton(

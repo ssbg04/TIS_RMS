@@ -122,8 +122,9 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryGreen,
+        backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           tooltip: 'Back',

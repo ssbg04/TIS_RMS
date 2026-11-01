@@ -121,9 +121,13 @@ class _CapstoneMembersScreenState extends State<CapstoneMembersScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkPageBackground : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Capstone Members'),
-        backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
-        foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+        title: const Text(
+          'Capstone Members',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+        foregroundColor: Colors.white,
         elevation: 1,
       ),
       body: SingleChildScrollView(

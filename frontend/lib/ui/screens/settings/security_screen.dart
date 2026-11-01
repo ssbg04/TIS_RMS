@@ -75,26 +75,20 @@ class SecurityScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(
           'Security',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () {
             HapticService.light();
             Navigator.of(context).pop();
           },
         ),
         centerTitle: false,
-        elevation: 0,
-        backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
-        foregroundColor: theme.colorScheme.onSurface,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(
-            height: 1,
-            color: theme.dividerColor.withValues(alpha: 0.1),
-          ),
-        ),
+        elevation: 1,
+        backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

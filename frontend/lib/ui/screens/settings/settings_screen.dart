@@ -1355,10 +1355,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             appBar: AppBar(
               backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
               foregroundColor: Colors.white,
+              iconTheme: const IconThemeData(color: Colors.white),
               elevation: 1,
-              title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              title: Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.white,
+                ),
+              ),
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => Navigator.of(ctx).pop(),
               ),
             ),
