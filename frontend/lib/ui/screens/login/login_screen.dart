@@ -560,7 +560,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               controller: controller,
               decoration: InputDecoration(
                 labelText: 'Server URL',
-                hintText: 'http://198.252.101.35:18484/api',
+                hintText: 'https://tis-rms.cc.cd/api',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

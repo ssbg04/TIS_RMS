@@ -340,7 +340,6 @@ class ServerDiscoveryService {
   /// 3. Fast check of previously working saved LAN server.
   /// 4. Subnet port scan fallback.
   /// 5. Cloud Tunnel fallback (https://tis-rms.cc.cd/api).
-  /// 6. VPS fallback.
   static Future<String?> resolveServerWithFallback({
     void Function(String message)? onProgress,
   }) async {
@@ -415,18 +414,6 @@ class ServerDiscoveryService {
       await save(ApiConstants.legacyTunnelUrl);
       ApiConstants.setBaseUrl(ApiConstants.legacyTunnelUrl);
       return ApiConstants.legacyTunnelUrl;
-    }
-
-    // 6. Cloud VPS Fallback (http://198.252.101.35:18484/api)
-    onProgress?.call('Connecting to VPS backup…');
-    final vpsAlive = await ping(
-      ApiConstants.vpsUrl,
-      timeout: const Duration(seconds: 2),
-    );
-    if (vpsAlive) {
-      await save(ApiConstants.vpsUrl);
-      ApiConstants.setBaseUrl(ApiConstants.vpsUrl);
-      return ApiConstants.vpsUrl;
     }
 
     // Fallback default: Tunnel URL (https://tis-rms.cc.cd/api)
