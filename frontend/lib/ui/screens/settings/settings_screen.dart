@@ -821,6 +821,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 12),
           ],
+          if (widget.userRole != 'admin') ...[
+            _buildSidebarGroupLabel('FORMS & TEMPLATES', isDark),
+            _buildSidebarActionTile(
+              icon: Icons.file_present_rounded,
+              title: 'Document Templates',
+              onTap: () => TemplatesModal.open(context),
+              isDark: isDark,
+            ),
+            const SizedBox(height: 12),
+          ],
           _buildSidebarGroupLabel('PREFERENCES & SYSTEM', isDark),
           _buildSidebarNavItem(
             icon: Icons.palette_outlined,
@@ -1091,6 +1101,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: 'Remind Teachers',
                 subtitle: 'Teacher deadline email reminders',
                 onTap: () => _openSubpage(context, SettingsCategory.reminders, user),
+                isDark: isDark,
+              ),
+            ], isDark),
+            const SizedBox(height: 20),
+          ],
+          if (widget.userRole != 'admin') ...[
+            _buildSidebarGroupLabel('FORMS & TEMPLATES', isDark),
+            const SizedBox(height: 6),
+            _buildMobileGroupedCard([
+              _buildMobileTile(
+                icon: Icons.file_present_rounded,
+                title: 'Document Templates',
+                subtitle: 'Manage DepEd form templates & files',
+                trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                onTap: () => TemplatesModal.open(context),
                 isDark: isDark,
               ),
             ], isDark),

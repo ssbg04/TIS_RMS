@@ -114,3 +114,4 @@ final templateMutationProvider =
     AsyncNotifierProvider<TemplateMutationNotifier, void>(
   TemplateMutationNotifier.new,
 );
+

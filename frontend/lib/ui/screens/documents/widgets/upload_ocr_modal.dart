@@ -19,6 +19,11 @@ import '../../../shared/buttons/primary_button.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../../domain/entities/student_model.dart';
 import '../../../../domain/entities/document_requirement_model.dart';
+import '../../../../domain/entities/template_model.dart';
+import '../../../../core/utils/download_service.dart';
+import '../../../shared/dialogs/success_dialog.dart';
+import '../../../providers/template_provider.dart';
+import '../../templates/templates_screen.dart';
 // Native dialog implementation replacing wolt_modal_sheet
 import 'upload_modal_header.dart';
 
@@ -1193,6 +1198,20 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: () => TemplatesModal.open(context),
+            icon: const Icon(Icons.file_present_rounded, size: 16, color: AppColors.primaryGreen),
+            label: const Text(
+              'Need official blank form? Browse Templates',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryGreen,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1329,8 +1348,109 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     );
   }
 
+  Future<void> _downloadTemplate(DocumentTemplateModel template) async {
+    try {
+      final dirPath = await DownloadService.getDownloadDirectoryPath();
+      final fileName = template.currentFileName ?? '${template.name}.docx';
+      final savePath = '$dirPath${Platform.pathSeparator}$fileName';
+
+      await ref
+          .read(templateMutationProvider.notifier)
+          .downloadTemplate(template.id, savePath);
+
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        message: 'Template "${template.name}" downloaded.',
+        filePath: savePath,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Download Failed',
+        e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Widget _buildTemplateBanner(DocumentTemplateModel template, bool isDark) {
+    final ext = template.currentFileName != null && template.currentFileName!.contains('.')
+        ? template.currentFileName!.split('.').last.toUpperCase()
+        : 'DOC';
+    final ver = template.currentVersionNumber != null
+        ? 'v${template.currentVersionNumber}'
+        : 'v1.0';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.primaryGreen.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.file_present_rounded, size: 18, color: AppColors.primaryGreen),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Blank Form: ${template.name}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryGreen,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '$ver • $ext',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: () => _downloadTemplate(template),
+            icon: const Icon(Icons.download_rounded, size: 14),
+            label: const Text('Download Blank', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primaryGreen,
+              side: const BorderSide(color: AppColors.primaryGreen),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: const Size(0, 30),
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFileCard(int idx, _UploadEntry item, List<dynamic> requirements) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final templates = ref.watch(templatesListProvider).asData?.value ?? [];
+    DocumentTemplateModel? linkedTemplate;
+    if (item.selectedRequirementId != null) {
+      linkedTemplate = templates
+          .where((t) => t.isActive && t.requirementId == item.selectedRequirementId)
+          .firstOrNull;
+    }
+    if (linkedTemplate == null && item.selectedDocumentType != null && item.selectedDocumentType!.isNotEmpty) {
+      final docName = item.selectedDocumentType!.toLowerCase().trim();
+      linkedTemplate = templates
+          .where((t) => t.isActive && (t.name.toLowerCase().contains(docName) || docName.contains(t.name.toLowerCase())))
+          .firstOrNull;
+    }
     final isDone = item.status == UploadStatus.done;
     final isError = item.status == UploadStatus.error;
     final isUploading = item.status == UploadStatus.uploading;
@@ -1486,6 +1606,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           if (!isDone && !isError && !isUploading) ...[
             const SizedBox(height: 10),
             _buildRequirementDropdown(idx, item, requirements),
+            if (linkedTemplate != null) ...[
+              const SizedBox(height: 8),
+              _buildTemplateBanner(linkedTemplate, isDark),
+            ],
           ],
         ],
       ),
