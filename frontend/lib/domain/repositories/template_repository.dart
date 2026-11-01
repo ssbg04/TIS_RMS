@@ -59,17 +59,23 @@ class TemplateRepository {
     File? file,
   }) async {
     final options = await _authOptions();
-    final formData = FormData.fromMap({
+    final map = <String, dynamic>{
       'name': name,
-      ?'description': description,
-      ?'requirementId': requirementId?.toString(),
       'isActive': isActive.toString(),
-      if (file != null)
-        'file': await MultipartFile.fromFile(
-          file.path,
-          filename: file.path.split(Platform.pathSeparator).last,
-        ),
-    });
+    };
+    if (description != null && description.trim().isNotEmpty) {
+      map['description'] = description.trim();
+    }
+    if (requirementId != null) {
+      map['requirementId'] = requirementId.toString();
+    }
+    if (file != null) {
+      map['file'] = await MultipartFile.fromFile(
+        file.path,
+        filename: file.path.split(Platform.pathSeparator).last,
+      );
+    }
+    final formData = FormData.fromMap(map);
     final response = await _dio.post(
       '/templates',
       data: formData,
