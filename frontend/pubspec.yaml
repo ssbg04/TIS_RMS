@@ -134,7 +134,7 @@ flutter_launcher_icons:
 msix_config:
   display_name: TIS RMS
   publisher_display_name: BSIT3DSB
-  identity_name: plsp.bsit3dsb.tisrms
+  identity_name: com.crischarles.tisrms
   msix_version: 1.0.1.2
   logo_path: "assets/images/logo.png"
   capabilities: internetClient
