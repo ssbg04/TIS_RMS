@@ -28,7 +28,7 @@
         android:icon="@mipmap/ic_launcher">
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
-            android:value="document_scanner" />
+            android:value="document_scanner,ocr" />
         <meta-data
             android:name="com.pravera.flutter_foreground_task.notification_icon"
             android:resource="@mipmap/ic_launcher" />
