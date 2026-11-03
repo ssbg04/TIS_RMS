@@ -60,7 +60,6 @@ dependencies:
   audioplayers: ^6.8.1
   package_info_plus: ^8.1.0
   device_info_plus: ^12.4.0
-  google_mlkit_text_recognition: ^0.17.1
 
 dev_dependencies:
   flutter_test:

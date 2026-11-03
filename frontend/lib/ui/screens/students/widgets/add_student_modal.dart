@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
-import '../../../../core/services/offline_ocr_service.dart';
 import '../../../../domain/entities/setup_models.dart';
 import '../../../../domain/entities/ocr_result_model.dart';
 import '../../../../domain/repositories/student_repository.dart';
@@ -309,45 +308,31 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     });
 
     try {
-      OcrResultModel? ocrResult;
-      if (Platform.isAndroid) {
-        try {
-          ocrResult = await OfflineOcrService.processDocument(
-            file: file,
-            docType: docType,
-          );
-        } catch (e) {
-          debugPrint('Offline OCR failed, falling back to backend: $e');
-        }
-      }
-
-      // If offline not available or failed or non-Android, fall back to backend
-      ocrResult ??= await ref
+      final ocrResult = await ref
           .read(ocrProvider.notifier)
           .processDocument(file: file, fileName: fileName, docType: docType);
       if (!mounted || ocrResult == null) return;
-      final result = ocrResult;
       setState(() {
-        if (result.lrn.isNotEmpty) _lrnController.text = result.lrn;
-        if (result.firstName.isNotEmpty) {
-          _firstNameController.text = result.firstName;
+        if (ocrResult.lrn.isNotEmpty) _lrnController.text = ocrResult.lrn;
+        if (ocrResult.firstName.isNotEmpty) {
+          _firstNameController.text = ocrResult.firstName;
         }
-        if (result.lastName.isNotEmpty) {
-          _lastNameController.text = result.lastName;
+        if (ocrResult.lastName.isNotEmpty) {
+          _lastNameController.text = ocrResult.lastName;
         }
-        _middleNameController.text = result.middleName;
-        _extController.text = result.extension;
-        if (result.sex == 'Male' || result.sex == 'Female') {
-          _selectedSex = result.sex;
+        _middleNameController.text = ocrResult.middleName;
+        _extController.text = ocrResult.extension;
+        if (ocrResult.sex == 'Male' || ocrResult.sex == 'Female') {
+          _selectedSex = ocrResult.sex;
         }
-        if (result.dob != null && result.dob!.isNotEmpty) {
-          _selectedDob = _parseFlexibleDob(result.dob);
+        if (ocrResult.dob != null && ocrResult.dob!.isNotEmpty) {
+          _selectedDob = _parseFlexibleDob(ocrResult.dob);
         }
         _ocrScannedFile = file;
         _currentStep = 1;
       });
 
-      await _offerOcrEnrollment(result, docType);
+      await _offerOcrEnrollment(ocrResult, docType);
     } catch (e) {
       if (!mounted) return;
       final raw = e.toString();
