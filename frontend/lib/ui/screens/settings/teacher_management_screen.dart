@@ -12,10 +12,12 @@ import '../../providers/setup_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../../domain/entities/setup_models.dart';
 import '../../../domain/entities/system_user.dart';
+import '../../providers/student_provider.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/modals/custom_modal.dart';
 import 'widgets/bulk_academic_import_modal.dart';
+import 'widgets/section_roster_modal.dart';
 
 // Fixed grade levels 7-12 — no backend management needed
 const List<int> kGradeLevels = [7, 8, 9, 10, 11, 12];
@@ -772,7 +774,7 @@ class TeacherDetailModal extends ConsumerWidget {
       title:
           '${teacher.firstName}${teacher.middleName != null ? ' ${teacher.middleName}' : ''} ${teacher.lastName}${teacher.extension != null ? ' ${teacher.extension}' : ''}',
       icon: Icons.person,
-      maxWidth: 480,
+      maxWidth: 520,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -890,46 +892,18 @@ class TeacherDetailModal extends ConsumerWidget {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                entry.key,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Text(
+                                  entry.key,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: entry.value.map((sec) {
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? AppColors.primaryGreen.withValues(alpha: 0.2)
-                                          : AppColors.primaryGreen.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: isDark
-                                            ? AppColors.primaryGreen.withValues(alpha: 0.45)
-                                            : AppColors.primaryGreen.withValues(alpha: 0.25),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'G${sec.gradeLevel} – ${sec.name}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
+                              ...entry.value.map((sec) => _AssignedSectionItem(section: sec)),
                               const SizedBox(height: 10),
                             ],
                           );
@@ -1022,6 +996,136 @@ class _DetailRow extends StatelessWidget {
                 color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AssignedSectionItem extends ConsumerWidget {
+  final SectionModel section;
+
+  const _AssignedSectionItem({required this.section});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final query = SectionRosterQuery(
+      section: section.name,
+      gradeLevel: section.gradeLevel.toString(),
+      schoolYear: section.academicYearRange ?? '',
+    );
+    final countAsync = ref.watch(sectionStudentCountProvider(query));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Grade ${section.gradeLevel} – ${section.name}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  section.academicYearRange ?? 'Active',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.school_outlined,
+                    size: 15,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 5),
+                  countAsync.when(
+                    data: (count) => Text(
+                      '$count ${count == 1 ? "student" : "students"}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      ),
+                    ),
+                    loading: () => Text(
+                      'Loading count...',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      ),
+                    ),
+                    error: (err, stack) => Text(
+                      'Roster available',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                borderRadius: BorderRadius.circular(6),
+                onTap: () {
+                  SectionRosterModal.show(context, section: section);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Text(
+                        'View Students',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 13,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1925,7 +2029,7 @@ class _SectionAdviserSelectorModalState
     return CustomModal(
       title: 'Assign Class Adviser',
       icon: Icons.person_pin_outlined,
-      maxWidth: 480,
+      maxWidth: 520,
       content: Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.75,
@@ -2315,7 +2419,7 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
     return CustomModal(
       title: isEditing ? 'Edit Academic Year' : 'Add Academic Year',
       icon: Icons.calendar_today,
-      maxWidth: 480,
+      maxWidth: 520,
       content: Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,
@@ -3111,7 +3215,7 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
     return CustomModal(
       title: isEditing ? 'Edit Section' : 'Add Section',
       icon: Icons.segment,
-      maxWidth: 480,
+      maxWidth: 520,
       content: Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,

@@ -611,3 +611,86 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     }
   }
 }
+
+// ============================================================
+// Section Roster Query & Providers
+// ============================================================
+class SectionRosterQuery {
+  final String section;
+  final String gradeLevel;
+  final String schoolYear;
+  final String search;
+  final int page;
+  final int limit;
+
+  const SectionRosterQuery({
+    required this.section,
+    this.gradeLevel = '',
+    this.schoolYear = '',
+    this.search = '',
+    this.page = 1,
+    this.limit = 100,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SectionRosterQuery &&
+          runtimeType == other.runtimeType &&
+          section == other.section &&
+          gradeLevel == other.gradeLevel &&
+          schoolYear == other.schoolYear &&
+          search == other.search &&
+          page == other.page &&
+          limit == other.limit;
+
+  @override
+  int get hashCode =>
+      section.hashCode ^
+      gradeLevel.hashCode ^
+      schoolYear.hashCode ^
+      search.hashCode ^
+      page.hashCode ^
+      limit.hashCode;
+}
+
+final sectionRosterProvider = FutureProvider.autoDispose
+    .family<StudentPage, SectionRosterQuery>((ref, query) async {
+  final repo = ref.read(studentRepositoryProvider);
+  final sub = repo.onStudentChanged.listen((_) {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => sub.cancel());
+
+  return repo.getStudents(
+    section: query.section,
+    gradeLevel: query.gradeLevel,
+    schoolYear: query.schoolYear,
+    search: query.search,
+    page: query.page,
+    limit: query.limit,
+  );
+});
+
+final sectionStudentCountProvider = FutureProvider.autoDispose
+    .family<int, SectionRosterQuery>((ref, query) async {
+  final repo = ref.read(studentRepositoryProvider);
+  final sub = repo.onStudentChanged.listen((_) {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => sub.cancel());
+
+  try {
+    final page = await repo.getStudents(
+      section: query.section,
+      gradeLevel: query.gradeLevel,
+      schoolYear: query.schoolYear,
+      page: 1,
+      limit: 1,
+    );
+    return page.total;
+  } catch (_) {
+    return 0;
+  }
+});
+
