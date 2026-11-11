@@ -187,96 +187,126 @@ class _DocumentRequirementsViewState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.12),
-                  borderRadius: BorderRadius.circular(10),
+          LayoutBuilder(
+            builder: (context, headerConstraints) {
+              final isCompact = headerConstraints.maxWidth < 560;
+              final titleWidget = Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.rule_folder_rounded,
+                      size: 22,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Document Requirements & Compliance',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Department of Education official document standards & tracking',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+
+              final templatesBtn = OutlinedButton.icon(
+                onPressed: () => TemplatesModal.open(context),
+                icon: const Icon(Icons.file_present_rounded, size: 16),
+                label: Text(
+                  isCompact ? 'Templates' : 'Templates Manager',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.rule_folder_rounded,
-                  size: 22,
-                  color: AppColors.primaryGreen,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryGreen,
+                  side: const BorderSide(color: AppColors.primaryGreen),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: const Size(0, 36),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
+              );
+
+              final configureBtn = ElevatedButton.icon(
+                onPressed: () => RequirementsSettingsModal.show(context),
+                icon: const Icon(Icons.tune_rounded, size: 16, color: Colors.white),
+                label: Text(
+                  isCompact ? 'Configure' : 'Configure Requirements',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  elevation: 1,
+                  shadowColor: AppColors.primaryGreen.withValues(alpha: 0.35),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: const Size(0, 36),
+                ),
+              );
+
+              if (isCompact) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Document Requirements & Compliance',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppColors.textPrimary,
+                    titleWidget,
+                    if (widget.userRole != 'teacher') ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: templatesBtn),
+                          const SizedBox(width: 8),
+                          Expanded(child: configureBtn),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Department of Education official document standards & tracking',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      ),
-                    ),
+                    ],
                   ],
-                ),
-              ),
-              if (widget.userRole != 'teacher') ...[
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: () => TemplatesModal.open(context),
-                  icon: const Icon(Icons.file_present_rounded, size: 16),
-                  label: Text(
-                    MediaQuery.of(context).size.width < 600
-                        ? 'Templates'
-                        : 'Templates Manager',
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primaryGreen,
-                    side: const BorderSide(color: AppColors.primaryGreen),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    minimumSize: const Size(0, 36),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: () => RequirementsSettingsModal.show(context),
-                  icon: const Icon(Icons.tune_rounded, size: 16, color: Colors.white),
-                  label: Text(
-                    MediaQuery.of(context).size.width < 600
-                        ? 'Configure'
-                        : 'Configure Requirements',
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryGreen,
-                    foregroundColor: Colors.white,
-                    elevation: 1,
-                    shadowColor: AppColors.primaryGreen.withValues(alpha: 0.35),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    minimumSize: const Size(0, 36),
-                  ),
-                ),
-              ],
-            ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: titleWidget),
+                  if (widget.userRole != 'teacher') ...[
+                    const SizedBox(width: 12),
+                    templatesBtn,
+                    const SizedBox(width: 8),
+                    configureBtn,
+                  ],
+                ],
+              );
+            },
           ),
           const SizedBox(height: 14),
           const Divider(height: 1),
@@ -648,6 +678,9 @@ class _DocumentRequirementsViewState
                 icon: const Icon(Icons.people_outline_rounded, size: 20),
                 color: Colors.orange.shade800,
                 tooltip: 'View $missingCount missing students',
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                padding: const EdgeInsets.all(6),
+                splashRadius: 18,
                 onPressed: () => _showMissingStudentsSheet(
                   context,
                   reqName: req.name,
@@ -659,6 +692,9 @@ class _DocumentRequirementsViewState
               icon: const Icon(Icons.filter_list_rounded, size: 20),
               color: AppColors.primaryGreen,
               tooltip: 'Filter in All Documents',
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: const EdgeInsets.all(6),
+              splashRadius: 18,
               onPressed: () {
                 widget.onFilterByDocumentType?.call(req.name);
                 widget.onSwitchToDocumentsTab?.call();
@@ -748,12 +784,16 @@ class _DocumentRequirementsViewState
           children: [
             Icon(Icons.check_circle_outline, size: 12, color: AppColors.primaryGreen),
             SizedBox(width: 4),
-            Text(
-              '✓ Complete • All students compliant',
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primaryGreen,
+            Flexible(
+              child: Text(
+                '✓ All students compliant',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryGreen,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -776,12 +816,16 @@ class _DocumentRequirementsViewState
           children: [
             Icon(Icons.warning_amber_rounded, size: 12, color: color),
             const SizedBox(width: 4),
-            Text(
-              '⚠ $missingCount students missing',
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
-                color: color,
+            Flexible(
+              child: Text(
+                '⚠ $missingCount missing',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

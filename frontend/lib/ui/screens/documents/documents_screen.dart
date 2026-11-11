@@ -1061,7 +1061,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeInOut,
           padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 8 : 13,
+            horizontal: isMobile ? 5 : 13,
             vertical: 4,
           ),
           decoration: BoxDecoration(
@@ -1082,18 +1082,18 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             children: [
               Icon(
                 isSelected ? activeIcon : icon,
-                size: 15,
+                size: isMobile ? 14 : 15,
                 color: isSelected
                     ? Colors.white
                     : (isDark
                         ? AppColors.darkTextSecondary
                         : AppColors.textSecondary),
               ),
-              const SizedBox(width: 5),
+              SizedBox(width: isMobile ? 3 : 5),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: isMobile ? 12 : 12.5,
+                  fontSize: isMobile ? 11.5 : 12.5,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
                       ? Colors.white
@@ -1125,10 +1125,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       child: Container(
         height: 52,
         margin: EdgeInsets.symmetric(
-          horizontal: isMobile ? 12 : 16,
+          horizontal: isMobile ? 8 : 16,
           vertical: 8,
         ),
-        padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12),
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 6 : 12),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurfaceCard : Colors.white,
           borderRadius: BorderRadius.circular(12),

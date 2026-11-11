@@ -395,6 +395,8 @@ class _StudentItemCard extends StatelessWidget {
                   children: [
                     Text(
                       student.fullName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -406,6 +408,8 @@ class _StudentItemCard extends StatelessWidget {
                       children: [
                         Text(
                           'LRN: ${student.lrn}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 11,
                             color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,

@@ -60,6 +60,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   String? _sortColumn;
   bool _sortAscending = true;
 
+  // Performance cache for compliance table to avoid re-filtering & re-sorting on every frame
+  List<ReportStudent> _cachedFilteredStudents = const [];
+  String _lastFilterCacheKey = '';
+
 
   @override
   void initState() {
@@ -3025,36 +3029,41 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         activeStatus != null ||
         showOnlyMissing;
 
-    // Filter students
-    final filteredStudents = data.students.where((student) {
-      if (showOnlyMissing && student.missingCount == 0) return false;
-      if (_searchQuery.isNotEmpty) {
-        final q = _searchQuery.toLowerCase();
-        final matchLrn = student.lrn.toLowerCase().contains(q);
-        final matchName = student.fullName.toLowerCase().contains(q);
-        if (!matchLrn && !matchName) return false;
-      }
-      return true;
-    }).toList();
-
-    // Sort students
-    if (_sortColumn != null) {
-      filteredStudents.sort((a, b) {
-        int comparison = 0;
-        switch (_sortColumn) {
-          case 'lrn':
-            comparison = a.lrn.compareTo(b.lrn);
-            break;
-          case 'name':
-            comparison = a.fullName.compareTo(b.fullName);
-            break;
-          case 'missing':
-            comparison = a.missingCount.compareTo(b.missingCount);
-            break;
+    // Filter & Sort students (memoized to eliminate frame lag during scrolling)
+    final currentFilterKey = '${data.students.length}_${showOnlyMissing}_${_searchQuery}_${_sortColumn}_$_sortAscending';
+    if (_lastFilterCacheKey != currentFilterKey || _cachedFilteredStudents.isEmpty && data.students.isNotEmpty) {
+      _lastFilterCacheKey = currentFilterKey;
+      final list = data.students.where((student) {
+        if (showOnlyMissing && student.missingCount == 0) return false;
+        if (_searchQuery.isNotEmpty) {
+          final q = _searchQuery.toLowerCase();
+          final matchLrn = student.lrn.toLowerCase().contains(q);
+          final matchName = student.fullName.toLowerCase().contains(q);
+          if (!matchLrn && !matchName) return false;
         }
-        return _sortAscending ? comparison : -comparison;
-      });
+        return true;
+      }).toList();
+
+      if (_sortColumn != null) {
+        list.sort((a, b) {
+          int comparison = 0;
+          switch (_sortColumn) {
+            case 'lrn':
+              comparison = a.lrn.compareTo(b.lrn);
+              break;
+            case 'name':
+              comparison = a.fullName.compareTo(b.fullName);
+              break;
+            case 'missing':
+              comparison = a.missingCount.compareTo(b.missingCount);
+              break;
+          }
+          return _sortAscending ? comparison : -comparison;
+        });
+      }
+      _cachedFilteredStudents = list;
     }
+    final filteredStudents = _cachedFilteredStudents;
 
     final totalRows = filteredStudents.length;
     final totalPages = (totalRows / _rowsPerPage).ceil().clamp(1, 99999);
@@ -3298,213 +3307,483 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 // On wide screens let the table fill naturally.
                 // On narrow screens allow horizontal scroll.
                 final isWideTable = tableConstraints.maxWidth >= 700;
-                Widget tableWidget = SizedBox(
-                  width: isWideTable ? tableConstraints.maxWidth : null,
-                  child: DataTable(
-                    showCheckboxColumn: false,
-                    headingRowHeight: 40,
-                    dataRowMinHeight: 38,
-                    dataRowMaxHeight: 42,
-                    horizontalMargin: 14,
-                    headingRowColor: WidgetStateProperty.all(
-                      AppColors.primaryGreen.withValues(alpha: 0.04),
-                    ),
-                    columnSpacing: isWideTable ? ((tableConstraints.maxWidth - 480) / 6).clamp(16.0, 56.0) : 16,
-                  columns: [
-                    DataColumn(label: sortableHeader('LRN', 'lrn')),
-                    DataColumn(label: sortableHeader('Name', 'name')),
-                    const DataColumn(
-                      label: Text(
-                        'Sex',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                if (isWideTable) {
+                  return SizedBox(
+                    width: tableConstraints.maxWidth,
+                    child: DataTable(
+                      showCheckboxColumn: false,
+                      headingRowHeight: 40,
+                      dataRowMinHeight: 38,
+                      dataRowMaxHeight: 42,
+                      horizontalMargin: 14,
+                      headingRowColor: WidgetStateProperty.all(
+                        AppColors.primaryGreen.withValues(alpha: 0.04),
                       ),
-                    ),
-                    const DataColumn(
-                      label: Text(
-                        'Status',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const DataColumn(
-                      label: Text(
-                        'Grade/Sec',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    DataColumn(label: sortableHeader('Missing', 'missing')),
-                  ],
-                  rows: paginatedStudents.isEmpty
-                      ? <DataRow>[
-                          const DataRow(
-                            cells: [
-                              DataCell(
-                                Text(
-                                  'No students found for these filters.',
-                                ),
-                              ),
-                              DataCell(Text('')),
-                              DataCell(Text('')),
-                              DataCell(Text('')),
-                              DataCell(Text('')),
-                              DataCell(Text('')),
-                            ],
+                      columnSpacing: ((tableConstraints.maxWidth - 480) / 6).clamp(16.0, 56.0),
+                      columns: [
+                        DataColumn(label: sortableHeader('Name', 'name')),
+                        DataColumn(label: sortableHeader('LRN', 'lrn')),
+                        const DataColumn(
+                          label: Text(
+                            'Sex',
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
-                        ]
-                      : paginatedStudents.map((student) {
-                        return DataRow(
-                          onSelectChanged: (_) {
-                            showStudentProfileModal(
-                              context,
-                              studentId: student.id,
-                              userRole: widget.userRole,
-                              hideEnrollmentActions: true,
-                            );
-                          },
-                          cells: [
-                            DataCell(
-                              Text(
-                                student.lrn,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                student.fullName,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                student.sex,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            ),
-                            DataCell(
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                child: Text(
-                                  student.status == 'Enrolled'
-                                      ? 'Active'
-                                      : student.status,
-                                  style: TextStyle(
-                                    color: student.status == 'Enrolled'
-                                        ? (isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen)
-                                        : student.status == 'Graduated'
-                                        ? (isDark ? const Color(0xFF7EAAD8) : Colors.blue.shade700)
-                                        : (isDark ? const Color(0xFFE5A663) : Colors.orange.shade800),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                '${student.gradeLevel ?? 'N/A'}/${student.sectionName ?? 'N/A'}',
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            ),
-                            DataCell(
-                              _buildMissingDocsTooltip(
-                                context: context,
-                                missingCount: student.missingCount,
-                                missingRequirementsStr: student.missingRequirements,
-                                child: InkWell(
-                                  onTap: () => _showMissingDocsBottomSheet(context, student),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
+                        ),
+                        const DataColumn(
+                          label: Text(
+                            'Status',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const DataColumn(
+                          label: Text(
+                            'Grade/Sec',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        DataColumn(label: sortableHeader('Missing', 'missing')),
+                      ],
+                      rows: paginatedStudents.isEmpty
+                          ? <DataRow>[
+                              const DataRow(
+                                cells: [
+                                  DataCell(
+                                    Text(
+                                      'No students found for these filters.',
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                                        width: 0.8,
+                                  ),
+                                  DataCell(Text('')),
+                                  DataCell(Text('')),
+                                  DataCell(Text('')),
+                                  DataCell(Text('')),
+                                  DataCell(Text('')),
+                                ],
+                              ),
+                            ]
+                          : paginatedStudents.map((student) {
+                              return DataRow(
+                                onSelectChanged: (_) {
+                                  showStudentProfileModal(
+                                    context,
+                                    studentId: student.id,
+                                    userRole: widget.userRole,
+                                    hideEnrollmentActions: true,
+                                  );
+                                },
+                                cells: [
+                                  DataCell(
+                                    Text(
+                                      student.fullName,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          student.missingCount > 0
-                                              ? Icons.info_outline_rounded
-                                              : Icons.check_circle_outline_rounded,
-                                          size: 13,
-                                          color: student.missingCount > 0
-                                              ? (isDark
-                                                  ? AppColors.darkTextSecondary
-                                                  : Colors.grey.shade700)
-                                              : (isDark
-                                                  ? const Color(0xFF76BA8A)
-                                                  : AppColors.primaryGreen),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          student.missingCount.toString(),
-                                          style: TextStyle(
-                                            color: student.missingCount > 0
-                                                ? (isDark
-                                                    ? AppColors.darkTextPrimary
-                                                    : AppColors.textPrimary)
-                                                : (isDark
-                                                    ? const Color(0xFF76BA8A)
-                                                    : AppColors.primaryGreen),
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Icon(
-                                          Icons.arrow_drop_down_rounded,
-                                          size: 18,
-                                          color: isDark
-                                              ? AppColors.darkTextSecondary
-                                              : Colors.grey.shade600,
-                                        ),
-                                      ],
+                                  ),
+                                  DataCell(
+                                    Text(
+                                      student.lrn,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                  ),
-                );
-                if (isWideTable) {
-                  return tableWidget;
+                                  DataCell(
+                                    Text(
+                                      student.sex,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        student.status == 'Enrolled'
+                                            ? 'Active'
+                                            : student.status,
+                                        style: TextStyle(
+                                          color: student.status == 'Enrolled'
+                                              ? (isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen)
+                                              : student.status == 'Graduated'
+                                              ? (isDark ? const Color(0xFF7EAAD8) : Colors.blue.shade700)
+                                              : (isDark ? const Color(0xFFE5A663) : Colors.orange.shade800),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Text(
+                                      '${student.gradeLevel ?? 'N/A'}/${student.sectionName ?? 'N/A'}',
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    _buildMissingDocsTooltip(
+                                      context: context,
+                                      missingCount: student.missingCount,
+                                      missingRequirementsStr: student.missingRequirements,
+                                      child: InkWell(
+                                        onTap: () => _showMissingDocsBottomSheet(context, student),
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                              width: 0.8,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                student.missingCount > 0
+                                                    ? Icons.info_outline_rounded
+                                                    : Icons.check_circle_outline_rounded,
+                                                size: 13,
+                                                color: student.missingCount > 0
+                                                    ? (isDark
+                                                        ? AppColors.darkTextSecondary
+                                                        : Colors.grey.shade700)
+                                                    : (isDark
+                                                        ? const Color(0xFF76BA8A)
+                                                        : AppColors.primaryGreen),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                student.missingCount.toString(),
+                                                style: TextStyle(
+                                                  color: student.missingCount > 0
+                                                      ? (isDark
+                                                          ? AppColors.darkTextPrimary
+                                                          : AppColors.textPrimary)
+                                                      : (isDark
+                                                          ? const Color(0xFF76BA8A)
+                                                          : AppColors.primaryGreen),
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 2),
+                                              Icon(
+                                                Icons.arrow_drop_down_rounded,
+                                                size: 18,
+                                                color: isDark
+                                                    ? AppColors.darkTextSecondary
+                                                    : Colors.grey.shade600,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                    ),
+                  );
                 }
+
+                // Narrow / Mobile View: High-performance Sticky Name Column + Native Scrollbar
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SingleChildScrollView(
-                      controller: _tableHorizontalScrollController,
-                      scrollDirection: Axis.horizontal,
-                      child: tableWidget,
+                    RepaintBoundary(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Sticky Name column (lightweight direct layout, zero Table multi-pass overhead)
+                          Container(
+                            width: 135,
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                              border: Border(
+                                right: BorderSide(
+                                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                  width: 1.5,
+                                ),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Container(
+                                  height: 40,
+                                  alignment: Alignment.centerLeft,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGreen.withValues(alpha: 0.04),
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                  ),
+                                  child: sortableHeader('Name', 'name'),
+                                ),
+                                if (paginatedStudents.isEmpty)
+                                  Container(
+                                    height: 42,
+                                    alignment: Alignment.centerLeft,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    child: const Text('No students', style: TextStyle(fontSize: 13)),
+                                  )
+                                else
+                                  ...paginatedStudents.map((student) {
+                                    return InkWell(
+                                      onTap: () {
+                                        showStudentProfileModal(
+                                          context,
+                                          studentId: student.id,
+                                          userRole: widget.userRole,
+                                          hideEnrollmentActions: true,
+                                        );
+                                      },
+                                      child: Container(
+                                        height: 42,
+                                        alignment: Alignment.centerLeft,
+                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: isDark ? AppColors.darkBorder : Colors.grey.shade100,
+                                              width: 1.0,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Tooltip(
+                                          message: student.fullName,
+                                          child: Text(
+                                            student.fullName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                              ],
+                            ),
+                          ),
+                          // Horizontally scrollable data columns with hardware-accelerated Scrollbar
+                          Expanded(
+                            child: Scrollbar(
+                              controller: _tableHorizontalScrollController,
+                              thumbVisibility: true,
+                              thickness: 3.5,
+                              radius: const Radius.circular(3),
+                              child: SingleChildScrollView(
+                                controller: _tableHorizontalScrollController,
+                                scrollDirection: Axis.horizontal,
+                                physics: const ClampingScrollPhysics(),
+                                child: DataTable(
+                                  showCheckboxColumn: false,
+                                  headingRowHeight: 40,
+                                  dataRowMinHeight: 38,
+                                  dataRowMaxHeight: 42,
+                                  horizontalMargin: 12,
+                                  columnSpacing: 16,
+                                  headingRowColor: WidgetStateProperty.all(
+                                    AppColors.primaryGreen.withValues(alpha: 0.04),
+                                  ),
+                                  columns: [
+                                    DataColumn(label: sortableHeader('LRN', 'lrn')),
+                                    const DataColumn(
+                                      label: Text(
+                                        'Sex',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    const DataColumn(
+                                      label: Text(
+                                        'Status',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    const DataColumn(
+                                      label: Text(
+                                        'Grade/Sec',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    DataColumn(label: sortableHeader('Missing', 'missing')),
+                                  ],
+                                  rows: paginatedStudents.isEmpty
+                                      ? const <DataRow>[
+                                          DataRow(
+                                            cells: [
+                                              DataCell(Text('')),
+                                              DataCell(Text('')),
+                                              DataCell(Text('')),
+                                              DataCell(Text('')),
+                                              DataCell(Text('')),
+                                            ],
+                                          ),
+                                        ]
+                                      : paginatedStudents.map((student) {
+                                          return DataRow(
+                                            onSelectChanged: (_) {
+                                              showStudentProfileModal(
+                                                context,
+                                                studentId: student.id,
+                                                userRole: widget.userRole,
+                                                hideEnrollmentActions: true,
+                                              );
+                                            },
+                                            cells: [
+                                              DataCell(
+                                                Text(
+                                                  student.lrn,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Text(
+                                                  student.sex,
+                                                  style: const TextStyle(fontSize: 13),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 3,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    border: Border.all(
+                                                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                                      width: 0.8,
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    student.status == 'Enrolled'
+                                                        ? 'Active'
+                                                        : student.status,
+                                                    style: TextStyle(
+                                                      color: student.status == 'Enrolled'
+                                                          ? (isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen)
+                                                          : student.status == 'Graduated'
+                                                          ? (isDark ? const Color(0xFF7EAAD8) : Colors.blue.shade700)
+                                                          : (isDark ? const Color(0xFFE5A663) : Colors.orange.shade800),
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Text(
+                                                  '${student.gradeLevel ?? 'N/A'}/${student.sectionName ?? 'N/A'}',
+                                                  style: const TextStyle(fontSize: 13),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                _buildMissingDocsTooltip(
+                                                  context: context,
+                                                  missingCount: student.missingCount,
+                                                  missingRequirementsStr: student.missingRequirements,
+                                                  child: InkWell(
+                                                    onTap: () => _showMissingDocsBottomSheet(context, student),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                                                        borderRadius: BorderRadius.circular(12),
+                                                        border: Border.all(
+                                                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                                          width: 0.8,
+                                                        ),
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                            student.missingCount > 0
+                                                                ? Icons.info_outline_rounded
+                                                                : Icons.check_circle_outline_rounded,
+                                                            size: 13,
+                                                            color: student.missingCount > 0
+                                                                ? (isDark
+                                                                    ? AppColors.darkTextSecondary
+                                                                    : Colors.grey.shade700)
+                                                                : (isDark
+                                                                    ? const Color(0xFF76BA8A)
+                                                                    : AppColors.primaryGreen),
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            student.missingCount.toString(),
+                                                            style: TextStyle(
+                                                              color: student.missingCount > 0
+                                                                  ? (isDark
+                                                                      ? AppColors.darkTextPrimary
+                                                                      : AppColors.textPrimary)
+                                                                  : (isDark
+                                                                      ? const Color(0xFF76BA8A)
+                                                                      : AppColors.primaryGreen),
+                                                              fontWeight: FontWeight.w600,
+                                                              fontSize: 12,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(width: 2),
+                                                          Icon(
+                                                            Icons.arrow_drop_down_rounded,
+                                                            size: 18,
+                                                            color: isDark
+                                                                ? AppColors.darkTextSecondary
+                                                                : Colors.grey.shade600,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        }).toList(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 6),
-                    _CustomHorizontalScrollBar(
-                      controller: _tableHorizontalScrollController,
-                      isDark: isDark,
-                    ),
                     _buildHorizontalScrollHint(
                       context,
                       text: 'Scroll horizontally to view full table',
@@ -5078,49 +5357,12 @@ class _CustomHorizontalScrollBar extends StatefulWidget {
 class _CustomHorizontalScrollBarState
     extends State<_CustomHorizontalScrollBar> {
   @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant _CustomHorizontalScrollBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeListener(_onScroll);
-      widget.controller.addListener(_onScroll);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() {});
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_onScroll);
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (mounted) setState(() {});
-  }
-
-  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, _) {
         final hasClients = widget.controller.hasClients &&
             widget.controller.position.hasContentDimensions;
-
-        if (!hasClients) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) setState(() {});
-          });
-        }
 
         final pos = hasClients ? widget.controller.position : null;
         final maxScroll = pos?.maxScrollExtent ?? 0.0;
