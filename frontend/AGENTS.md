@@ -1206,6 +1206,31 @@ Files backup/restore - mirror mode or zip -->
 - [x] after upload from the documents tab, refresh the requirement checklist (added onUploadSuccess callback to UploadOcrModal, invalidated missingRequirementsProvider, studentDocumentsProvider, studentDetailProvider, and studentActivitiesProvider upon upload completion and modal close, and wired refresh in Files on Record header)
 - [x] remove the pencil icon in enrollments cards (removed IconButton edit pencil from _buildEnrollmentCard in student profile modal)
 
+<!-- # SETTINGS SCREEN
+- Profile details screen, fix text fields cannot un focus when clicking outside of the text fields, cancel and save profile didnt show, when click back button prompt a modal to discard or save changes
+- Requirements screen, required quick button make it more attractive add clue that its a clickable, actions button add select for multi select activation, redesign the modal for creating and editing requirements make the layout more cleaner and understandable
+- Academic & Graduation screen, make the loading icon into skeleton, separate the sections by its functions
+- Academic & Class Management screen, make the screen compact in mobile the top half is quick stats, tabs, filter, and buttons, bottom half is the list, make the list more stand out do not make the top half occupy the screen make it more compact
+- About & Support screen, separate the sections by its functions, redesign the About & Support section
+
+# REPORTS SCREEN
+- redeisng the PDF modal and Excel modal preview, make it more compact and minimalist add i icon to see the full document properties, remove the tables in excel modal preview, use pdf viewer package "flutter_pdfview", use excel viewer with these packages "spreadsheet_decoder + pdf package"
+- fix the overflowed pixels on skeleton loading
+- in PDF document review the pdf body that it says ready to save it has dark background even on light mode
+- data on enrollment, fixed the table column Key Stage / Grade Level when horizontal scroll the table
+- dropouts and transferees, fixed the table column Grade Level when horizontal scroll the table
+- 4Ps Beneficiaries, fixed the table Key Stage / Grade Level when horizontal scroll the table -->
+
+# DOCUMENTS SCREEN
+- requirements tab, more options dropdown remove the configure requirements and documents templates
+- requirements tab, make the search bar more attractive
+
+# DOCUMENTS SCREEN AND ARCHIVE SCREEN
+- in pdf file and excel files preview do the same from reports screen
+
+# SETTINGS SCREEN
+- sub screens, add "esc" function to back
+
 ---
 
 

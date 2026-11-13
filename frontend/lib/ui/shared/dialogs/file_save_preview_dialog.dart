@@ -1,5 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:spreadsheet_decoder/spreadsheet_decoder.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../widgets/app_button_loader.dart';
@@ -156,11 +161,16 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
   late TextEditingController _fileNameCtrl;
   bool _isSaving = false;
   String? _error;
+  Future<Uint8List>? _excelPdfFuture;
+  List<FilePreviewRow> _excelStatsRows = const [];
 
   @override
   void initState() {
     super.initState();
     _fileNameCtrl = TextEditingController(text: widget.initialFileName);
+    if (widget.fileType == SaveFileType.excel) {
+      _excelPdfFuture = _buildExcelPdfBytes();
+    }
   }
 
   @override
@@ -176,6 +186,243 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     return kb < 1024
         ? '${kb.toStringAsFixed(1)} KB'
         : '${(kb / 1024).toStringAsFixed(2)} MB';
+  }
+
+  Future<Uint8List> _buildExcelPdfBytes() async {
+    final doc = pw.Document();
+    final sheetSections = <({String name, List<List<String>> rows})>[];
+
+    if (widget.fileBytes != null && widget.fileBytes!.isNotEmpty) {
+      try {
+        final decoder = SpreadsheetDecoder.decodeBytes(
+          widget.fileBytes!,
+          update: false,
+        );
+        for (final entry in decoder.tables.entries) {
+          final rows = entry.value.rows
+              .map(
+                (r) => r.map((c) => c?.toString() ?? '').toList(),
+              )
+              .where((r) => r.any((c) => c.trim().isNotEmpty))
+              .toList();
+          if (rows.isNotEmpty) {
+            sheetSections.add((name: entry.key, rows: rows));
+          }
+        }
+      } catch (_) {
+        // Fall back to SheetPreviewData if raw xlsx decode fails
+      }
+    }
+
+    if (sheetSections.isEmpty && widget.sheets.isNotEmpty) {
+      for (final s in widget.sheets) {
+        final combined = <List<String>>[
+          if (s.headers.isNotEmpty) s.headers,
+          ...s.rows,
+        ];
+        if (combined.isNotEmpty) {
+          sheetSections.add((name: s.sheetName, rows: combined));
+        }
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _excelStatsRows = [
+          FilePreviewRow('Sheets', '${sheetSections.length}'),
+          if (sheetSections.isNotEmpty)
+            FilePreviewRow(
+              'Total Rows',
+              '${sheetSections.fold<int>(0, (acc, s) => acc + s.rows.length)}',
+            ),
+        ];
+      });
+    }
+
+    if (sheetSections.isEmpty) {
+      doc.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (_) => pw.Center(
+            child: pw.Text(
+              'No spreadsheet data available for preview.',
+              style: const pw.TextStyle(fontSize: 12),
+            ),
+          ),
+        ),
+      );
+      return doc.save();
+    }
+
+    const maxPreviewRowsPerSheet = 200;
+
+    for (final sheet in sheetSections) {
+      final rawRows = sheet.rows;
+      final maxCols = rawRows.fold<int>(
+        0,
+        (m, r) => r.length > m ? r.length : m,
+      );
+      final normalized = rawRows.take(maxPreviewRowsPerSheet).map((r) {
+        if (r.length == maxCols) return r;
+        return [...r, ...List.filled(maxCols - r.length, '')];
+      }).toList();
+
+      final headers = normalized.first;
+      final dataRows = normalized.length > 1 ? normalized.sublist(1) : <List<String>>[];
+      final truncatedCount = rawRows.length - normalized.length;
+      final pageFormat =
+          maxCols > 5 ? PdfPageFormat.a4.landscape : PdfPageFormat.a4;
+
+      doc.addPage(
+        pw.MultiPage(
+          pageFormat: pageFormat,
+          margin: const pw.EdgeInsets.all(24),
+          header: (ctx) => pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 8),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  sheet.name,
+                  style: pw.TextStyle(
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColor.fromInt(0xFF1D6F42),
+                  ),
+                ),
+                pw.Text(
+                  'Page ${ctx.pageNumber} of ${ctx.pagesCount}',
+                  style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+                ),
+              ],
+            ),
+          ),
+          build: (ctx) => [
+            pw.TableHelper.fromTextArray(
+              headers: headers,
+              data: dataRows,
+              headerStyle: pw.TextStyle(
+                fontSize: 8.5,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.white,
+              ),
+              headerDecoration: pw.BoxDecoration(
+                color: PdfColor.fromInt(0xFF1D6F42),
+              ),
+              cellStyle: const pw.TextStyle(fontSize: 8),
+              cellPadding: const pw.EdgeInsets.symmetric(
+                horizontal: 5,
+                vertical: 3.5,
+              ),
+              oddRowDecoration: const pw.BoxDecoration(
+                color: PdfColor.fromInt(0xFFF8FAFC),
+              ),
+              border: pw.TableBorder.all(
+                color: PdfColors.grey300,
+                width: 0.5,
+              ),
+            ),
+            if (truncatedCount > 0)
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 8),
+                child: pw.Text(
+                  '+ $truncatedCount more rows included in saved Excel file',
+                  style: pw.TextStyle(
+                    fontSize: 8.5,
+                    fontStyle: pw.FontStyle.italic,
+                    color: PdfColors.grey600,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    return doc.save();
+  }
+
+  void _showPropertiesDialog(Color accent, bool isDark) {
+    final allRows = [
+      FilePreviewRow('File Name', _fileNameCtrl.text.trim().isEmpty ? widget.initialFileName : _fileNameCtrl.text.trim()),
+      FilePreviewRow('Format', widget.fileType.label),
+      FilePreviewRow('File Size', _sizeLabel),
+      ...widget.previewRows,
+      ..._excelStatsRows,
+    ];
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+        title: Row(
+          children: [
+            Icon(Icons.info_outline_rounded, color: accent, size: 20),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Document Properties',
+                style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              visualDensity: VisualDensity.compact,
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: allRows.map((row) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 105,
+                      child: Text(
+                        row.label,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        row.value,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _save() async {
@@ -212,20 +459,18 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     final accent = widget.fileType.color;
 
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
       ),
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 680, maxHeight: maxH),
+        constraints: BoxConstraints(maxWidth: 660, maxHeight: maxH),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildTopBar(accent, isDark),
-            _buildBreadcrumbs(accent, isDark),
             Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-            // Preview — fills available space
             Flexible(child: _buildPreviewArea(accent, isDark)),
             Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
             _buildBottom(accent, isDark),
@@ -239,33 +484,50 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
   Widget _buildTopBar(Color accent, bool isDark) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.p16,
-        vertical: 10,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: isDark ? 0.12 : 0.06),
+        color: accent.withValues(alpha: isDark ? 0.12 : 0.05),
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppSizes.radiusLarge),
         ),
       ),
       child: Row(
         children: [
-          Icon(widget.fileType.icon, color: accent, size: 20),
+          Icon(widget.fileType.icon, color: accent, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '${widget.fileType.label} Preview',
+              widget.fileType.label,
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
                 color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          Text(
+            _sizeLabel,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(width: 4),
           IconButton(
             visualDensity: VisualDensity.compact,
+            tooltip: 'Document Properties',
+            icon: Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            ),
+            onPressed: () => _showPropertiesDialog(accent, isDark),
+          ),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            tooltip: 'Close',
             icon: Icon(
               Icons.close,
               size: 18,
@@ -280,59 +542,19 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     );
   }
 
-  // ── METADATA BAR ──────────────────────────────────────────────────────────
-
-  Widget _buildBreadcrumbs(Color accent, bool isDark) {
-    final allRows = [...widget.previewRows, FilePreviewRow('Size', _sizeLabel)];
-
-    return Container(
-      height: 36,
-      padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
-      color: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: allRows.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 6),
-        itemBuilder: (_, i) {
-          final row = allRows[i];
-          return Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                ),
-              ),
-              child: Text(
-                '${row.label}: ${row.value}',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   // ── PREVIEW AREA ──────────────────────────────────────────────────────────
 
   Widget _buildPreviewArea(Color accent, bool isDark) {
     return switch (widget.fileType) {
       SaveFileType.image => _buildImagePreview(isDark),
-      SaveFileType.excel => _buildExcelPreview(accent, isDark),
+      SaveFileType.excel => _buildExcelPdfPreview(accent, isDark),
       SaveFileType.pdf => widget.fileBytes != null && widget.fileBytes!.isNotEmpty
           ? _buildPdfPreview(isDark)
           : _buildPlaceholderPreview(
               accent,
               Icons.picture_as_pdf_outlined,
               'PDF Preview',
-              'PDF rendering requires an external viewer.\nThe file will open correctly after saving.',
+              'No PDF bytes available for preview.\nThe file will open after saving.',
               isDark,
             ),
       SaveFileType.word => _buildPlaceholderPreview(
@@ -352,57 +574,110 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     };
   }
 
-  /// Interactive live PDF preview.
-  Widget _buildPdfPreview(bool isDark) {
+  Widget _buildPdfViewWidget({
+    required Future<Uint8List> Function(PdfPageFormat) buildPdf,
+    required bool isDark,
+  }) {
     return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface2 : const Color(0xFF525659),
-        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+      color: isDark ? AppColors.darkPageBackground : const Color(0xFFF3F4F6),
+      child: PdfPreview(
+        build: buildPdf,
+        useActions: false,
+        allowPrinting: false,
+        allowSharing: false,
+        canChangeOrientation: false,
+        canChangePageFormat: false,
+        canDebug: false,
+        pdfPreviewPageDecoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-      ),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: SaveFileType.pdf.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Icon(
-                  Icons.picture_as_pdf_rounded,
-                  size: 44,
-                  color: SaveFileType.pdf.color,
-                ),
+        scrollViewDecoration: BoxDecoration(
+          color: isDark ? AppColors.darkPageBackground : const Color(0xFFF3F4F6),
+        ),
+        loadingWidget: const Center(
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(strokeWidth: 2.2),
+          ),
+        ),
+        onError: (ctx, err) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'Unable to render PDF preview.\nYou can still save the file.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               ),
-              const SizedBox(height: 16),
-              Text(
-                widget.initialFileName,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$_sizeLabel • Ready to save',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  /// Interactive live PDF preview (works on Android & Windows, light/dark themed).
+  Widget _buildPdfPreview(bool isDark) {
+    final bytes = Uint8List.fromList(widget.fileBytes!);
+    return _buildPdfViewWidget(
+      buildPdf: (_) async => bytes,
+      isDark: isDark,
+    );
+  }
+
+  /// Excel preview rendered via spreadsheet_decoder + pdf + PdfPreview (no Flutter tables).
+  Widget _buildExcelPdfPreview(Color accent, bool isDark) {
+    final future = _excelPdfFuture;
+    if (future == null) {
+      return _buildPlaceholderPreview(
+        accent,
+        Icons.table_chart_outlined,
+        'Excel Spreadsheet',
+        'No spreadsheet data provided for preview.',
+        isDark,
+      );
+    }
+
+    return FutureBuilder<Uint8List>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            color: isDark ? AppColors.darkPageBackground : const Color(0xFFF3F4F6),
+            child: const Center(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
+              ),
+            ),
+          );
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return _buildPlaceholderPreview(
+            accent,
+            Icons.table_chart_outlined,
+            'Excel Spreadsheet',
+            'Preview unavailable. You can still save the Excel file.',
+            isDark,
+          );
+        }
+        final pdfBytes = snapshot.data!;
+        return _buildPdfViewWidget(
+          buildPdf: (_) async => pdfBytes,
+          isDark: isDark,
+        );
+      },
     );
   }
 
@@ -430,173 +705,6 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
           'Preview Failed',
           'Could not load image.',
           isDark,
-        ),
-      ),
-    );
-  }
-
-  /// Mini spreadsheet rendered from [SheetPreviewData].
-  Widget _buildExcelPreview(Color accent, bool isDark) {
-    final sheets = widget.sheets;
-    if (sheets.isEmpty) {
-      return _buildPlaceholderPreview(
-        accent,
-        Icons.table_chart_outlined,
-        'Excel Spreadsheet',
-        'No table data provided for preview.',
-        isDark,
-      );
-    }
-
-    if (sheets.length == 1) {
-      return _buildSheet(sheets.first, accent, isDark);
-    }
-
-    return DefaultTabController(
-      length: sheets.length,
-      child: Column(
-        children: [
-          Container(
-            color: accent.withValues(alpha: isDark ? 0.08 : 0.05),
-            child: TabBar(
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelColor: accent,
-              unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-              indicatorColor: accent,
-              indicatorSize: TabBarIndicatorSize.tab,
-              tabs: sheets.map((s) => Tab(text: s.sheetName)).toList(),
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              children: sheets.map((s) => _buildSheet(s, accent, isDark)).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSheet(SheetPreviewData tp, Color accent, bool isDark) {
-    if (tp.headers.isEmpty) {
-      return _buildPlaceholderPreview(
-        accent,
-        Icons.table_chart_outlined,
-        'Empty Sheet',
-        'No data provided for this sheet.',
-        isDark,
-      );
-    }
-
-    final visibleRows = tp.rows.take(tp.maxPreviewRows).toList();
-    final hasMore = tp.rows.length > tp.maxPreviewRows;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSizes.p16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Spreadsheet chrome label
-          Row(
-            children: [
-              Icon(Icons.table_chart, size: 14, color: accent),
-              const SizedBox(width: 4),
-              Text(
-                'Sheet: ${tp.sheetName}  •  ${tp.rows.length} rows',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: accent,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSizes.p8),
-
-          // Table
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-              ),
-              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Table(
-                defaultColumnWidth: const IntrinsicColumnWidth(),
-                border: TableBorder(
-                  horizontalInside: BorderSide(
-                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                  ),
-                  verticalInside: BorderSide(
-                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                  ),
-                ),
-                children: [
-                  // Header row
-                  TableRow(
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: isDark ? 0.20 : 0.10),
-                    ),
-                    children: tp.headers.asMap().entries.map((e) {
-                      return _tableCell(
-                        e.value.isEmpty ? '#' : e.value,
-                        isHeader: true,
-                        accent: accent,
-                        isDark: isDark,
-                      );
-                    }).toList(),
-                  ),
-                  // Data rows
-                  ...visibleRows.asMap().entries.map((rowEntry) {
-                    final isEven = rowEntry.key % 2 == 0;
-                    return TableRow(
-                      decoration: BoxDecoration(
-                        color: isEven
-                            ? (isDark ? AppColors.darkSurfaceCard : Colors.white)
-                            : (isDark ? AppColors.darkSurface2 : Colors.grey.shade50),
-                      ),
-                      children: rowEntry.value.map((cell) {
-                        return _tableCell(cell, isDark: isDark);
-                      }).toList(),
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ),
-
-          if (hasMore)
-            Padding(
-              padding: const EdgeInsets.only(top: AppSizes.p8),
-              child: Text(
-                '+ ${tp.rows.length - tp.maxPreviewRows} more rows not shown in preview',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _tableCell(String text, {bool isHeader = false, Color? accent, required bool isDark}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-          color: isHeader
-              ? (accent ?? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary))
-              : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
         ),
       ),
     );
@@ -652,12 +760,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
   Widget _buildBottom(Color accent, bool isDark) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSizes.p20,
-        AppSizes.p12,
-        AppSizes.p20,
-        AppSizes.p16,
-      ),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -668,47 +771,48 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
             textInputAction: TextInputAction.done,
             scrollPadding: const EdgeInsets.only(bottom: 120),
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
             ),
             decoration: InputDecoration(
               isDense: true,
               labelText: 'File Name',
               labelStyle: TextStyle(
+                fontSize: 12,
                 color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               ),
               filled: isDark,
               fillColor: isDark ? AppColors.darkSurface2 : null,
-              prefixIcon: Icon(widget.fileType.icon, color: accent, size: 18),
+              prefixIcon: Icon(widget.fileType.icon, color: accent, size: 17),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
                   color: isDark ? AppColors.darkBorder : Colors.grey.shade400,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
                   color: isDark ? AppColors.darkBorder : Colors.grey.shade400,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(color: accent, width: 1.5),
               ),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
+                horizontal: 12,
+                vertical: 10,
               ),
             ),
           ),
 
           if (_error != null) ...[
-            const SizedBox(height: AppSizes.p8),
+            const SizedBox(height: 8),
             _buildErrorBanner(_error!),
           ],
 
-          const SizedBox(height: AppSizes.p12),
+          const SizedBox(height: 10),
 
           // Buttons
           Row(
@@ -722,42 +826,38 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
                     foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textSecondary,
                     side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
                     backgroundColor: isDark ? AppColors.darkSurface2 : Colors.transparent,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppSizes.radiusMedium,
-                      ),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   child: const Text(
                     'CANCEL',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
-              const SizedBox(width: AppSizes.p12),
+              const SizedBox(width: 10),
               Expanded(
                 flex: 2,
                 child: ElevatedButton.icon(
                   onPressed: _isSaving ? null : _save,
                   icon: _isSaving
                       ? const AppButtonLoader(
-                          size: 16,
+                          size: 15,
                           color: Colors.white,
                         )
-                      : const Icon(Icons.save_alt_outlined, size: 18),
+                      : const Icon(Icons.save_alt_outlined, size: 17),
                   label: Text(
                     _isSaving ? 'Saving…' : 'SAVE FILE',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accent,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppSizes.radiusMedium,
-                      ),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                 ),

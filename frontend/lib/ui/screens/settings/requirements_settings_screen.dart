@@ -954,60 +954,105 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
                               runSpacing: 4,
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                // Inline Required / Optional Toggle Pill
+                                // Inline Required / Optional Quick Toggle Button
                                 Tooltip(
                                   message: req.isMandatory
-                                      ? 'Required document (Click to make optional)'
-                                      : 'Optional document (Click to make required)',
-                                  child: InkWell(
-                                    onTap: () async {
-                                      try {
-                                        await ref.read(requirementMutationProvider.notifier).updateRequirement(
-                                          req.copyWith(isMandatory: !req.isMandatory),
-                                        );
-                                      } catch (e) {
-                                        if (!context.mounted) return;
-                                        showErrorDialog(context, 'Update Failed', e.toString());
-                                      }
-                                    },
-                                    borderRadius: BorderRadius.circular(6),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 150),
-                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                                      decoration: BoxDecoration(
-                                        color: req.isMandatory
-                                            ? AppColors.error.withValues(alpha: isDark ? 0.2 : 0.1)
-                                            : (isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5)),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: req.isMandatory
-                                              ? AppColors.error.withValues(alpha: 0.35)
-                                              : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                                          width: 0.8,
+                                      ? 'Required document — tap to switch to Optional'
+                                      : 'Optional document — tap to switch to Required',
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () async {
+                                        try {
+                                          await ref
+                                              .read(requirementMutationProvider.notifier)
+                                              .updateRequirement(
+                                                req.copyWith(isMandatory: !req.isMandatory),
+                                              );
+                                        } catch (e) {
+                                          if (!context.mounted) return;
+                                          showErrorDialog(
+                                            context,
+                                            'Update Failed',
+                                            e.toString(),
+                                          );
+                                        }
+                                      },
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 160),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 9,
+                                          vertical: 3.5,
                                         ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            req.isMandatory ? Icons.star_rounded : Icons.star_border_rounded,
-                                            size: 13,
+                                        decoration: BoxDecoration(
+                                          color: req.isMandatory
+                                              ? AppColors.error.withValues(
+                                                  alpha: isDark ? 0.22 : 0.12,
+                                                )
+                                              : (isDark
+                                                  ? AppColors.darkSurface2
+                                                  : const Color(0xFFF1F5F9)),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(
                                             color: req.isMandatory
-                                                ? AppColors.error
-                                                : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                                                ? AppColors.error.withValues(alpha: 0.45)
+                                                : (isDark
+                                                    ? AppColors.darkBorder
+                                                    : Colors.grey.shade400),
+                                            width: 1,
                                           ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            req.isMandatory ? 'Required' : 'Optional',
-                                            style: TextStyle(
-                                              fontSize: 10.5,
-                                              fontWeight: FontWeight.bold,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: (req.isMandatory
+                                                      ? AppColors.error
+                                                      : Colors.black)
+                                                  .withValues(alpha: isDark ? 0.15 : 0.06),
+                                              blurRadius: 3,
+                                              offset: const Offset(0, 1),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              req.isMandatory
+                                                  ? Icons.star_rounded
+                                                  : Icons.star_border_rounded,
+                                              size: 13,
                                               color: req.isMandatory
                                                   ? AppColors.error
-                                                  : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                                                  : (isDark
+                                                      ? AppColors.darkTextSecondary
+                                                      : AppColors.textSecondary),
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              req.isMandatory ? 'Required' : 'Optional',
+                                              style: TextStyle(
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: req.isMandatory
+                                                    ? AppColors.error
+                                                    : (isDark
+                                                        ? AppColors.darkTextSecondary
+                                                        : AppColors.textSecondary),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.swap_horiz_rounded,
+                                              size: 12,
+                                              color: (req.isMandatory
+                                                      ? AppColors.error
+                                                      : (isDark
+                                                          ? AppColors.darkTextSecondary
+                                                          : AppColors.textSecondary))
+                                                  .withValues(alpha: 0.75),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -1198,13 +1243,28 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
                                   icon: const Icon(Icons.more_vert, size: 18),
                                   color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                                   onSelected: (val) {
-                                    if (val == 'edit') {
+                                    if (val == 'select') {
+                                      setState(() {
+                                        _multiSelectMode = true;
+                                        _selectedIds.add(req.id);
+                                      });
+                                    } else if (val == 'edit') {
                                       _showFormModal(requirement: req, defaultCategory: defaultCategory);
                                     } else if (val == 'delete') {
                                       _confirmDelete([req]);
                                     }
                                   },
                                   itemBuilder: (_) => [
+                                    const PopupMenuItem(
+                                      value: 'select',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.check_box_outlined, size: 16),
+                                          SizedBox(width: 8),
+                                          Text('Select'),
+                                        ],
+                                      ),
+                                    ),
                                     const PopupMenuItem(
                                       value: 'edit',
                                       child: Row(
@@ -1357,6 +1417,87 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
     }
   }
 
+  Widget _buildSectionHeader(String title, IconData icon, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: AppColors.primaryGreen),
+          const SizedBox(width: 6),
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLevelChoiceChip({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.22 : 0.1)
+              : (isDark ? AppColors.darkSurface2 : Colors.grey.shade50),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected
+                ? AppColors.primaryGreen
+                : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: selected
+                  ? AppColors.primaryGreen
+                  : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected
+                      ? (isDark ? Colors.white : AppColors.primaryGreen)
+                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                ),
+              ),
+            ),
+            Icon(
+              selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+              size: 16,
+              color: selected
+                  ? AppColors.primaryGreen
+                  : (isDark ? AppColors.darkTextMuted : Colors.grey.shade400),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.requirement != null;
@@ -1364,273 +1505,429 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
 
     return Dialog(
       backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 680),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ── Header ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 14),
+              child: Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        isEditing ? 'Edit Requirement' : 'New Requirement',
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 20),
-
-                  // Name
-                  CustomTextField(
-                    hintText: 'Requirement Name *',
-                    controller: _nameController,
-                    validator: (v) => v?.trim().isEmpty == true ? 'Name is required' : null,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Description
-                  CustomTextField(
-                    hintText: 'Description (optional)',
-                    controller: _descController,
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Due date with picker
-                  InkWell(
-                    onTap: _pickDueDate,
-                    child: IgnorePointer(
-                      child: CustomTextField(
-                        hintText: 'Due Date (MM/DD/YYYY) - optional',
-                        controller: _dueDateController,
-                        prefixIcon: Icons.calendar_today,
-                      ),
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      isEditing ? Icons.edit_document : Icons.post_add_rounded,
+                      color: AppColors.primaryGreen,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(height: 14),
-
-                  // Category Selection
-                  if (isEditing) ...[
-                    const Text('Applicable Level', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            widget.requirement!.category.toUpperCase() == 'JHS'
-                                ? Icons.school_outlined
-                                : Icons.account_balance_outlined,
-                            size: 18,
-                            color: AppColors.primaryGreen,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isEditing ? 'Edit Requirement' : 'New Requirement',
+                          style: const TextStyle(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(width: 8),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isEditing
+                              ? 'Update document details, upload limits, and status'
+                              : 'Define a new document requirement for students',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Divider(
+              height: 1,
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            ),
+
+            // ── Scrollable Body ──
+            Flexible(
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Basic Details
+                      _buildSectionHeader(
+                        'Basic Details',
+                        Icons.description_outlined,
+                        isDark,
+                      ),
+                      CustomTextField(
+                        hintText: 'Requirement Name *',
+                        prefixIcon: Icons.badge_outlined,
+                        controller: _nameController,
+                        validator: (v) =>
+                            v?.trim().isEmpty == true ? 'Name is required' : null,
+                      ),
+                      const SizedBox(height: 10),
+                      CustomTextField(
+                        hintText: 'Description (optional)',
+                        prefixIcon: Icons.notes_rounded,
+                        controller: _descController,
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
                           Expanded(
-                            child: Text(
-                              widget.requirement!.category.toUpperCase() == 'JHS'
-                                  ? 'Junior High School (JHS)'
-                                  : 'Senior High School (SHS)',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            child: InkWell(
+                              onTap: _pickDueDate,
+                              borderRadius: BorderRadius.circular(10),
+                              child: IgnorePointer(
+                                child: CustomTextField(
+                                  hintText: 'Due Date (MM/DD/YYYY) - optional',
+                                  controller: _dueDateController,
+                                  prefixIcon: Icons.calendar_today_outlined,
+                                ),
                               ),
                             ),
                           ),
+                          if (_dueDateController.text.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            IconButton(
+                              tooltip: 'Clear Due Date',
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () =>
+                                  setState(() => _dueDateController.clear()),
+                            ),
+                          ],
                         ],
                       ),
-                    ),
-                    if (_counterpart != null) ...[
-                      const SizedBox(height: 10),
-                      InkWell(
-                        onTap: () => setState(() => _syncCounterpart = !_syncCounterpart),
-                        borderRadius: BorderRadius.circular(6),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
+
+                      const SizedBox(height: 18),
+
+                      // 2. Target Level & Upload Rules
+                      _buildSectionHeader(
+                        'Level & Upload Rules',
+                        Icons.tune_rounded,
+                        isDark,
+                      ),
+                      if (isEditing) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppColors.darkSurface2
+                                : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.darkBorder
+                                  : Colors.grey.shade300,
+                            ),
+                          ),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: Checkbox(
-                                  value: _syncCounterpart,
-                                  activeColor: AppColors.primaryGreen,
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  visualDensity: VisualDensity.compact,
-                                  onChanged: (v) => setState(() => _syncCounterpart = v ?? false),
-                                ),
+                              Icon(
+                                widget.requirement!.category.toUpperCase() == 'JHS'
+                                    ? Icons.school_outlined
+                                    : Icons.account_balance_outlined,
+                                size: 18,
+                                color: AppColors.primaryGreen,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Also apply changes to matching ${widget.requirement!.category.toUpperCase() == 'JHS' ? 'Senior High (SHS)' : 'Junior High (JHS)'} requirement',
+                                  widget.requirement!.category.toUpperCase() == 'JHS'
+                                      ? 'Junior High School (JHS)'
+                                      : 'Senior High School (SHS)',
                                   style: TextStyle(
-                                    fontSize: 12.5,
-                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.textPrimary,
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ] else ...[
-                    const Text('Applicable Level *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        InkWell(
-                          onTap: () => setState(() => _catJhs = !_catJhs),
-                          borderRadius: BorderRadius.circular(4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Checkbox(
-                                value: _catJhs,
-                                activeColor: AppColors.primaryGreen,
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                visualDensity: VisualDensity.compact,
-                                onChanged: (v) => setState(() => _catJhs = v ?? false),
+                        if (_counterpart != null) ...[
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: () =>
+                                setState(() => _syncCounterpart = !_syncCounterpart),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
                               ),
-                              const SizedBox(width: 6),
-                              const Text('Junior High (JHS)', style: TextStyle(fontSize: 13)),
-                            ],
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () => setState(() => _catShs = !_catShs),
-                          borderRadius: BorderRadius.circular(4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Checkbox(
-                                value: _catShs,
-                                activeColor: AppColors.primaryGreen,
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                visualDensity: VisualDensity.compact,
-                                onChanged: (v) => setState(() => _catShs = v ?? false),
+                              decoration: BoxDecoration(
+                                color: _syncCounterpart
+                                    ? AppColors.primaryGreen.withValues(alpha: 0.08)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _syncCounterpart
+                                      ? AppColors.primaryGreen.withValues(alpha: 0.4)
+                                      : (isDark
+                                          ? AppColors.darkBorder
+                                          : Colors.grey.shade300),
+                                ),
                               ),
-                              const SizedBox(width: 6),
-                              const Text('Senior High (SHS)', style: TextStyle(fontSize: 13)),
-                            ],
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: Checkbox(
+                                      value: _syncCounterpart,
+                                      activeColor: AppColors.primaryGreen,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      visualDensity: VisualDensity.compact,
+                                      onChanged: (v) => setState(
+                                        () => _syncCounterpart = v ?? false,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Sync changes to matching ${widget.requirement!.category.toUpperCase() == 'JHS' ? 'SHS' : 'JHS'} requirement',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark
+                                            ? AppColors.darkTextSecondary
+                                            : AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
+                        ],
+                      ] else ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildLevelChoiceChip(
+                                label: 'Junior High (JHS)',
+                                icon: Icons.school_outlined,
+                                selected: _catJhs,
+                                isDark: isDark,
+                                onTap: () => setState(() => _catJhs = !_catJhs),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildLevelChoiceChip(
+                                label: 'Senior High (SHS)',
+                                icon: Icons.account_balance_outlined,
+                                selected: _catShs,
+                                isDark: isDark,
+                                onTap: () => setState(() => _catShs = !_catShs),
+                              ),
+                            ),
+                          ],
                         ),
+                        if (!_catJhs && !_catShs)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 6, left: 4),
+                            child: Text(
+                              'Select at least one level',
+                              style: TextStyle(color: AppColors.error, fontSize: 11),
+                            ),
+                          ),
                       ],
-                    ),
-                    if (!_catJhs && !_catShs)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 4, left: 4),
-                        child: Text('Select at least one level', style: TextStyle(color: AppColors.error, fontSize: 11)),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: _acceptedFileTypes,
+                        decoration: InputDecoration(
+                          labelText: 'Accepted Formats',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'pdf', child: Text('PDF only')),
+                          DropdownMenuItem(
+                            value: 'pdf,jpg,jpeg,png',
+                            child: Text('PDF, JPG, PNG'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'pdf,doc,docx',
+                            child: Text('PDF, Word'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'pdf,doc,docx,xls,xlsx',
+                            child: Text('PDF, Word, Excel'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
+                            child: Text('All Formats'),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _acceptedFileTypes = v!),
                       ),
-                  ],
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<int>(
+                        initialValue: _maxFiles,
+                        decoration: InputDecoration(
+                          labelText: 'Maximum Files Allowed',
+                          helperText: 'Max files per student for this requirement',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+                        items: [1, 2, 3, 4, 5, 10, 15, 20].map((n) {
+                          return DropdownMenuItem<int>(
+                            value: n,
+                            child: Text(n == 1 ? '1 file (Single upload)' : '$n files'),
+                          );
+                        }).toList(),
+                        onChanged: (v) => setState(() => _maxFiles = v ?? 1),
+                      ),
 
-                  const SizedBox(height: 12),
+                      const SizedBox(height: 18),
 
-                  // Accepted Formats Dropdown
-                  DropdownButtonFormField<String>(
-                    initialValue: _acceptedFileTypes,
-                    decoration: const InputDecoration(
-                      labelText: 'Accepted Formats',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'pdf', child: Text('PDF only')),
-                      DropdownMenuItem(value: 'pdf,jpg,jpeg,png', child: Text('PDF, JPG, PNG')),
-                      DropdownMenuItem(value: 'pdf,doc,docx', child: Text('PDF, Word')),
-                      DropdownMenuItem(value: 'pdf,doc,docx,xls,xlsx', child: Text('PDF, Word, Excel')),
-                      DropdownMenuItem(value: 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx', child: Text('All Formats')),
-                    ],
-                    onChanged: (v) => setState(() => _acceptedFileTypes = v!),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Maximum Files Allowed Dropdown
-                  DropdownButtonFormField<int>(
-                    initialValue: _maxFiles,
-                    decoration: const InputDecoration(
-                      labelText: 'Maximum Files Allowed',
-                      helperText: 'Number of files that can be uploaded for this requirement',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    ),
-                    items: [1, 2, 3, 4, 5, 10, 15, 20].map((n) {
-                      return DropdownMenuItem<int>(
-                        value: n,
-                        child: Text(n == 1 ? '1 file (Single upload)' : '$n files'),
-                      );
-                    }).toList(),
-                    onChanged: (v) => setState(() => _maxFiles = v ?? 1),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Mandatory Switch
-                  SwitchListTile(
-                    title: const Text('Mandatory Requirement', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-                    subtitle: const Text('Students must upload this document', style: TextStyle(fontSize: 11.5)),
-                    value: _isMandatory,
-                    activeThumbColor: AppColors.error,
-                    onChanged: (v) => setState(() => _isMandatory = v),
-                  ),
-
-                  // Active Switch
-                  SwitchListTile(
-                    title: const Text('Active', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-                    subtitle: const Text('Visible in the student portal', style: TextStyle(fontSize: 11.5)),
-                    value: _isEnabled,
-                    activeThumbColor: AppColors.primaryGreen,
-                    onChanged: (v) => setState(() => _isEnabled = v),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('CANCEL'),
+                      // 3. Status & Enforcement
+                      _buildSectionHeader(
+                        'Status & Enforcement',
+                        Icons.verified_user_outlined,
+                        isDark,
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? AppColors.darkSurface2
+                              : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : Colors.grey.shade200,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            SwitchListTile(
+                              dense: true,
+                              title: const Text(
+                                'Mandatory Requirement',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                              subtitle: const Text(
+                                'Students must upload this document',
+                                style: TextStyle(fontSize: 11.5),
+                              ),
+                              value: _isMandatory,
+                              activeThumbColor: AppColors.error,
+                              onChanged: (v) => setState(() => _isMandatory = v),
+                            ),
+                            Divider(
+                              height: 1,
+                              color: isDark
+                                  ? AppColors.darkBorder
+                                  : Colors.grey.shade200,
+                            ),
+                            SwitchListTile(
+                              dense: true,
+                              title: const Text(
+                                'Active',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                              subtitle: const Text(
+                                'Visible in the student portal',
+                                style: TextStyle(fontSize: 11.5),
+                              ),
+                              value: _isEnabled,
+                              activeThumbColor: AppColors.primaryGreen,
+                              onChanged: (v) => setState(() => _isEnabled = v),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: PrimaryButton(
-                          label: isEditing ? 'UPDATE' : 'SAVE',
-                          isLoading: _isLoading,
-                          onPressed: _handleSubmit,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Sticky Footer ──
+            Divider(
+              height: 1,
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                    ],
+                      child: const Text('CANCEL'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: PrimaryButton(
+                      label: isEditing ? 'UPDATE' : 'SAVE',
+                      isLoading: _isLoading,
+                      onPressed: _handleSubmit,
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

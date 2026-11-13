@@ -167,6 +167,54 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
     required bool isDark,
     required bool isNarrow,
   }) {
+    if (isNarrow) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          border: Border(
+            bottom: BorderSide(
+              color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF),
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _compactKpiPill(
+                label: 'Sections',
+                value: '$totalSections',
+                icon: Icons.meeting_room_outlined,
+                color: const Color(0xFF0284C7),
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _compactKpiPill(
+                label: 'Assigned',
+                value: '$assignedSections',
+                icon: Icons.how_to_reg_outlined,
+                color: AppColors.primaryGreen,
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _compactKpiPill(
+                label: 'Unassigned',
+                value: '$unassignedSections',
+                icon: Icons.warning_amber_rounded,
+                color: unassignedSections > 0 ? const Color(0xFFD97706) : Colors.grey,
+                isDark: isDark,
+                isAlert: unassignedSections > 0,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -214,19 +262,71 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
               isAlert: unassignedSections > 0,
             ),
           ),
-          if (!isNarrow) ...[
-            const SizedBox(width: 8),
-            Expanded(
-              child: _kpiCard(
-                label: 'Active Teachers',
-                value: '$totalTeachers',
-                icon: Icons.person_outline_rounded,
-                iconColor: const Color(0xFF7C3AED),
-                bgColor: const Color(0xFF7C3AED).withValues(alpha: 0.1),
-                isDark: isDark,
+          const SizedBox(width: 8),
+          Expanded(
+            child: _kpiCard(
+              label: 'Active Teachers',
+              value: '$totalTeachers',
+              icon: Icons.person_outline_rounded,
+              iconColor: const Color(0xFF7C3AED),
+              bgColor: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+              isDark: isDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _compactKpiPill({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+    bool isAlert = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: isAlert
+            ? color.withValues(alpha: isDark ? 0.16 : 0.08)
+            : (isDark ? AppColors.darkSurface2 : const Color(0xFFF8F9FA)),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isAlert
+              ? color.withValues(alpha: 0.4)
+              : (isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.bold,
+              color: isAlert
+                  ? color
+                  : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+            ),
+          ),
+          const SizedBox(width: 3),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               ),
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -300,7 +400,10 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
   Widget _buildTabBar(bool isNarrow) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: isNarrow ? 12 : 16,
+        vertical: isNarrow ? 6 : 10,
+      ),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : Colors.white,
         border: Border(
@@ -310,8 +413,8 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
         ),
       ),
       child: Container(
-        height: 42,
-        padding: const EdgeInsets.all(4),
+        height: isNarrow ? 36 : 42,
+        padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
           borderRadius: BorderRadius.circular(10),
@@ -482,66 +585,75 @@ class _TeacherAdvisersTabState extends ConsumerState<_TeacherAdvisersTab> {
         return Column(
           children: [
             // Search & Filter Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, AppSizes.p8),
+            Container(
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               child: Column(
                 children: [
-                  TextField(
-                    controller: _searchController,
-                    onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                    decoration: InputDecoration(
-                      hintText: 'Search teacher name or @username...',
-                      hintStyle: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
-                      ),
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _searchQuery = '');
-                              },
-                            )
-                          : null,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                  SizedBox(
+                    height: 38,
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                      style: const TextStyle(fontSize: 13),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: 'Search teacher name or @username...',
+                        hintStyle: TextStyle(
+                          fontSize: 12.5,
+                          color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+                        ),
+                        prefixIcon: const Icon(Icons.search, size: 18),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 16),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _searchQuery = '');
+                                },
+                              )
+                            : null,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      _buildFilterChip(
-                        filter: _TeacherFilter.all,
-                        label: 'All (${teachers.length})',
-                        isSelected: _teacherFilter == _TeacherFilter.all,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 8),
-                      _buildFilterChip(
-                        filter: _TeacherFilter.assigned,
-                        label: 'Assigned ($assignedCount)',
-                        isSelected: _teacherFilter == _TeacherFilter.assigned,
-                        isDark: isDark,
-                        activeColor: AppColors.primaryGreen,
-                      ),
-                      const SizedBox(width: 8),
-                      _buildFilterChip(
-                        filter: _TeacherFilter.unassigned,
-                        label: 'Unassigned ($unassignedCount)',
-                        isSelected: _teacherFilter == _TeacherFilter.unassigned,
-                        isDark: isDark,
-                        activeColor: Colors.amber.shade700,
-                      ),
-                    ],
+                  const SizedBox(height: 6),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip(
+                          filter: _TeacherFilter.all,
+                          label: 'All (${teachers.length})',
+                          isSelected: _teacherFilter == _TeacherFilter.all,
+                          isDark: isDark,
+                        ),
+                        const SizedBox(width: 6),
+                        _buildFilterChip(
+                          filter: _TeacherFilter.assigned,
+                          label: 'Assigned ($assignedCount)',
+                          isSelected: _teacherFilter == _TeacherFilter.assigned,
+                          isDark: isDark,
+                          activeColor: AppColors.primaryGreen,
+                        ),
+                        const SizedBox(width: 6),
+                        _buildFilterChip(
+                          filter: _TeacherFilter.unassigned,
+                          label: 'Unassigned ($unassignedCount)',
+                          isSelected: _teacherFilter == _TeacherFilter.unassigned,
+                          isDark: isDark,
+                          activeColor: Colors.amber.shade700,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1474,12 +1586,13 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
         return Column(
           children: [
             // Controls toolbar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSizes.p16,
-                AppSizes.p12,
-                AppSizes.p16,
-                AppSizes.p8,
+            Container(
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              padding: EdgeInsets.fromLTRB(
+                isNarrow ? 12 : AppSizes.p16,
+                isNarrow ? 8 : AppSizes.p12,
+                isNarrow ? 12 : AppSizes.p16,
+                isNarrow ? 8 : AppSizes.p8,
               ),
               child: isNarrow
                   ? Column(
@@ -1487,29 +1600,32 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
                         Row(
                           children: [
                             Expanded(
-                              child: _FilterDropdown<int>(
-                                hint: 'All Years',
-                                icon: Icons.calendar_today,
-                                value: _filterYearId,
-                                items: years
-                                    .map(
-                                      (y) => DropdownMenuItem<int>(
-                                        value: y.id,
-                                        child: Text(
-                                          y.yearRange + (y.status == 'active' ? ' (Active)' : ''),
-                                          overflow: TextOverflow.ellipsis,
+                              child: SizedBox(
+                                height: 36,
+                                child: _FilterDropdown<int>(
+                                  hint: 'All Years',
+                                  icon: Icons.calendar_today,
+                                  value: _filterYearId,
+                                  items: years
+                                      .map(
+                                        (y) => DropdownMenuItem<int>(
+                                          value: y.id,
+                                          child: Text(
+                                            y.yearRange + (y.status == 'active' ? ' (Active)' : ''),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (v) => setState(() => _filterYearId = v),
-                                showClear: _filterYearId != null,
-                                onClear: () => setState(() => _filterYearId = null),
+                                      )
+                                      .toList(),
+                                  onChanged: (v) => setState(() => _filterYearId = v),
+                                  showClear: _filterYearId != null,
+                                  onClear: () => setState(() => _filterYearId = null),
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             SizedBox(
-                              height: 42,
+                              height: 36,
                               child: OutlinedButton.icon(
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppColors.primaryGreen,
@@ -1518,18 +1634,18 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
                                 onPressed: () => AcademicYearsOverviewModal.show(context),
-                                icon: const Icon(Icons.date_range, size: 16),
-                                label: const Text('Manage Years', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                                icon: const Icon(Icons.date_range, size: 15),
+                                label: const Text('Years', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Row(
                           children: [
                             Expanded(
                               child: SizedBox(
-                                height: 38,
+                                height: 34,
                                 child: OutlinedButton.icon(
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: AppColors.primaryGreen,
@@ -1538,15 +1654,15 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                   ),
                                   onPressed: () => BulkAcademicImportModal.show(context),
-                                  icon: const Icon(Icons.upload_file, size: 16),
+                                  icon: const Icon(Icons.upload_file, size: 15),
                                   label: const Text('Bulk Import', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             Expanded(
                               child: SizedBox(
-                                height: 38,
+                                height: 34,
                                 child: ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primaryGreen,
@@ -1561,7 +1677,7 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
                                       defaultGradeLevel: _filterGradeLevel,
                                     ),
                                   ),
-                                  icon: const Icon(Icons.add, size: 16),
+                                  icon: const Icon(Icons.add, size: 15),
                                   label: const Text('Add Section', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                                 ),
                               ),

@@ -14,6 +14,7 @@ import '../../../core/utils/validators.dart';
 import 'requirements_settings_screen.dart';
 import '../templates/templates_screen.dart';
 import '../../shared/widgets/app_error_state.dart';
+import '../../shared/widgets/app_skeleton_loader.dart';
 import 'package:dio/dio.dart';
 import '../../providers/setup_provider.dart';
 import '../../shared/dialogs/info_dialog.dart';
@@ -287,16 +288,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return result ?? false;
   }
 
-  Future<void> _handleUpdateProfile() async {
-    if (!_profileFormKey.currentState!.validate()) {
-      _revertProfileChanges();
-      return;
+  Future<bool> _handleUpdateProfile() async {
+    if (!(_profileFormKey.currentState?.validate() ?? false)) {
+      return false;
     }
 
     final isConfirmed = await _promptToConfirmSave();
     if (!isConfirmed) {
-      _revertProfileChanges();
-      return;
+      return false;
     }
 
     setState(() => _isProfileLoading = true);
@@ -311,19 +310,66 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         email: _emailCtrl.text.trim(),
       );
       ref.invalidate(profileProvider);
-      if (!mounted) return;
+      if (!mounted) return true;
       showSuccessDialog(context, message: 'Profile updated successfully!');
+      return true;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       showErrorDialog(
         context,
         'Update Failed',
         e.toString().replaceAll('Exception: ', ''),
       );
       _revertProfileChanges();
+      return false;
     } finally {
       if (mounted) setState(() => _isProfileLoading = false);
     }
+  }
+
+  Future<bool> _handleProfileBackNavigation(BuildContext navContext) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (!_hasProfileChanges()) return true;
+
+    final action = await showDialog<String>(
+      context: navContext,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Unsaved Changes'),
+        content: const Text(
+          'You have unsaved profile changes. Would you like to save or discard them before leaving?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('keep'),
+            child: const Text('Keep Editing'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('discard'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Discard'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop('save'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (action == 'discard') {
+      if (mounted) {
+        setState(() => _revertProfileChanges());
+      }
+      return true;
+    }
+    if (action == 'save') {
+      return await _handleUpdateProfile();
+    }
+    return false;
   }
 
 
@@ -603,11 +649,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ref.read(activeTabProvider.notifier).setTab('Dashboard');
       },
       child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
         onTap: () {
           FocusManager.instance.primaryFocus?.unfocus();
-          if (_hasProfileChanges()) {
-            _handleUpdateProfile();
-          }
         },
         child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -1366,33 +1410,63 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       MaterialPageRoute(
         builder: (ctx) {
           final isDark = Theme.of(ctx).brightness == Brightness.dark;
-          return Scaffold(
-            backgroundColor: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
-            appBar: AppBar(
-              backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-              iconTheme: const IconThemeData(color: Colors.white),
-              elevation: 1,
-              title: Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: Colors.white,
+          final isProfilePage = category == SettingsCategory.profile;
+          return PopScope(
+            canPop: !isProfilePage,
+            onPopInvokedWithResult: (didPop, result) async {
+              if (didPop || !isProfilePage) return;
+              final primaryFocus = FocusManager.instance.primaryFocus;
+              if (primaryFocus != null && primaryFocus.hasFocus) {
+                primaryFocus.unfocus();
+                return;
+              }
+              final shouldPop = await _handleProfileBackNavigation(ctx);
+              if (shouldPop && ctx.mounted) {
+                Navigator.of(ctx).pop();
+              }
+            },
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: Scaffold(
+                backgroundColor: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
+                appBar: AppBar(
+                  backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  iconTheme: const IconThemeData(color: Colors.white),
+                  elevation: 1,
+                  title: Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () async {
+                      if (!isProfilePage) {
+                        Navigator.of(ctx).pop();
+                        return;
+                      }
+                      final shouldPop = await _handleProfileBackNavigation(ctx);
+                      if (shouldPop && ctx.mounted) {
+                        Navigator.of(ctx).pop();
+                      }
+                    },
+                  ),
                 ),
-              ),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.of(ctx).pop(),
-              ),
-            ),
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSizes.p16),
-              child: _buildSectionCard(
-                title: title,
-                subtitle: subtitle,
-                icon: icon,
-                child: builder(isDark),
+                body: SingleChildScrollView(
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.all(AppSizes.p16),
+                  child: _buildSectionCard(
+                    title: title,
+                    subtitle: subtitle,
+                    icon: icon,
+                    child: builder(isDark),
+                  ),
+                ),
               ),
             ),
           );
@@ -1651,38 +1725,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   );
                                 }
                               ),
-                              if (_hasProfileChanges()) ...[
-                                const SizedBox(height: AppSizes.p16),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    TextButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _revertProfileChanges();
-                                        });
-                                      },
-                                      child: const Text('Cancel'),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    ElevatedButton(
-                                      onPressed: _isProfileLoading ? null : _handleUpdateProfile,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.primaryGreen,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 10,
+                              ListenableBuilder(
+                                listenable: Listenable.merge([
+                                  _firstNameCtrl,
+                                  _middleNameCtrl,
+                                  _lastNameCtrl,
+                                  _extCtrl,
+                                  _phoneCtrl,
+                                  _emailCtrl,
+                                ]),
+                                builder: (context, _) {
+                                  if (!_hasProfileChanges()) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: AppSizes.p16),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton(
+                                          onPressed: () {
+                                            FocusManager.instance.primaryFocus?.unfocus();
+                                            setState(() {
+                                              _revertProfileChanges();
+                                            });
+                                          },
+                                          child: const Text('Cancel'),
                                         ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                        const SizedBox(width: 8),
+                                        ElevatedButton(
+                                          onPressed: _isProfileLoading ? null : _handleUpdateProfile,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.primaryGreen,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 10,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: const Text('Save Profile'),
                                         ),
-                                      ),
-                                      child: const Text('Save Profile'),
+                                      ],
                                     ),
-                                  ],
-                                 ),
-                               ],
+                                  );
+                                },
+                              ),
                              ],
                            ),
                          ),
@@ -1690,343 +1780,442 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  Widget _buildFunctionalCard({
+    required bool isDark,
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    Widget? trailing,
+    required Widget child,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface2 : const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: AppColors.primaryGreen, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              ?trailing,
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAcademicGraduationSkeleton(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            ),
+          ),
+          child: const Row(
+            children: [
+              AppSkeletonLoader(width: 36, height: 36, borderRadius: 8),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppSkeletonLoader(width: 120, height: 11),
+                    SizedBox(height: 6),
+                    AppSkeletonLoader(width: 160, height: 16),
+                  ],
+                ),
+              ),
+              AppSkeletonLoader(width: 54, height: 22, borderRadius: 6),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        const Row(
+          children: [
+            AppSkeletonLoader(width: 130, height: 14),
+            SizedBox(width: 16),
+            AppSkeletonLoader(width: 130, height: 14),
+          ],
+        ),
+        const SizedBox(height: 14),
+        const AppSkeletonLoader(width: double.infinity, height: 42, borderRadius: 8),
+      ],
+    );
+  }
+
   Widget _buildAcademicGraduationSection(bool isDark) {
     return Consumer(
-                          builder: (context, ref, _) {
-                            final academicYearsAsync = ref.watch(academicYearsListProvider);
-                            final sysSettingsAsync = ref.watch(systemSettingsProvider);
-                            final settingsMap = sysSettingsAsync.asData?.value ?? {};
-                            final isDark = Theme.of(context).brightness == Brightness.dark;
-            return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
+      builder: (context, ref, _) {
+        final academicYearsAsync = ref.watch(academicYearsListProvider);
+        final sysSettingsAsync = ref.watch(systemSettingsProvider);
+        final settingsMap = sysSettingsAsync.asData?.value ?? {};
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            academicYearsAsync.when(
+              loading: () => Column(
+                children: [
+                  _buildFunctionalCard(
+                    isDark: isDark,
+                    icon: Icons.calendar_month_rounded,
+                    title: 'Active Academic Year & Schedule',
+                    subtitle: 'Current school year and date boundaries',
+                    child: _buildAcademicGraduationSkeleton(isDark),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildFunctionalCard(
+                    isDark: isDark,
+                    icon: Icons.school_rounded,
+                    title: 'Auto-Graduation',
+                    subtitle: 'Sequential graduation for Grade 10 and Grade 12',
+                    child: const AppSkeletonLoader(
+                      width: double.infinity,
+                      height: 44,
+                      borderRadius: 8,
+                    ),
+                  ),
+                ],
+              ),
+              error: (err, _) => Text(
+                'Error loading academic years: $err',
+                style: const TextStyle(color: Colors.red),
+              ),
+              data: (years) {
+                final activeYear = years.cast<AcademicYearModel?>().firstWhere(
+                  (y) => y?.status == 'active',
+                  orElse: () => null,
+                );
+                if (years.isEmpty) {
+                  return _buildFunctionalCard(
+                    isDark: isDark,
+                    icon: Icons.calendar_month_rounded,
+                    title: 'Active Academic Year & Schedule',
+                    subtitle: 'Current school year and date boundaries',
+                    trailing: IconButton(
+                      icon: const Icon(Icons.refresh, size: 20),
+                      tooltip: 'Refresh Academic Year',
+                      onPressed: () => ref.invalidate(academicYearsListProvider),
+                    ),
+                    child: const Text(
+                      'No academic years found. Configure an academic year in Academic & Class Management first.',
+                      style: TextStyle(color: AppColors.warning, fontSize: 13),
+                    ),
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Section 1: Active Academic Year & Schedule ──
+                    _buildFunctionalCard(
+                      isDark: isDark,
+                      icon: Icons.calendar_month_rounded,
+                      title: 'Active Academic Year & Schedule',
+                      subtitle: 'Current school year and schedule dates',
+                      trailing: IconButton(
+                        icon: const Icon(Icons.refresh, size: 20),
+                        tooltip: 'Refresh Academic Year',
+                        onPressed: () => ref.invalidate(academicYearsListProvider),
+                      ),
+                      child: activeYear == null
+                          ? Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.warning.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: const Text(
+                                'No active academic year found. An administrator must activate a school year in Academic & Class Management.',
+                                style: TextStyle(color: AppColors.warning, fontSize: 13),
+                              ),
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: isDark
+                                          ? AppColors.darkBorder
+                                          : Colors.grey.shade200,
+                                    ),
+                                  ),
+                                  child: Row(
                                     children: [
                                       const Icon(
-                                        Icons.school_rounded,
+                                        Icons.calendar_month,
                                         color: AppColors.primaryGreen,
-                                        size: 24,
+                                        size: 22,
                                       ),
-                                      const SizedBox(width: AppSizes.p12),
+                                      const SizedBox(width: 12),
                                       Expanded(
-                                        child: Text(
-                                          'Manage active academic year, auto-graduation, and archiving grace period',
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Active Academic Year',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: isDark
+                                                    ? AppColors.darkTextSecondary
+                                                    : Colors.grey.shade600,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              activeYear.yearRange,
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark
+                                                    ? AppColors.darkTextPrimary
+                                                    : AppColors.textPrimary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primaryGreen
+                                              .withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          'Active',
                                           style: TextStyle(
-                                            fontSize: 13,
-                                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                            fontSize: 11,
+                                            color: AppColors.primaryGreen,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ),
-                                      IconButton(
-                                        icon: const Icon(Icons.refresh, size: 20),
-                                        tooltip: 'Refresh Academic Year',
-                                        onPressed: () => ref.invalidate(academicYearsListProvider),
-                                      ),
                                     ],
                                   ),
-                                  const SizedBox(height: AppSizes.p16),
-                                  academicYearsAsync.when(
-                                    data: (years) {
-                                      final isDark = Theme.of(context).brightness == Brightness.dark;
-                                      final activeYear = years.cast<AcademicYearModel?>().firstWhere(
-                                        (y) => y?.status == 'active',
-                                        orElse: () => null,
-                                      );
-                                      if (years.isEmpty) {
-                                        return const Text(
-                                          'No academic years found. Configure an academic year in Academic & Class Management first.',
-                                          style: TextStyle(color: AppColors.warning, fontSize: 13),
-                                        );
-                                      }
-                                      return Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          if (activeYear == null) ...[
-                                            Container(
-                                              width: double.infinity,
-                                              padding: const EdgeInsets.all(12),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.warning.withValues(alpha: 0.1),
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
-                                              ),
-                                              child: const Text(
-                                                'No active academic year found. An administrator must activate a school year in Academic & Class Management.',
-                                                style: TextStyle(color: AppColors.warning, fontSize: 13),
-                                              ),
-                                            ),
-                                          ] else ...[
-                                            Container(
-                                              width: double.infinity,
-                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                              decoration: BoxDecoration(
-                                                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-                                                borderRadius: BorderRadius.circular(10),
-                                                border: Border.all(
-                                                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                                                ),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  const Icon(Icons.calendar_month, color: AppColors.primaryGreen, size: 22),
-                                                  const SizedBox(width: 12),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Text(
-                                                          'Active Academic Year',
-                                                          style: TextStyle(
-                                                            fontSize: 11,
-                                                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                                                            fontWeight: FontWeight.w500,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(height: 2),
-                                                        Text(
-                                                          activeYear.yearRange,
-                                                          style: TextStyle(
-                                                            fontSize: 15,
-                                                            fontWeight: FontWeight.bold,
-                                                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                    decoration: BoxDecoration(
-                                                      color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                                                      borderRadius: BorderRadius.circular(6),
-                                                    ),
-                                                    child: const Text(
-                                                      'Active',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        color: AppColors.primaryGreen,
-                                                        fontWeight: FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                          const SizedBox(height: 16),
-                                          if (activeYear == null) ...[
-                                            const Text(
-                                              'No active academic year found. Select an academic year from the dropdown above to activate it.',
-                                              style: TextStyle(color: AppColors.warning, fontSize: 13),
-                                            ),
-                                          ] else ...[
-                                            Wrap(
-                                              spacing: 20,
-                                              runSpacing: 8,
-                                              crossAxisAlignment: WrapCrossAlignment.center,
-                                              children: [
-                                                Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    const Icon(Icons.calendar_today_outlined, size: 15, color: AppColors.primaryGreen),
-                                                    const SizedBox(width: 6),
-                                                    Text(
-                                                      'Start: ${activeYear.startDate ?? "Not set"}',
-                                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                                                    ),
-                                                  ],
-                                                ),
-                                                Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    const Icon(Icons.event_available_outlined, size: 15, color: AppColors.primaryGreen),
-                                                    const SizedBox(width: 6),
-                                                    Text(
-                                                      'End: ${activeYear.endDate ?? "Not set"}',
-                                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Container(
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                color: isDark
-                                                    ? Colors.blue.withValues(alpha: 0.08)
-                                                    : Colors.blue.shade50,
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(
-                                                  color: isDark
-                                                      ? Colors.blue.withValues(alpha: 0.2)
-                                                      : Colors.blue.shade200,
-                                                ),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  const Icon(Icons.info_outline, size: 16, color: Colors.blue),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(
-                                                    child: Text(
-                                                      'Auto-graduation runs sequentially (Grade 10 then Grade 12) once end date is reached. Requires both dates set.',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: isDark ? Colors.blue.shade300 : Colors.blue,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            Builder(
-                                              builder: (ctx) {
-                                                final isNarrow =
-                                                    MediaQuery.of(ctx).size.width < 650 ||
-                                                        Theme.of(ctx).platform ==
-                                                            TargetPlatform.android;
-                                                if (isNarrow) {
-                                                  return Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment.stretch,
-                                                    children: [
-                                                      OutlinedButton.icon(
-                                                        onPressed: () => showDialog(
-                                                          context: context,
-                                                          builder: (_) =>
-                                                              _EditScheduleDatesDialog(
-                                                            year: activeYear,
-                                                          ),
-                                                        ),
-                                                        icon: const Icon(
-                                                          Icons.date_range,
-                                                        ),
-                                                        label: const Text(
-                                                          'Edit Schedule Dates',
-                                                        ),
-                                                        style:
-                                                            OutlinedButton.styleFrom(
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                            vertical: 14,
-                                                          ),
-                                                          side: const BorderSide(
-                                                            color: AppColors
-                                                                .primaryGreen,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 12),
-                                                      FilledButton.icon(
-                                                        onPressed: () =>
-                                                            _handleRunAutoGraduation(
-                                                          context,
-                                                          ref,
-                                                        ),
-                                                        icon: const Icon(
-                                                          Icons.school,
-                                                        ),
-                                                        label: const FittedBox(
-                                                          fit: BoxFit.scaleDown,
-                                                          child: Text('Check / Run Auto-Graduation Now'),
-                                                        ),
-                                                        style:
-                                                            FilledButton.styleFrom(
-                                                          backgroundColor:
-                                                              AppColors
-                                                                  .primaryGreen,
-                                                          foregroundColor:
-                                                              isDark ? Colors.white : Colors.white,
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                            vertical: 14,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  );
-                                                }
-                                                return Row(
-                                                  children: [
-                                                    Expanded(
-                                                      child: OutlinedButton.icon(
-                                                        onPressed: () => showDialog(
-                                                          context: context,
-                                                          builder: (_) =>
-                                                              _EditScheduleDatesDialog(
-                                                            year: activeYear,
-                                                          ),
-                                                        ),
-                                                        icon: const Icon(
-                                                          Icons.date_range,
-                                                        ),
-                                                        label: const Text(
-                                                          'Edit Schedule Dates',
-                                                        ),
-                                                        style:
-                                                            OutlinedButton.styleFrom(
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                            vertical: 14,
-                                                          ),
-                                                          side: const BorderSide(
-                                                            color: AppColors
-                                                                .primaryGreen,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 16),
-                                                    Expanded(
-                                                      child: FilledButton.icon(
-                                                        onPressed: () =>
-                                                            _handleRunAutoGraduation(
-                                                          context,
-                                                          ref,
-                                                        ),
-                                                        icon: const Icon(
-                                                          Icons.school,
-                                                        ),
-                                                        label: const FittedBox(
-                                                          fit: BoxFit.scaleDown,
-                                                          child: Text('Check / Run Auto-Graduation Now'),
-                                                        ),
-                                                        style:
-                                                            FilledButton.styleFrom(
-                                                          backgroundColor:
-                                                              AppColors
-                                                                  .primaryGreen,
-                                                          foregroundColor:
-                                                              Colors.white ,
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                            vertical: 14,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            ),
-                                          ],
-                                        ],
-                                      );
-                                    },
-                                    loading: () => const Center(child: CircularProgressIndicator()),
-                                    error: (err, _) => Text('Error loading academic years: $err', style: const TextStyle(color: Colors.red)),
+                                ),
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 20,
+                                  runSpacing: 8,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.calendar_today_outlined,
+                                          size: 15,
+                                          color: AppColors.primaryGreen,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Start: ${activeYear.startDate ?? "Not set"}',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.event_available_outlined,
+                                          size: 15,
+                                          color: AppColors.primaryGreen,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'End: ${activeYear.endDate ?? "Not set"}',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                OutlinedButton.icon(
+                                  onPressed: () => showDialog(
+                                    context: context,
+                                    builder: (_) => _EditScheduleDatesDialog(
+                                      year: activeYear,
+                                    ),
                                   ),
-                                  const Divider(height: 32),
-                                   // Auto-Archiving Grace Period
-                                   _GracePeriodSettingsSection(
-                                     settingsMap: settingsMap,
-                                   ),
-                                 ],
-            );
-          },
+                                  icon: const Icon(Icons.date_range),
+                                  label: const Text('Edit Schedule Dates'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 13),
+                                    side: const BorderSide(
+                                      color: AppColors.primaryGreen,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+
+                    if (activeYear != null) ...[
+                      const SizedBox(height: 16),
+                      // ── Section 2: Auto-Graduation ──
+                      _buildFunctionalCard(
+                        isDark: isDark,
+                        icon: Icons.school_rounded,
+                        title: 'Auto-Graduation',
+                        subtitle: 'Promote or graduate eligible students automatically',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.blue.withValues(alpha: 0.08)
+                                    : Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isDark
+                                      ? Colors.blue.withValues(alpha: 0.2)
+                                      : Colors.blue.shade200,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.info_outline,
+                                    size: 16,
+                                    color: Colors.blue,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Auto-graduation runs sequentially (Grade 10 then Grade 12) once end date is reached. Requires both dates set.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark
+                                            ? Colors.blue.shade300
+                                            : Colors.blue,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            FilledButton.icon(
+                              onPressed: () => _handleRunAutoGraduation(
+                                context,
+                                ref,
+                              ),
+                              icon: const Icon(Icons.school),
+                              label: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text('Check / Run Auto-Graduation Now'),
+                              ),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.primaryGreen,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            // ── Section 3: Auto-Archiving Grace Period ──
+            _buildFunctionalCard(
+              isDark: isDark,
+              icon: Icons.archive_outlined,
+              title: 'Auto-Archiving Grace Period',
+              subtitle: 'Cutoff schedule for archiving inactive enrollments',
+              child: sysSettingsAsync.isLoading
+                  ? const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppSkeletonLoader(width: 180, height: 14),
+                        SizedBox(height: 10),
+                        AppSkeletonLoader(width: double.infinity, height: 42, borderRadius: 8),
+                      ],
+                    )
+                  : _GracePeriodSettingsSection(settingsMap: settingsMap),
+            ),
+          ],
         );
+      },
+    );
   }
 
   Widget _buildAutoEnrollSection(bool isDark) {
@@ -2609,641 +2798,490 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildAboutSection(bool isDark) {
+    final sizeLabel = AppUpdateService.formatBytes(_installerCacheSizeBytes);
+    final hasCache = _installerCacheSizeBytes > 0;
+
     return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // ── System & Client Description ──
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final isCompact = constraints.maxWidth < 460;
-                                if (isCompact) {
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                            child: const Icon(
-                                              Icons.school_rounded,
-                                              color: AppColors.primaryGreen,
-                                              size: 22,
-                                            ),
-                                          ),
-                                          const SizedBox(width: AppSizes.p12),
-                                          const Expanded(
-                                            child: Text(
-                                              'Talisay Integrated School - RMS',
-                                              style: TextStyle(
-                                                fontSize: 15.5,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        'A centralized school records management system designed for Talisay Integrated School to efficiently manage, archive, and verify student records (SF10, permanent forms, and scholastic documents) across Junior High School and Senior High School levels with optical character recognition (OCR) and audit tracking.',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          height: 1.45,
-                                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                }
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: const Icon(
-                                        Icons.school_rounded,
-                                        color: AppColors.primaryGreen,
-                                        size: 24,
-                                      ),
-                                    ),
-                                    const SizedBox(width: AppSizes.p12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'Talisay Integrated School - RMS',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            'A centralized school records management system designed for Talisay Integrated School to efficiently manage, archive, and verify student records (SF10, permanent forms, and scholastic documents) across Junior High School and Senior High School levels with optical character recognition (OCR) and audit tracking.',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              height: 1.45,
-                                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
-                            const SizedBox(height: AppSizes.p16),
-                            _buildAboutInfoRow(
-                              'Application',
-                              'Talisay Integrated School - RMS',
-                              isDark,
-                            ),
-                            _buildAboutInfoRow(
-                              'Current Version',
-                              _packageInfo != null
-                                  ? 'v${_packageInfo!.version} (Build ${_packageInfo!.buildNumber})'
-                                  : 'Loading...',
-                              isDark,
-                            ),
-                            _buildAboutInfoRow(
-                              'Platform',
-                              kIsWeb
-                                  ? 'Web Browser'
-                                  : (Platform.isAndroid
-                                      ? 'Android'
-                                      : (Platform.isWindows ? 'Windows' : Platform.operatingSystem.toUpperCase())),
-                              isDark,
-                            ),
-                            if (_architectureLabel != null)
-                              _buildAboutInfoRow(
-                                'Architecture',
-                                _architectureLabel!,
-                                isDark,
-                              ),
-                            _buildAboutInfoRow(
-                              'Institution (Client)',
-                              'Talisay Integrated School',
-                              isDark,
-                            ),
-                            _buildAboutInfoRow(
-                              'Developed By',
-                              'Dalubhasaan ng Lungsod ng San Pablo (DLSP)',
-                              isDark,
-                            ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── 1. Application & System Info ──
+        _buildFunctionalCard(
+          isDark: isDark,
+          icon: Icons.school_rounded,
+          title: 'Talisay Integrated School - RMS',
+          subtitle: _packageInfo != null
+              ? 'v${_packageInfo!.version} (Build ${_packageInfo!.buildNumber})'
+              : 'Loading version...',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'A centralized school records management system designed for Talisay Integrated School to efficiently manage, archive, and verify student records (SF10, permanent forms, and scholastic documents) across Junior High School and Senior High School levels with OCR and audit tracking.',
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.45,
+                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    _buildAboutInfoRow(
+                      'Application',
+                      'Talisay Integrated School - RMS',
+                      isDark,
+                    ),
+                    _buildAboutInfoRow(
+                      'Current Version',
+                      _packageInfo != null
+                          ? 'v${_packageInfo!.version} (Build ${_packageInfo!.buildNumber})'
+                          : 'Loading...',
+                      isDark,
+                    ),
+                    _buildAboutInfoRow(
+                      'Platform',
+                      kIsWeb
+                          ? 'Web Browser'
+                          : (Platform.isAndroid
+                              ? 'Android'
+                              : (Platform.isWindows
+                                  ? 'Windows'
+                                  : Platform.operatingSystem.toUpperCase())),
+                      isDark,
+                    ),
+                    if (_architectureLabel != null)
+                      _buildAboutInfoRow(
+                        'Architecture',
+                        _architectureLabel!,
+                        isDark,
+                      ),
+                    _buildAboutInfoRow(
+                      'Institution (Client)',
+                      'Talisay Integrated School',
+                      isDark,
+                    ),
+                    _buildAboutInfoRow(
+                      'Developed By',
+                      'Dalubhasaan ng Lungsod ng San Pablo (DLSP)',
+                      isDark,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
 
-                            const Divider(height: 32),
+        const SizedBox(height: 16),
 
-                            // ── Developer & Technical Support ──
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.support_agent_rounded,
-                                  color: AppColors.primaryGreen,
-                                  size: 22,
-                                ),
-                                const SizedBox(width: AppSizes.p12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Developer & Technical Support',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'Dalubhasaan ng Lungsod ng San Pablo — BSIT Capstone Development Team',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                              .withValues(alpha: 0.7),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+        // ── 2. Developer & Technical Support ──
+        _buildFunctionalCard(
+          isDark: isDark,
+          icon: Icons.support_agent_rounded,
+          title: 'Developer & Technical Support',
+          subtitle: 'Dalubhasaan ng Lungsod ng San Pablo — BSIT Capstone Team',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                ),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.alternate_email_rounded,
+                      size: 16,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                    ),
+                    Text(
+                      'Lead Developer:',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                      ),
+                    ),
+                    const SelectableText(
+                      'crischarlesgarcia345@gmail.com',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final uri = Uri.parse(
+                        'mailto:crischarlesgarcia345@gmail.com?subject=TIS%20RMS%20Support%20Request',
+                      );
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                      } else {
+                        await Clipboard.setData(
+                          const ClipboardData(text: 'crischarlesgarcia345@gmail.com'),
+                        );
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Developer email copied to clipboard: crischarlesgarcia345@gmail.com',
                             ),
-                            const SizedBox(height: AppSizes.p12),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: isDark ? AppColors.darkSurface2 : const Color(0xFFF8F9FA),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            backgroundColor: AppColors.primaryGreen,
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.email_outlined, size: 15),
+                    label: const Text('Contact via Email'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => ReportIssueModal.show(context),
+                    icon: const Icon(Icons.bug_report_outlined, size: 15),
+                    label: const Text('Report an Issue'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                      side: BorderSide(
+                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const CapstoneMembersScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.groups_outlined, size: 15),
+                    label: const Text('Meet the Team'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                      side: BorderSide(
+                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  if (!kIsWeb && Platform.isAndroid)
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const SetupWizardScreen(isFirstTime: false),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.security_rounded, size: 15),
+                      label: const Text('Device Permissions'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                        side: BorderSide(
+                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ElevatedButton.icon(
+                    onPressed: () => DocumentationScreen.open(context),
+                    icon: const Icon(Icons.menu_book_rounded, size: 15),
+                    label: const Text('User Guide & Docs'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ── 3. Software Updates & Storage Cache ──
+        _buildFunctionalCard(
+          isDark: isDark,
+          icon: Icons.system_update_rounded,
+          title: 'Software Updates & Cache',
+          subtitle: 'Check for new releases and manage installer cache',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_updateStatusMessage != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: (_updateInfo != null && _updateInfo!.hasUpdate)
+                        ? AppColors.primaryGreen.withValues(alpha: 0.12)
+                        : (isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.grey.shade100),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: (_updateInfo != null && _updateInfo!.hasUpdate)
+                          ? AppColors.primaryGreen.withValues(alpha: 0.3)
+                          : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        (_updateInfo != null && _updateInfo!.hasUpdate)
+                            ? Icons.new_releases_rounded
+                            : Icons.info_outline_rounded,
+                        size: 18,
+                        color: (_updateInfo != null && _updateInfo!.hasUpdate)
+                            ? AppColors.primaryGreen
+                            : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade700),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _updateStatusMessage!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isCheckingUpdate ? null : _checkForUpdates,
+                    icon: _isCheckingUpdate
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.sync_rounded, size: 16),
+                    label: Text(_isCheckingUpdate ? 'Checking...' : 'Check for Updates'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  if (_updateInfo != null && _updateInfo!.hasUpdate)
+                    OutlinedButton.icon(
+                      onPressed: () => showUpdateAvailableDialog(
+                        context,
+                        updateInfo: _updateInfo!,
+                      ),
+                      icon: const Icon(Icons.download_rounded, size: 16),
+                      label: const Text('Download Update'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryGreen,
+                        side: const BorderSide(color: AppColors.primaryGreen),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: LayoutBuilder(
+                  builder: (context, cacheConstraints) {
+                    final isNarrow = cacheConstraints.maxWidth < 460;
+                    final cacheInfo = Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.cleaning_services_rounded,
+                            color: AppColors.primaryGreen,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  LayoutBuilder(
-                                    builder: (context, constraints) {
-                                      final isCompact = constraints.maxWidth < 500;
-                                      if (isCompact) {
-                                        return Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.alternate_email_rounded,
-                                                  size: 16,
-                                                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                                                ),
-                                                const SizedBox(width: 6),
-                                                Text(
-                                                  'Lead Developer Contact:',
-                                                  style: TextStyle(
-                                                    fontSize: 12.5,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 4),
-                                            const Padding(
-                                              padding: EdgeInsets.only(left: 22),
-                                              child: SelectableText(
-                                                'crischarlesgarcia345@gmail.com',
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.primaryGreen,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      }
-
-                                      return Row(
-                                        children: [
-                                          Icon(
-                                            Icons.alternate_email_rounded,
-                                            size: 16,
-                                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Lead Developer Contact:',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          const Expanded(
-                                            child: SelectableText(
-                                              'crischarlesgarcia345@gmail.com',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                                color: AppColors.primaryGreen,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      );
-                                    },
+                                  Text(
+                                    'Installer Cache',
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
                                   ),
-                                  const SizedBox(height: 12),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      ElevatedButton.icon(
-                                        onPressed: () async {
-                                          final messenger = ScaffoldMessenger.of(context);
-                                          final uri = Uri.parse('mailto:crischarlesgarcia345@gmail.com?subject=TIS%20RMS%20Support%20Request');
-                                          if (await canLaunchUrl(uri)) {
-                                            await launchUrl(uri);
-                                          } else {
-                                            await Clipboard.setData(const ClipboardData(text: 'crischarlesgarcia345@gmail.com'));
-                                            messenger.showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Developer email copied to clipboard: crischarlesgarcia345@gmail.com'),
-                                                backgroundColor: AppColors.primaryGreen,
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        icon: const Icon(Icons.email_outlined, size: 15),
-                                        label: const Text('Contact via Email'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.primaryGreen,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: hasCache
+                                          ? Colors.amber.withValues(alpha: isDark ? 0.25 : 0.15)
+                                          : (isDark ? Colors.white10 : Colors.grey.shade200),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      sizeLabel,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: hasCache
+                                            ? (isDark
+                                                ? Colors.amber.shade300
+                                                : Colors.amber.shade900)
+                                            : (isDark
+                                                ? AppColors.darkTextMuted
+                                                : Colors.grey.shade600),
                                       ),
-                                      OutlinedButton.icon(
-                                        onPressed: () => ReportIssueModal.show(context),
-                                        icon: const Icon(Icons.bug_report_outlined, size: 15),
-                                        label: const Text('Report an Issue'),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                                          side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        ),
-                                      ),
-                                      OutlinedButton.icon(
-                                        onPressed: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(builder: (_) => const CapstoneMembersScreen()),
-                                          );
-                                        },
-                                        icon: const Icon(Icons.groups_outlined, size: 15),
-                                        label: const Text('Meet the Team'),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                                          side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        ),
-                                      ),
-                                      if (!kIsWeb && Platform.isAndroid)
-                                        OutlinedButton.icon(
-                                          onPressed: () {
-                                            Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                builder: (_) => const SetupWizardScreen(isFirstTime: false),
-                                              ),
-                                            );
-                                          },
-                                          icon: const Icon(Icons.security_rounded, size: 15),
-                                          label: const Text('Device Permissions'),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                                            side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                            textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          ),
-                                        ),
-                                      ElevatedButton.icon(
-                                        onPressed: () => DocumentationScreen.open(context),
-                                        icon: const Icon(Icons.menu_book_rounded, size: 15),
-                                        label: const Text('User Guide & Docs'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.primaryGreen,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-
-                            const Divider(height: 32),
-                            // Check for updates section
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.system_update_rounded,
-                                  color: AppColors.primaryGreen,
-                                  size: 22,
-                                ),
-                                const SizedBox(width: AppSizes.p12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Software Updates',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'Check for new releases and improvements',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                              .withValues(alpha: 0.7),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSizes.p16),
-                            if (_updateStatusMessage != null) ...[
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: (_updateInfo != null && _updateInfo!.hasUpdate)
-                                      ? AppColors.primaryGreen.withValues(alpha: 0.12)
-                                      : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: (_updateInfo != null && _updateInfo!.hasUpdate)
-                                        ? AppColors.primaryGreen.withValues(alpha: 0.3)
-                                        : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      (_updateInfo != null && _updateInfo!.hasUpdate)
-                                          ? Icons.new_releases_rounded
-                                          : Icons.info_outline_rounded,
-                                      size: 18,
-                                      color: (_updateInfo != null && _updateInfo!.hasUpdate)
-                                          ? AppColors.primaryGreen
-                                          : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade700),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        _updateStatusMessage!,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade800,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: AppSizes.p16),
-                            ],
-                            Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: [
-                                ElevatedButton.icon(
-                                  onPressed: _isCheckingUpdate ? null : _checkForUpdates,
-                                  icon: _isCheckingUpdate
-                                      ? const SizedBox(
-                                          width: 14,
-                                          height: 14,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Icon(Icons.sync_rounded, size: 16),
-                                  label: Text(_isCheckingUpdate ? 'Checking...' : 'Check for Updates'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primaryGreen,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    textStyle: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                                if (_updateInfo != null && _updateInfo!.hasUpdate)
-                                  OutlinedButton.icon(
-                                    onPressed: () => showUpdateAvailableDialog(
-                                      context,
-                                      updateInfo: _updateInfo!,
-                                    ),
-                                    icon: const Icon(Icons.download_rounded, size: 16),
-                                    label: const Text('Download Update'),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: AppColors.primaryGreen,
-                                      side: const BorderSide(color: AppColors.primaryGreen),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 12,
-                                      ),
-                                      textStyle: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSizes.p20),
-                            // ── Installer Cache Management Banner ──
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? AppColors.darkSurface2
-                                    : const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
+                              const SizedBox(height: 2),
+                              Text(
+                                'Downloaded APK and Windows setup packages',
+                                style: TextStyle(
+                                  fontSize: 11.5,
                                   color: isDark
-                                      ? AppColors.darkBorder
-                                      : Colors.grey.withValues(alpha: 0.25),
+                                      ? AppColors.darkTextSecondary
+                                      : Colors.grey.shade600,
                                 ),
                               ),
-                              child: LayoutBuilder(
-                                builder: (context, cacheConstraints) {
-                                  final isNarrow = cacheConstraints.maxWidth < 460;
-                                  final sizeLabel = AppUpdateService.formatBytes(_installerCacheSizeBytes);
-                                  final hasCache = _installerCacheSizeBytes > 0;
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
 
-                                  final cacheInfo = Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: const Icon(
-                                          Icons.cleaning_services_rounded,
-                                          color: AppColors.primaryGreen,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  'Installer Cache',
-                                                  style: TextStyle(
-                                                    fontSize: 13.5,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Theme.of(context).colorScheme.onSurface,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: hasCache
-                                                        ? Colors.amber.withValues(alpha: isDark ? 0.25 : 0.15)
-                                                        : (isDark ? Colors.white10 : Colors.grey.shade200),
-                                                    borderRadius: BorderRadius.circular(6),
-                                                  ),
-                                                  child: Text(
-                                                    sizeLabel,
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: hasCache
-                                                          ? (isDark ? Colors.amber.shade300 : Colors.amber.shade900)
-                                                          : (isDark ? AppColors.darkTextMuted : Colors.grey.shade600),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Downloaded APK and Windows setup packages',
-                                              style: TextStyle(
-                                                fontSize: 11.5,
-                                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  );
-
-                                  final clearButton = OutlinedButton.icon(
-                                    onPressed: (hasCache && !_isClearingCache) ? _clearInstallerCache : null,
-                                    icon: _isClearingCache
-                                        ? const SizedBox(
-                                            width: 13,
-                                            height: 13,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: AppColors.primaryGreen,
-                                            ),
-                                          )
-                                        : const Icon(Icons.delete_sweep_rounded, size: 16),
-                                    label: Text(_isClearingCache ? 'Clearing...' : 'Clear Cache'),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: AppColors.primaryGreen,
-                                      disabledForegroundColor: isDark ? Colors.white24 : Colors.grey.shade400,
-                                      side: BorderSide(
-                                        color: hasCache
-                                            ? AppColors.primaryGreen
-                                            : (isDark ? Colors.white12 : Colors.grey.shade300),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                                      textStyle: const TextStyle(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  );
-
-                                  if (isNarrow) {
-                                    return Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                        cacheInfo,
-                                        const SizedBox(height: 12),
-                                        clearButton,
-                                      ],
-                                    );
-                                  }
-
-                                  return Row(
-                                    children: [
-                                      Expanded(child: cacheInfo),
-                                      const SizedBox(width: 12),
-                                      clearButton,
-                                    ],
-                                  );
-                                },
+                    final clearButton = OutlinedButton.icon(
+                      onPressed: (hasCache && !_isClearingCache) ? _clearInstallerCache : null,
+                      icon: _isClearingCache
+                          ? const SizedBox(
+                              width: 13,
+                              height: 13,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primaryGreen,
                               ),
-                            ),
-                          ],
+                            )
+                          : const Icon(Icons.delete_sweep_rounded, size: 16),
+                      label: Text(_isClearingCache ? 'Clearing...' : 'Clear Cache'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryGreen,
+                        disabledForegroundColor:
+                            isDark ? Colors.white24 : Colors.grey.shade400,
+                        side: BorderSide(
+                          color: hasCache
+                              ? AppColors.primaryGreen
+                              : (isDark ? Colors.white12 : Colors.grey.shade300),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                        textStyle: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    );
+
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          cacheInfo,
+                          const SizedBox(height: 12),
+                          clearButton,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        Expanded(child: cacheInfo),
+                        const SizedBox(width: 12),
+                        clearButton,
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

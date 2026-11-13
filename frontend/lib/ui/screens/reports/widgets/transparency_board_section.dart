@@ -1079,9 +1079,11 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   static Widget _responsiveTable({
     required Widget child,
     double minWidth = 580,
+    double pinnedColumnWidth = 155,
   }) {
     return _StatefulResponsiveTable(
       minWidth: minWidth,
+      pinnedColumnWidth: pinnedColumnWidth,
       child: child,
     );
   }
@@ -3135,10 +3137,12 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
 class _StatefulResponsiveTable extends StatefulWidget {
   final Widget child;
   final double minWidth;
+  final double pinnedColumnWidth;
 
   const _StatefulResponsiveTable({
     required this.child,
     this.minWidth = 580,
+    this.pinnedColumnWidth = 155,
   });
 
   @override
@@ -3160,6 +3164,110 @@ class _StatefulResponsiveTableState extends State<_StatefulResponsiveTable> {
     super.dispose();
   }
 
+  Widget _buildPinnedSplitTable(Container container, Table table, bool isDark) {
+    final rows = table.children;
+    if (rows.isEmpty || rows.first.children.length <= 1) {
+      return SingleChildScrollView(
+        controller: _controller,
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: widget.minWidth),
+          child: widget.child,
+        ),
+      );
+    }
+
+    final pinnedRows = <TableRow>[];
+    final scrollableRows = <TableRow>[];
+
+    for (int r = 0; r < rows.length; r++) {
+      final row = rows[r];
+      final rowHeight = r == 0 ? 42.0 : 36.0;
+      final rowDeco = row.decoration is BoxDecoration
+          ? (row.decoration as BoxDecoration).copyWith(borderRadius: BorderRadius.zero)
+          : row.decoration;
+
+      pinnedRows.add(
+        TableRow(
+          decoration: rowDeco,
+          children: [
+            SizedBox(
+              height: rowHeight,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: row.children.first,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      scrollableRows.add(
+        TableRow(
+          decoration: rowDeco,
+          children: [
+            for (final cell in row.children.skip(1))
+              SizedBox(
+                height: rowHeight,
+                child: Center(child: cell),
+              ),
+          ],
+        ),
+      );
+    }
+
+    final scrollableWidths = <int, TableColumnWidth>{};
+    table.columnWidths?.forEach((index, width) {
+      if (index > 0) {
+        scrollableWidths[index - 1] = width;
+      }
+    });
+
+    final scrollableMinWidth = (widget.minWidth - widget.pinnedColumnWidth).clamp(260.0, 2000.0);
+
+    return Container(
+      decoration: container.decoration,
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: widget.pinnedColumnWidth,
+              child: Table(
+                columnWidths: {0: FixedColumnWidth(widget.pinnedColumnWidth)},
+                border: table.border,
+                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                children: pinnedRows,
+              ),
+            ),
+            Container(
+              width: 1.5,
+              color: isDark
+                  ? AppColors.darkBorder
+                  : Colors.grey.withValues(alpha: 0.35),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _controller,
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: scrollableMinWidth),
+                  child: Table(
+                    columnWidths: scrollableWidths.isEmpty ? null : scrollableWidths,
+                    border: table.border,
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    children: scrollableRows,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -3168,18 +3276,24 @@ class _StatefulResponsiveTableState extends State<_StatefulResponsiveTable> {
         if (constraints.maxWidth >= widget.minWidth) {
           return widget.child;
         }
+
+        final child = widget.child;
+        final tableBody = (child is Container && child.child is Table)
+            ? _buildPinnedSplitTable(child, child.child as Table, isDark)
+            : SingleChildScrollView(
+                controller: _controller,
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: widget.minWidth),
+                  child: widget.child,
+                ),
+              );
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            SingleChildScrollView(
-              controller: _controller,
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: widget.minWidth),
-                child: widget.child,
-              ),
-            ),
+            tableBody,
             const SizedBox(height: 6),
             _CustomHorizontalScrollBar(
               controller: _controller,

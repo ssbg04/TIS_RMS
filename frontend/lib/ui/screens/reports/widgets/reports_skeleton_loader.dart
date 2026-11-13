@@ -232,16 +232,18 @@ class ReportsComplianceSkeletonLoader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppSkeletonLoader(width: 170, height: 16, borderRadius: 4),
-                  SizedBox(height: 5),
-                  AppSkeletonLoader(width: 210, height: 11, borderRadius: 4),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppSkeletonLoader(width: 170, height: 16, borderRadius: 4),
+                    SizedBox(height: 5),
+                    AppSkeletonLoader(width: 210, height: 11, borderRadius: 4),
+                  ],
+                ),
               ),
+              SizedBox(width: 12),
               AppSkeletonLoader(width: 70, height: 26, borderRadius: 6),
             ],
           ),
@@ -285,16 +287,18 @@ class ReportsComplianceSkeletonLoader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppSkeletonLoader(width: 180, height: 16, borderRadius: 4),
-                  SizedBox(height: 5),
-                  AppSkeletonLoader(width: 230, height: 11, borderRadius: 4),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppSkeletonLoader(width: 180, height: 16, borderRadius: 4),
+                    SizedBox(height: 5),
+                    AppSkeletonLoader(width: 230, height: 11, borderRadius: 4),
+                  ],
+                ),
               ),
+              SizedBox(width: 12),
               AppSkeletonLoader(width: 60, height: 24, borderRadius: 6),
             ],
           ),
@@ -383,16 +387,18 @@ class ReportsComplianceSkeletonLoader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppSkeletonLoader(width: 180, height: 16, borderRadius: 4),
-                  SizedBox(height: 5),
-                  AppSkeletonLoader(width: 220, height: 11, borderRadius: 4),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppSkeletonLoader(width: 180, height: 16, borderRadius: 4),
+                    SizedBox(height: 5),
+                    AppSkeletonLoader(width: 220, height: 11, borderRadius: 4),
+                  ],
+                ),
               ),
+              SizedBox(width: 12),
               AppSkeletonLoader(width: 90, height: 26, borderRadius: 6),
             ],
           ),
@@ -451,16 +457,18 @@ class ReportsComplianceSkeletonLoader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AppSkeletonLoader(width: 210, height: 18, borderRadius: 4),
-                        SizedBox(height: 6),
-                        AppSkeletonLoader(width: 280, height: 12, borderRadius: 4),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppSkeletonLoader(width: 210, height: 18, borderRadius: 4),
+                          SizedBox(height: 6),
+                          AppSkeletonLoader(width: 280, height: 12, borderRadius: 4),
+                        ],
+                      ),
                     ),
+                    SizedBox(width: 12),
                     AppSkeletonLoader(width: 70, height: 26, borderRadius: 13),
                   ],
                 ),
@@ -568,13 +576,12 @@ class TransparencyBoardSkeletonLoader extends StatelessWidget {
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
               AppSkeletonLoader(width: 100, height: 32, borderRadius: 8),
-              SizedBox(width: 8),
               AppSkeletonLoader(width: 90, height: 32, borderRadius: 8),
-              SizedBox(width: 8),
               AppSkeletonLoader(width: 110, height: 32, borderRadius: 8),
             ],
           ),
@@ -592,23 +599,21 @@ class TransparencyBoardSkeletonLoader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  AppSkeletonLoader(width: 36, height: 36, borderRadius: 8),
-                  SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppSkeletonLoader(width: 180, height: 16, borderRadius: 4),
-                      SizedBox(height: 5),
-                      AppSkeletonLoader(width: 120, height: 11, borderRadius: 4),
-                    ],
-                  ),
-                ],
+              AppSkeletonLoader(width: 36, height: 36, borderRadius: 8),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppSkeletonLoader(width: 180, height: 16, borderRadius: 4),
+                    SizedBox(height: 5),
+                    AppSkeletonLoader(width: 120, height: 11, borderRadius: 4),
+                  ],
+                ),
               ),
-              AppSkeletonLoader(width: 110, height: 30, borderRadius: 6),
+              SizedBox(width: 10),
+              AppSkeletonLoader(width: 90, height: 30, borderRadius: 6),
             ],
           ),
           const SizedBox(height: 16),
@@ -636,23 +641,21 @@ class TransparencyBoardSkeletonLoader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  AppSkeletonLoader(width: 36, height: 36, borderRadius: 8),
-                  SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppSkeletonLoader(width: 200, height: 16, borderRadius: 4),
-                      SizedBox(height: 5),
-                      AppSkeletonLoader(width: 140, height: 11, borderRadius: 4),
-                    ],
-                  ),
-                ],
+              AppSkeletonLoader(width: 36, height: 36, borderRadius: 8),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppSkeletonLoader(width: 200, height: 16, borderRadius: 4),
+                    SizedBox(height: 5),
+                    AppSkeletonLoader(width: 140, height: 11, borderRadius: 4),
+                  ],
+                ),
               ),
-              AppSkeletonLoader(width: 110, height: 30, borderRadius: 6),
+              SizedBox(width: 10),
+              AppSkeletonLoader(width: 90, height: 30, borderRadius: 6),
             ],
           ),
           const SizedBox(height: 16),
@@ -678,23 +681,21 @@ class TransparencyBoardSkeletonLoader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  AppSkeletonLoader(width: 36, height: 36, borderRadius: 8),
-                  SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppSkeletonLoader(width: 190, height: 16, borderRadius: 4),
-                      SizedBox(height: 5),
-                      AppSkeletonLoader(width: 130, height: 11, borderRadius: 4),
-                    ],
-                  ),
-                ],
+              AppSkeletonLoader(width: 36, height: 36, borderRadius: 8),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppSkeletonLoader(width: 190, height: 16, borderRadius: 4),
+                    SizedBox(height: 5),
+                    AppSkeletonLoader(width: 130, height: 11, borderRadius: 4),
+                  ],
+                ),
               ),
-              AppSkeletonLoader(width: 110, height: 30, borderRadius: 6),
+              SizedBox(width: 10),
+              AppSkeletonLoader(width: 90, height: 30, borderRadius: 6),
             ],
           ),
           SizedBox(height: 16),
