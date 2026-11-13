@@ -1231,8 +1231,14 @@ Files backup/restore - mirror mode or zip -->
 # SETTINGS SCREEN
 - sub screens, add "esc" function to back -->
 
+<!-- # SETTINGS SCREEN
+- document requirements screen, remove the document templates icon button at header -->
+
 # SETTINGS SCREEN
-- document requirements screen, remove the document templates icon button at header
+- both this backend and F:\SoftwareDevelopment\Capstone\TIS_RIS_Server_Manager\backend
+- about & support screen, redesign the report an issue / feedback modal
+- update the report an issue, use the gmail smtp server an email service using tistq.rms@gmail.com to send an email to crischarlesgarcia345@gmail.com, make sure the category, urgency level, subject, description, attachment are in the email to be sent to the developer using smtp.
+- update the code files first in this backend/ then to F:\SoftwareDevelopment\Capstone\TIS_RIS_Server_Manager\backend
 
 ---
 

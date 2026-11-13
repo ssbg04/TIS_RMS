@@ -183,488 +183,403 @@ class _UpdateDialogWidgetState extends State<_UpdateDialogWidget> {
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 600;
 
-    final platformLabel = _isWindows
-        ? 'Windows Desktop Client'
-        : (_isAndroid ? 'Android Universal App' : 'TIS RMS Client');
-
+    final currentVer = 'v${widget.updateInfo.currentVersion.replaceFirst(RegExp(r'^[vV]'), '')}';
+    final latestVer = widget.updateInfo.latestVersion.startsWith('v')
+        ? widget.updateInfo.latestVersion
+        : 'v${widget.updateInfo.latestVersion}';
     final assetLabel = widget.updateInfo.assetName ??
         (_isWindows ? 'TIS_RMS_Client_Setup.exe' : 'TIS_RMS_Universal.apk');
 
     return Dialog(
       backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
       ),
-      elevation: 16,
+      elevation: 8,
       insetPadding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : 20,
-        vertical: isMobile ? 16 : 24,
+        horizontal: isMobile ? 16 : 24,
+        vertical: isMobile ? 20 : 24,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: 480,
-          maxHeight: isMobile ? 620 : 580,
+          maxWidth: 440,
+          maxHeight: isMobile ? 580 : 560,
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Header Banner ───────────────────────────────────────
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? 16 : 20,
-                  vertical: isMobile ? 14 : 18,
-                ),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primaryGreen,
-                      AppColors.darkGreen,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.rocket_launch_rounded,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Minimalist Header ───────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 12, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    child: const Icon(
+                      Icons.system_update_rounded,
+                      color: AppColors.primaryGreen,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.updateInfo.releaseTitle.isNotEmpty
+                              ? widget.updateInfo.releaseTitle
+                              : 'Update Available',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white : AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          assetLabel,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!_isDownloading)
+                    IconButton(
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 20,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : Colors.grey.shade500,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        widget.onDismiss?.call();
+                      },
+                    ),
+                ],
+              ),
+            ),
+
+            Divider(
+              height: 1,
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            ),
+
+            // ── Body ────────────────────────────────────────────────
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Minimal Version Difference Row
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.04)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.darkBorder
+                              : Colors.grey.shade200,
+                        ),
+                      ),
+                      child: Row(
                         children: [
-                          const Text(
-                            'NEW UPDATE AVAILABLE',
+                          Text(
+                            currentVer,
                             style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 10.5,
+                              fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              letterSpacing: 1.0,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : Colors.grey.shade600,
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.updateInfo.releaseTitle.isNotEmpty
-                                ? widget.updateInfo.releaseTitle
-                                : 'TIS RMS ${widget.updateInfo.latestVersion}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 16,
+                              color: isDark
+                                  ? AppColors.darkTextMuted
+                                  : Colors.grey.shade400,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryGreen.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              latestVer,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryGreen,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'New version',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark
+                                  ? AppColors.darkTextMuted
+                                  : AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    if (!_isDownloading)
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white70, size: 20),
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          widget.onDismiss?.call();
-                        },
-                      ),
-                  ],
-                ),
-              ),
+                    const SizedBox(height: 14),
 
-              // ── Body ────────────────────────────────────────────────
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(isMobile ? 16 : 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Version Comparison Pill
+                    // ── Download Progress / State Box ─────────────────
+                    if (_isDownloading) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.darkSurface2
-                              : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.primaryGreen.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isDark
-                                ? AppColors.darkBorder
-                                : Colors.grey.withValues(alpha: 0.25),
+                            color: AppColors.primaryGreen.withValues(alpha: 0.28),
                           ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
                               children: [
-                                Text(
-                                  'Installed Version',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark
-                                        ? AppColors.darkTextMuted
-                                        : AppColors.textSecondary,
+                                const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primaryGreen,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'v${widget.updateInfo.currentVersion.replaceFirst(RegExp(r'^[vV]'), '')}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? AppColors.darkTextSecondary
-                                        : Colors.grey.shade700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Icon(
-                              Icons.arrow_forward_rounded,
-                              size: 18,
-                              color: AppColors.primaryGreen,
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  'Latest Version',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark
-                                        ? AppColors.darkTextMuted
-                                        : AppColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen
-                                        .withValues(alpha: 0.18),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
+                                const SizedBox(width: 8),
+                                Expanded(
                                   child: Text(
-                                    widget.updateInfo.latestVersion.startsWith('v')
-                                        ? widget.updateInfo.latestVersion
-                                        : 'v${widget.updateInfo.latestVersion}',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primaryGreen,
+                                    'Downloading update...',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? Colors.white
+                                          : AppColors.textPrimary,
                                     ),
                                   ),
                                 ),
+                                Text(
+                                  '${(_downloadProgress * 100).toInt()}%',
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryGreen,
+                                  ),
+                                ),
                               ],
+                            ),
+                            const SizedBox(height: 8),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: LinearProgressIndicator(
+                                value: _downloadProgress > 0 ? _downloadProgress : null,
+                                minHeight: 6,
+                                backgroundColor:
+                                    isDark ? Colors.black26 : Colors.grey.shade200,
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  AppColors.primaryGreen,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _totalBytes > 0
+                                  ? '${_formatBytes(_receivedBytes)} / ${_formatBytes(_totalBytes)}'
+                                  : 'Connecting...',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 14),
-
-                      // Platform package tag
-                      Row(
-                        children: [
-                          Icon(
-                            _isWindows
-                                ? Icons.desktop_windows_outlined
-                                : (_isAndroid
-                                    ? Icons.android_outlined
-                                    : Icons.devices_outlined),
-                            size: 15,
-                            color: AppColors.primaryGreen,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '$platformLabel: ',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              assetLabel,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : Colors.black87,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-
-                      // ── Download Progress / State Box ───────────────────
-                      if (_isDownloading) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryGreen.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.primaryGreen.withValues(alpha: 0.35),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const SizedBox(
-                                    width: 14,
-                                    height: 14,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppColors.primaryGreen,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _isWindows
-                                          ? 'Downloading Windows Setup in-app...'
-                                          : 'Downloading Android update in-app...',
-                                      style: const TextStyle(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primaryGreen,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${(_downloadProgress * 100).toInt()}%',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primaryGreen,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: LinearProgressIndicator(
-                                  value: _downloadProgress > 0 ? _downloadProgress : null,
-                                  minHeight: 8,
-                                  backgroundColor: isDark ? Colors.black26 : Colors.grey.shade200,
-                                  valueColor: const AlwaysStoppedAnimation<Color>(
-                                    AppColors.primaryGreen,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    _totalBytes > 0
-                                        ? '${_formatBytes(_receivedBytes)} of ${_formatBytes(_totalBytes)}'
-                                        : 'Connecting to release server...',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: isDark
-                                          ? AppColors.darkTextSecondary
-                                          : AppColors.textSecondary,
-                                    ),
-                                  ),
-                                  const Text(
-                                    'Direct in-app download',
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      color: AppColors.primaryGreen,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                      ] else if (_downloadedFilePath != null) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.green.withValues(alpha: 0.35),
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(
-                                Icons.check_circle_rounded,
-                                color: AppColors.primaryGreen,
-                                size: 22,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Download Completed!',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primaryGreen,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      _isWindows
-                                          ? 'Installer opened. You may close this app or it will close automatically.'
-                                          : 'Tap below to launch the default Android package installer.',
-                                      style: TextStyle(
-                                        fontSize: 11.5,
-                                        color: isDark
-                                            ? AppColors.darkTextSecondary
-                                            : AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                      ],
-
-                      // Error message banner
-                      if (_errorMessage != null) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: Colors.red.withValues(alpha: 0.35),
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 18),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _errorMessage!,
-                                  style: const TextStyle(
-                                    fontSize: 11.5,
-                                    color: AppColors.error,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                      ],
-
-                      // Release Notes Header
-                      Text(
-                        'What\'s New:',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Release Notes Container
+                    ] else if (_downloadedFilePath != null) ...[
                       Container(
                         width: double.infinity,
-                        constraints: BoxConstraints(
-                          maxHeight: _isDownloading ? 110 : 160,
-                        ),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.darkSurface2
-                              : const Color(0xFFF8FAFC),
+                          color: AppColors.primaryGreen.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isDark
-                                ? AppColors.darkBorder
-                                : Colors.grey.withValues(alpha: 0.2),
+                            color: AppColors.primaryGreen.withValues(alpha: 0.3),
                           ),
                         ),
-                        child: SingleChildScrollView(
-                          child: Text(
-                            widget.updateInfo.releaseNotes.isNotEmpty
-                                ? widget.updateInfo.releaseNotes
-                                : 'A new version of TIS RMS is available with bug fixes, performance improvements, and enhanced security updates.',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              height: 1.45,
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : Colors.black87,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              color: AppColors.primaryGreen,
+                              size: 18,
                             ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _isWindows
+                                    ? 'Download complete. Installer launched.'
+                                    : 'Download complete. Tap below to install.',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+
+                    // Error message banner
+                    if (_errorMessage != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              color: AppColors.error,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  color: AppColors.error,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+
+                    // What's New
+                    Text(
+                      'What\'s New',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      constraints: BoxConstraints(
+                        maxHeight: _isDownloading ? 120 : 180,
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.03)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.darkBorder
+                              : Colors.grey.shade200,
+                        ),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Text(
+                          widget.updateInfo.releaseNotes.isNotEmpty
+                              ? widget.updateInfo.releaseNotes
+                              : 'Bug fixes, performance improvements, and stability updates.',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            height: 1.5,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : Colors.black87,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ── Action Buttons ──────────────────────────────────────
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? 16 : 20,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(
-                      color: isDark
-                          ? AppColors.darkBorder
-                          : Colors.grey.withValues(alpha: 0.15),
                     ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Action Buttons ──────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
                   ),
                 ),
-                child: _buildActionButtons(isDark),
               ),
-            ],
-          ),
+              child: _buildActionButtons(isDark),
+            ),
+          ],
         ),
       ),
     );

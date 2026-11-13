@@ -155,6 +155,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     _loadPackageInfo();
+    _checkForUpdatesSilently();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _onScroll();
@@ -877,8 +878,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: 'About & Support',
             category: SettingsCategory.about,
             isDark: isDark,
+            badge: (_updateInfo?.hasUpdate ?? false) ? _buildUpdateBadge() : null,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUpdateBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.primaryGreen.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primaryGreen.withValues(alpha: 0.35),
+        ),
+      ),
+      child: const Text(
+        'Update',
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          color: AppColors.primaryGreen,
+        ),
       ),
     );
   }
@@ -888,6 +911,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required String title,
     required SettingsCategory category,
     required bool isDark,
+    Widget? badge,
   }) {
     final isSelected = _selectedCategory == category;
     return Material(
@@ -939,6 +963,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
+              if (badge != null) ...[
+                const SizedBox(width: 8),
+                badge,
+              ],
             ],
           ),
         ),
@@ -1158,9 +1186,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _buildMobileTile(
               icon: Icons.info_outline_rounded,
               title: 'About & Support',
-              subtitle: 'v2.0.1 • Diagnostics, docs & cache',
+              subtitle: _packageInfo != null
+                  ? 'v${_packageInfo!.version} • Diagnostics, docs & cache'
+                  : 'Diagnostics, docs & cache',
               onTap: () => _openSubpage(context, SettingsCategory.about, user),
               isDark: isDark,
+              trailing: (_updateInfo?.hasUpdate ?? false)
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildUpdateBadge(),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+                          size: 22,
+                        ),
+                      ],
+                    )
+                  : null,
             ),
           ], isDark),
         ],
@@ -1411,82 +1455,79 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         builder: (ctx) {
           final isDark = Theme.of(ctx).brightness == Brightness.dark;
           final isProfilePage = category == SettingsCategory.profile;
-          return PopScope(
-            canPop: !isProfilePage,
-            onPopInvokedWithResult: (didPop, result) async {
-              if (didPop || !isProfilePage) return;
-              final primaryFocus = FocusManager.instance.primaryFocus;
-              if (primaryFocus != null && primaryFocus.hasFocus) {
-                primaryFocus.unfocus();
-                return;
+          var allowProfilePop = false;
+          return StatefulBuilder(
+            builder: (routeCtx, setRouteState) {
+              Future<void> triggerProfileBack() async {
+                if (!isProfilePage) {
+                  Navigator.of(routeCtx).pop();
+                  return;
+                }
+                final shouldPop = await _handleProfileBackNavigation(routeCtx);
+                if (shouldPop && routeCtx.mounted) {
+                  setRouteState(() => allowProfilePop = true);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (routeCtx.mounted) {
+                      Navigator.of(routeCtx).pop();
+                    }
+                  });
+                }
               }
-              final shouldPop = await _handleProfileBackNavigation(ctx);
-              if (shouldPop && ctx.mounted) {
-                Navigator.of(ctx).pop();
-              }
-            },
-            child: CallbackShortcuts(
-              bindings: {
-                const SingleActivator(LogicalKeyboardKey.escape): () async {
-                  if (!isProfilePage) {
-                    Navigator.of(ctx).pop();
-                    return;
-                  }
-                  final shouldPop = await _handleProfileBackNavigation(ctx);
-                  if (shouldPop && ctx.mounted) {
-                    Navigator.of(ctx).pop();
-                  }
+
+              return PopScope(
+                canPop: !isProfilePage || allowProfilePop,
+                onPopInvokedWithResult: (didPop, result) async {
+                  if (didPop || !isProfilePage) return;
+                  await triggerProfileBack();
                 },
-              },
-              child: Focus(
-                autofocus: true,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-                  child: Scaffold(
-                backgroundColor: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
-                appBar: AppBar(
-                  backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                  iconTheme: const IconThemeData(color: Colors.white),
-                  elevation: 1,
-                  title: Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: Colors.white,
+                child: CallbackShortcuts(
+                  bindings: {
+                    const SingleActivator(LogicalKeyboardKey.escape): triggerProfileBack,
+                  },
+                  child: Focus(
+                    autofocus: true,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                      child: Scaffold(
+                        backgroundColor:
+                            isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
+                        appBar: AppBar(
+                          backgroundColor:
+                              isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+                          foregroundColor: Colors.white,
+                          iconTheme: const IconThemeData(color: Colors.white),
+                          elevation: 1,
+                          title: Text(
+                            title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                          leading: IconButton(
+                            icon: const Icon(Icons.arrow_back, color: Colors.white),
+                            onPressed: triggerProfileBack,
+                          ),
+                        ),
+                        body: SingleChildScrollView(
+                          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                          padding: const EdgeInsets.all(AppSizes.p16),
+                          child: _buildSectionCard(
+                            title: title,
+                            subtitle: subtitle,
+                            icon: icon,
+                            child: builder(isDark),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () async {
-                      if (!isProfilePage) {
-                        Navigator.of(ctx).pop();
-                        return;
-                      }
-                      final shouldPop = await _handleProfileBackNavigation(ctx);
-                      if (shouldPop && ctx.mounted) {
-                        Navigator.of(ctx).pop();
-                      }
-                    },
-                  ),
                 ),
-                body: SingleChildScrollView(
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.all(AppSizes.p16),
-                  child: _buildSectionCard(
-                    title: title,
-                    subtitle: subtitle,
-                    icon: icon,
-                    child: builder(isDark),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
+              );
+            },
+          );
         },
       ),
     );
@@ -1519,7 +1560,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
         ),
       ),
-      padding: const EdgeInsets.all(AppSizes.p24),
+      padding: EdgeInsets.all(
+        MediaQuery.sizeOf(context).width < 600 ? AppSizes.p16 : AppSizes.p24,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2851,6 +2894,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildAboutInfoRow(
                       'Application',
@@ -2949,108 +2993,127 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final uri = Uri.parse(
-                        'mailto:crischarlesgarcia345@gmail.com?subject=TIS%20RMS%20Support%20Request',
-                      );
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri);
-                      } else {
-                        await Clipboard.setData(
-                          const ClipboardData(text: 'crischarlesgarcia345@gmail.com'),
+              LayoutBuilder(
+                builder: (context, btnConstraints) {
+                  final isCompact = btnConstraints.maxWidth < 460;
+                  final actionButtons = <Widget>[
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final uri = Uri.parse(
+                          'mailto:crischarlesgarcia345@gmail.com?subject=TIS%20RMS%20Support%20Request',
                         );
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Developer email copied to clipboard: crischarlesgarcia345@gmail.com',
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri);
+                        } else {
+                          await Clipboard.setData(
+                            const ClipboardData(text: 'crischarlesgarcia345@gmail.com'),
+                          );
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Developer email copied to clipboard: crischarlesgarcia345@gmail.com',
+                              ),
+                              backgroundColor: AppColors.primaryGreen,
                             ),
-                            backgroundColor: AppColors.primaryGreen,
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.email_outlined, size: 15),
-                    label: const Text('Contact via Email'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => ReportIssueModal.show(context),
-                    icon: const Icon(Icons.bug_report_outlined, size: 15),
-                    label: const Text('Report an Issue'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                      side: BorderSide(
-                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const CapstoneMembersScreen()),
-                      );
-                    },
-                    icon: const Icon(Icons.groups_outlined, size: 15),
-                    label: const Text('Meet the Team'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                      side: BorderSide(
-                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                  if (!kIsWeb && Platform.isAndroid)
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const SetupWizardScreen(isFirstTime: false),
-                          ),
-                        );
+                          );
+                        }
                       },
-                      icon: const Icon(Icons.security_rounded, size: 15),
-                      label: const Text('Device Permissions'),
+                      icon: const Icon(Icons.email_outlined, size: 15),
+                      label: const Text('Contact via Email'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => ReportIssueModal.show(context),
+                      icon: const Icon(Icons.bug_report_outlined, size: 15),
+                      label: const Text('Report an Issue'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
                         side: BorderSide(
                           color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
-                  ElevatedButton.icon(
-                    onPressed: () => DocumentationScreen.open(context),
-                    icon: const Icon(Icons.menu_book_rounded, size: 15),
-                    label: const Text('User Guide & Docs'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const CapstoneMembersScreen()),
+                        );
+                      },
+                      icon: const Icon(Icons.groups_outlined, size: 15),
+                      label: const Text('Meet the Team'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                        side: BorderSide(
+                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
-                  ),
-                ],
+                    if (!kIsWeb && Platform.isAndroid)
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const SetupWizardScreen(isFirstTime: false),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.security_rounded, size: 15),
+                        label: const Text('Device Permissions'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                          side: BorderSide(
+                            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ElevatedButton.icon(
+                      onPressed: () => DocumentationScreen.open(context),
+                      icon: const Icon(Icons.menu_book_rounded, size: 15),
+                      label: const Text('User Guide & Docs'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ];
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (int i = 0; i < actionButtons.length; i++) ...[
+                          if (i > 0) const SizedBox(height: 8),
+                          SizedBox(width: double.infinity, child: actionButtons[i]),
+                        ],
+                      ],
+                    );
+                  }
+
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: actionButtons,
+                  );
+                },
               ),
             ],
           ),
@@ -3110,48 +3173,67 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 12),
               ],
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _isCheckingUpdate ? null : _checkForUpdates,
-                    icon: _isCheckingUpdate
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.sync_rounded, size: 16),
-                    label: Text(_isCheckingUpdate ? 'Checking...' : 'Check for Updates'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                  if (_updateInfo != null && _updateInfo!.hasUpdate)
-                    OutlinedButton.icon(
-                      onPressed: () => showUpdateAvailableDialog(
-                        context,
-                        updateInfo: _updateInfo!,
-                      ),
-                      icon: const Icon(Icons.download_rounded, size: 16),
-                      label: const Text('Download Update'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryGreen,
-                        side: const BorderSide(color: AppColors.primaryGreen),
+              LayoutBuilder(
+                builder: (context, updateBtnConstraints) {
+                  final isCompact = updateBtnConstraints.maxWidth < 460;
+                  final updateButtons = <Widget>[
+                    ElevatedButton.icon(
+                      onPressed: _isCheckingUpdate ? null : _checkForUpdates,
+                      icon: _isCheckingUpdate
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.sync_rounded, size: 16),
+                      label: Text(_isCheckingUpdate ? 'Checking...' : 'Check for Updates'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
-                ],
+                    if (_updateInfo != null && _updateInfo!.hasUpdate)
+                      OutlinedButton.icon(
+                        onPressed: () => showUpdateAvailableDialog(
+                          context,
+                          updateInfo: _updateInfo!,
+                        ),
+                        icon: const Icon(Icons.download_rounded, size: 16),
+                        label: const Text('Download Update'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primaryGreen,
+                          side: const BorderSide(color: AppColors.primaryGreen),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                  ];
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (int i = 0; i < updateButtons.length; i++) ...[
+                          if (i > 0) const SizedBox(height: 8),
+                          SizedBox(width: double.infinity, child: updateButtons[i]),
+                        ],
+                      ],
+                    );
+                  }
+
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: updateButtons,
+                  );
+                },
               ),
               const SizedBox(height: 14),
               Container(
@@ -3382,6 +3464,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _checkForUpdatesSilently() async {
+    try {
+      final updateInfo = await AppUpdateService.checkForUpdate();
+      if (!mounted || updateInfo == null) return;
+      setState(() {
+        _updateInfo = updateInfo;
+        if (updateInfo.hasUpdate) {
+          final assetLabel = updateInfo.assetName != null ? ' [${updateInfo.assetName}]' : '';
+          _updateStatusMessage = 'New update available (${updateInfo.latestVersion})$assetLabel!';
+        }
+      });
+    } catch (_) {
+      // Silent background check; ignore offline/network errors.
+    }
+  }
+
   Future<void> _checkForUpdates() async {
     if (_isCheckingUpdate) return;
     setState(() {
@@ -3426,29 +3524,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 460;
         if (isCompact) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+          return SizedBox(
+            width: double.infinity,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                SelectableText(
-                  value,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade900,
+                  const SizedBox(height: 2),
+                  SelectableText(
+                    value,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade900,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         }
