@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/download_service.dart';
@@ -172,7 +173,13 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final templatesAsync = ref.watch(templatesListProvider);
 
-    return Scaffold(
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).pop(),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
       backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
@@ -299,6 +306,8 @@ class _TemplatesModalState extends ConsumerState<TemplatesModal> {
               onPressed: () => _showCreateOrEditModal(),
             )
           : null,
+        ),
+      ),
     );
   }
 

@@ -1425,10 +1425,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Navigator.of(ctx).pop();
               }
             },
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-              child: Scaffold(
+            child: CallbackShortcuts(
+              bindings: {
+                const SingleActivator(LogicalKeyboardKey.escape): () async {
+                  if (!isProfilePage) {
+                    Navigator.of(ctx).pop();
+                    return;
+                  }
+                  final shouldPop = await _handleProfileBackNavigation(ctx);
+                  if (shouldPop && ctx.mounted) {
+                    Navigator.of(ctx).pop();
+                  }
+                },
+              },
+              child: Focus(
+                autofocus: true,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                  child: Scaffold(
                 backgroundColor: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
                 appBar: AppBar(
                   backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
@@ -1469,7 +1484,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
-          );
+          ),
+        ),
+      );
         },
       ),
     );

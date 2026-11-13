@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/document_properties_dialog.dart';
+import '../../../shared/widgets/pdf_excel_preview_view.dart';
 import 'student_profile_modal.dart';
 import 'document_version_history_sheet.dart';
 
@@ -73,6 +75,7 @@ class _DocumentPreviewDialogState
   bool _isOpeningExternal = false;
   bool _isUploadingVersion = false;
   File? _editTempFile; // Tracked for cleanup after edit-upload cycle
+  Future<Uint8List>? _previewPdfFuture;
 
   final _docRepo = DocumentRepository();
 
@@ -95,6 +98,9 @@ class _DocumentPreviewDialogState
   void initState() {
     super.initState();
     _loadToken();
+    if (widget.localFile != null && (_isPdf || _isExcel)) {
+      _previewPdfFuture = _loadInlinePdfBytes();
+    }
   }
 
   @override
@@ -106,8 +112,34 @@ class _DocumentPreviewDialogState
   Future<void> _loadToken() async {
     final token = await const FlutterSecureStorage().read(key: 'jwt_token');
     if (mounted) {
-      setState(() => _token = token);
+      setState(() {
+        _token = token;
+        if (_previewPdfFuture == null && (_isPdf || _isExcel) && token != null) {
+          _previewPdfFuture = _loadInlinePdfBytes();
+        }
+      });
     }
+  }
+
+  Future<Uint8List> _loadInlinePdfBytes() async {
+    late final Uint8List rawBytes;
+    if (widget.localFile != null) {
+      rawBytes = await widget.localFile!.readAsBytes();
+    } else {
+      final resp = await Dio().get<List<int>>(
+        _fileUrl,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      rawBytes = Uint8List.fromList(resp.data ?? const []);
+    }
+    if (rawBytes.isEmpty) {
+      throw Exception('Empty file');
+    }
+    if (_isExcel) {
+      final result = await buildPdfFromSpreadsheetBytes(rawBytes);
+      return result.pdfBytes;
+    }
+    return rawBytes;
   }
 
   // ── Helpers ────────────────────────────────────────────────
@@ -699,10 +731,8 @@ class _DocumentPreviewDialogState
     Widget content;
     if (_isImage) {
       content = _buildImagePreview();
-    } else if (_isPdf) {
-      content = _buildPdfInfo(isMobile);
-    } else if (_isExcel) {
-      content = _buildExcelInfo(isMobile);
+    } else if (_isPdf || _isExcel) {
+      content = _buildInlinePdfOrExcelPreview(isMobile);
     } else if (_isOffice) {
       content = _buildOfficeInfo(isMobile);
     } else {
@@ -761,6 +791,54 @@ class _DocumentPreviewDialogState
           ),
         ],
       ),
+    );
+  }
+
+  // ── Inline PDF / Excel preview (matches Reports Screen) ──
+  Widget _buildInlinePdfOrExcelPreview(bool isMobile) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final future = _previewPdfFuture;
+    if (future == null) {
+      return _isPdf ? _buildPdfInfo(isMobile) : _buildExcelInfo(isMobile);
+    }
+
+    return FutureBuilder<Uint8List>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            color: isDark ? AppColors.darkPageBackground : const Color(0xFFF3F4F6),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    color: AppColors.primaryGreen,
+                    strokeWidth: 2.4,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _isExcel ? 'Preparing spreadsheet preview…' : 'Loading PDF preview…',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return _isPdf ? _buildPdfInfo(isMobile) : _buildExcelInfo(isMobile);
+        }
+        final pdfBytes = snapshot.data!;
+        return MinimalPdfPreviewView(
+          buildPdf: (_) async => pdfBytes,
+          isDark: isDark,
+          errorFallback: _isPdf ? _buildPdfInfo(isMobile) : _buildExcelInfo(isMobile),
+        );
+      },
     );
   }
 

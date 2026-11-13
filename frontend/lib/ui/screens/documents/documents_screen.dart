@@ -1623,49 +1623,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         }
       },
       itemBuilder: (context) => [
-        if (_tabController.index == 2) ...[
-          PopupMenuItem(
-            value: 'configure_requirements',
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.tune_rounded,
-                  size: 20,
-                  color: AppColors.primaryGreen,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Configure Requirements',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'manage_templates',
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.file_present_rounded,
-                  size: 20,
-                  color: AppColors.primaryGreen,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Document Templates',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const PopupMenuDivider(),
-        ],
         if (!isMobile &&
             widget.userRole != 'teacher' &&
             (_tabController.index == 1 || isFolderOpened)) ...[

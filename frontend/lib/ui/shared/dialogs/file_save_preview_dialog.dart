@@ -1,13 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
-import 'package:spreadsheet_decoder/spreadsheet_decoder.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../widgets/app_button_loader.dart';
+import '../widgets/pdf_excel_preview_view.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FILE TYPE
@@ -189,157 +186,34 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
   }
 
   Future<Uint8List> _buildExcelPdfBytes() async {
-    final doc = pw.Document();
-    final sheetSections = <({String name, List<List<String>> rows})>[];
+    final fallback = widget.sheets
+        .map(
+          (s) => (
+            name: s.sheetName,
+            rows: <List<String>>[
+              if (s.headers.isNotEmpty) s.headers,
+              ...s.rows,
+            ],
+          ),
+        )
+        .toList();
 
-    if (widget.fileBytes != null && widget.fileBytes!.isNotEmpty) {
-      try {
-        final decoder = SpreadsheetDecoder.decodeBytes(
-          widget.fileBytes!,
-          update: false,
-        );
-        for (final entry in decoder.tables.entries) {
-          final rows = entry.value.rows
-              .map(
-                (r) => r.map((c) => c?.toString() ?? '').toList(),
-              )
-              .where((r) => r.any((c) => c.trim().isNotEmpty))
-              .toList();
-          if (rows.isNotEmpty) {
-            sheetSections.add((name: entry.key, rows: rows));
-          }
-        }
-      } catch (_) {
-        // Fall back to SheetPreviewData if raw xlsx decode fails
-      }
-    }
-
-    if (sheetSections.isEmpty && widget.sheets.isNotEmpty) {
-      for (final s in widget.sheets) {
-        final combined = <List<String>>[
-          if (s.headers.isNotEmpty) s.headers,
-          ...s.rows,
-        ];
-        if (combined.isNotEmpty) {
-          sheetSections.add((name: s.sheetName, rows: combined));
-        }
-      }
-    }
+    final result = await buildPdfFromSpreadsheetBytes(
+      widget.fileBytes,
+      fallbackSheets: fallback,
+    );
 
     if (mounted) {
       setState(() {
         _excelStatsRows = [
-          FilePreviewRow('Sheets', '${sheetSections.length}'),
-          if (sheetSections.isNotEmpty)
-            FilePreviewRow(
-              'Total Rows',
-              '${sheetSections.fold<int>(0, (acc, s) => acc + s.rows.length)}',
-            ),
+          FilePreviewRow('Sheets', '${result.sheetCount}'),
+          if (result.totalRows > 0)
+            FilePreviewRow('Total Rows', '${result.totalRows}'),
         ];
       });
     }
 
-    if (sheetSections.isEmpty) {
-      doc.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          build: (_) => pw.Center(
-            child: pw.Text(
-              'No spreadsheet data available for preview.',
-              style: const pw.TextStyle(fontSize: 12),
-            ),
-          ),
-        ),
-      );
-      return doc.save();
-    }
-
-    const maxPreviewRowsPerSheet = 200;
-
-    for (final sheet in sheetSections) {
-      final rawRows = sheet.rows;
-      final maxCols = rawRows.fold<int>(
-        0,
-        (m, r) => r.length > m ? r.length : m,
-      );
-      final normalized = rawRows.take(maxPreviewRowsPerSheet).map((r) {
-        if (r.length == maxCols) return r;
-        return [...r, ...List.filled(maxCols - r.length, '')];
-      }).toList();
-
-      final headers = normalized.first;
-      final dataRows = normalized.length > 1 ? normalized.sublist(1) : <List<String>>[];
-      final truncatedCount = rawRows.length - normalized.length;
-      final pageFormat =
-          maxCols > 5 ? PdfPageFormat.a4.landscape : PdfPageFormat.a4;
-
-      doc.addPage(
-        pw.MultiPage(
-          pageFormat: pageFormat,
-          margin: const pw.EdgeInsets.all(24),
-          header: (ctx) => pw.Padding(
-            padding: const pw.EdgeInsets.only(bottom: 8),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text(
-                  sheet.name,
-                  style: pw.TextStyle(
-                    fontSize: 11,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColor.fromInt(0xFF1D6F42),
-                  ),
-                ),
-                pw.Text(
-                  'Page ${ctx.pageNumber} of ${ctx.pagesCount}',
-                  style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
-                ),
-              ],
-            ),
-          ),
-          build: (ctx) => [
-            pw.TableHelper.fromTextArray(
-              headers: headers,
-              data: dataRows,
-              headerStyle: pw.TextStyle(
-                fontSize: 8.5,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.white,
-              ),
-              headerDecoration: pw.BoxDecoration(
-                color: PdfColor.fromInt(0xFF1D6F42),
-              ),
-              cellStyle: const pw.TextStyle(fontSize: 8),
-              cellPadding: const pw.EdgeInsets.symmetric(
-                horizontal: 5,
-                vertical: 3.5,
-              ),
-              oddRowDecoration: const pw.BoxDecoration(
-                color: PdfColor.fromInt(0xFFF8FAFC),
-              ),
-              border: pw.TableBorder.all(
-                color: PdfColors.grey300,
-                width: 0.5,
-              ),
-            ),
-            if (truncatedCount > 0)
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(top: 8),
-                child: pw.Text(
-                  '+ $truncatedCount more rows included in saved Excel file',
-                  style: pw.TextStyle(
-                    fontSize: 8.5,
-                    fontStyle: pw.FontStyle.italic,
-                    color: PdfColors.grey600,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      );
-    }
-
-    return doc.save();
+    return result.pdfBytes;
   }
 
   void _showPropertiesDialog(Color accent, bool isDark) {
@@ -574,62 +448,10 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     };
   }
 
-  Widget _buildPdfViewWidget({
-    required Future<Uint8List> Function(PdfPageFormat) buildPdf,
-    required bool isDark,
-  }) {
-    return Container(
-      color: isDark ? AppColors.darkPageBackground : const Color(0xFFF3F4F6),
-      child: PdfPreview(
-        build: buildPdf,
-        useActions: false,
-        allowPrinting: false,
-        allowSharing: false,
-        canChangeOrientation: false,
-        canChangePageFormat: false,
-        canDebug: false,
-        pdfPreviewPageDecoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(4),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        scrollViewDecoration: BoxDecoration(
-          color: isDark ? AppColors.darkPageBackground : const Color(0xFFF3F4F6),
-        ),
-        loadingWidget: const Center(
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: CircularProgressIndicator(strokeWidth: 2.2),
-          ),
-        ),
-        onError: (ctx, err) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              'Unable to render PDF preview.\nYou can still save the file.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Interactive live PDF preview (works on Android & Windows, light/dark themed).
   Widget _buildPdfPreview(bool isDark) {
     final bytes = Uint8List.fromList(widget.fileBytes!);
-    return _buildPdfViewWidget(
+    return MinimalPdfPreviewView(
       buildPdf: (_) async => bytes,
       isDark: isDark,
     );
@@ -673,7 +495,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
           );
         }
         final pdfBytes = snapshot.data!;
-        return _buildPdfViewWidget(
+        return MinimalPdfPreviewView(
           buildPdf: (_) async => pdfBytes,
           isDark: isDark,
         );

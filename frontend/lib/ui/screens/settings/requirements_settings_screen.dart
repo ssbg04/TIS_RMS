@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../shared/inputs/custom_text_field.dart';
@@ -450,11 +451,6 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.file_present_rounded, color: Colors.white),
-                  tooltip: 'Document Templates',
-                  onPressed: () => TemplatesModal.open(context),
-                ),
-                IconButton(
                   icon: const Icon(Icons.refresh_rounded, color: Colors.white),
                   tooltip: 'Refresh',
                   onPressed: () => ref.invalidate(requirementsSettingsProvider),
@@ -491,18 +487,35 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal>
           : null,
     );
 
-    return PopScope(
-      canPop: !_multiSelectMode,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        if (_multiSelectMode) {
-          setState(() {
-            _multiSelectMode = false;
-            _selectedIds.clear();
-          });
-        }
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (_multiSelectMode) {
+            setState(() {
+              _multiSelectMode = false;
+              _selectedIds.clear();
+            });
+          } else {
+            Navigator.of(context).pop();
+          }
+        },
       },
-      child: mainScaffold,
+      child: Focus(
+        autofocus: true,
+        child: PopScope(
+          canPop: !_multiSelectMode,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) return;
+            if (_multiSelectMode) {
+              setState(() {
+                _multiSelectMode = false;
+                _selectedIds.clear();
+              });
+            }
+          },
+          child: mainScaffold,
+        ),
+      ),
     );
   }
 

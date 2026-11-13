@@ -121,7 +121,13 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
       ],
     );
 
-    return Scaffold(
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).pop(),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
       backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
@@ -154,6 +160,8 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
             constraints: const BoxConstraints(maxWidth: 1200),
             child: content,
           ),
+        ),
+      ),
         ),
       ),
     );

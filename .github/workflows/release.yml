@@ -506,6 +506,82 @@ jobs:
           }
 
       # ------------------------------------------------------------
+      # Generate Commit-Based Changelog
+      # ------------------------------------------------------------
+      - name: Generate Release Changelog
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $tag = "${{ steps.release_info.outputs.tag }}"
+          $prevTag = git tag --merged HEAD --list "v*" --sort=-v:refname 2>$null |
+            Where-Object { $_ -and $_ -ne $tag } |
+            Select-Object -First 1
+
+          $range = if ($prevTag) { "$prevTag..HEAD" } else { "HEAD" }
+          Write-Host "Generating changelog for range: $range"
+
+          $rawCommits = @(git log $range --no-merges --pretty=format:"%h%x09%s")
+
+          $features = [System.Collections.Generic.List[string]]::new()
+          $fixes = [System.Collections.Generic.List[string]]::new()
+          $improvements = [System.Collections.Generic.List[string]]::new()
+          $others = [System.Collections.Generic.List[string]]::new()
+
+          foreach ($line in $rawCommits) {
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            $parts = $line -split "`t", 2
+            if ($parts.Count -lt 2) { continue }
+            $hash = $parts[0]
+            $subject = $parts[1]
+            $entry = "- $subject ($hash)"
+
+            if ($subject -match '^feat(\(.+?\))?!?:') {
+              $features.Add($entry)
+            } elseif ($subject -match '^fix(\(.+?\))?!?:') {
+              $fixes.Add($entry)
+            } elseif ($subject -match '^(perf|refactor|style)(\(.+?\))?!?:') {
+              $improvements.Add($entry)
+            } else {
+              $others.Add($entry)
+            }
+          }
+
+          $sb = [System.Text.StringBuilder]::new()
+          [void]$sb.AppendLine("## What's Changed")
+          [void]$sb.AppendLine()
+
+          if ($features.Count -gt 0) {
+            [void]$sb.AppendLine("### Features")
+            foreach ($item in $features) { [void]$sb.AppendLine($item) }
+            [void]$sb.AppendLine()
+          }
+          if ($fixes.Count -gt 0) {
+            [void]$sb.AppendLine("### Bug Fixes")
+            foreach ($item in $fixes) { [void]$sb.AppendLine($item) }
+            [void]$sb.AppendLine()
+          }
+          if ($improvements.Count -gt 0) {
+            [void]$sb.AppendLine("### Improvements & Refactors")
+            foreach ($item in $improvements) { [void]$sb.AppendLine($item) }
+            [void]$sb.AppendLine()
+          }
+          if ($others.Count -gt 0) {
+            [void]$sb.AppendLine("### Other Changes")
+            foreach ($item in $others) { [void]$sb.AppendLine($item) }
+            [void]$sb.AppendLine()
+          }
+
+          if ($rawCommits.Count -eq 0) {
+            [void]$sb.AppendLine("- Maintenance release.")
+            [void]$sb.AppendLine()
+          }
+
+          $changelogPath = "release_changelog.md"
+          [System.IO.File]::WriteAllText($changelogPath, $sb.ToString(), [System.Text.UTF8Encoding]::new($false))
+          Write-Host (Get-Content $changelogPath -Raw)
+
+      # ------------------------------------------------------------
       # GitHub Release
       # ------------------------------------------------------------
       - name: Create GitHub Release and Upload Artifacts
@@ -514,6 +590,7 @@ jobs:
           tag_name: ${{ steps.release_info.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: Release ${{ steps.release_info.outputs.tag }}
+          body_path: release_changelog.md
           files: |
             installers/TIS_RMS_Client_Setup_${{ steps.release_info.outputs.tag }}.exe
             installers/TIS_RMS_32bit_${{ steps.release_info.outputs.tag }}.apk

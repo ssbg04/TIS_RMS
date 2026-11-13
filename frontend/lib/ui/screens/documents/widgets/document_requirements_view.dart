@@ -397,50 +397,92 @@ class _DocumentRequirementsViewState
   // CONTROLS BAR: SEARCH
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildControlsBar(bool isDark) {
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-        ),
-      ),
-      child: TextField(
-        controller: _searchController,
-        focusNode: _searchFocusNode,
-        textInputAction: TextInputAction.search,
-        onSubmitted: (_) => _searchFocusNode.unfocus(),
-        onChanged: (val) => setState(() => _searchQuery = val.trim()),
-        decoration: InputDecoration(
-          hintText: 'Search requirements (e.g. SF9, PSA, SF10)...',
-          hintStyle: TextStyle(
-            fontSize: 12.5,
-            color: isDark ? Colors.white38 : Colors.grey.shade500,
+    return ListenableBuilder(
+      listenable: _searchFocusNode,
+      builder: (context, _) {
+        final hasFocus = _searchFocusNode.hasFocus;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          height: 46,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: hasFocus
+                  ? AppColors.primaryGreen
+                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+              width: hasFocus ? 1.6 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: hasFocus
+                    ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.12)
+                    : Colors.black.withValues(alpha: isDark ? 0.18 : 0.04),
+                blurRadius: hasFocus ? 12 : 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          prefixIcon: Icon(
-            Icons.search,
-            size: 18,
-            color: isDark ? Colors.white54 : Colors.grey.shade600,
+          child: TextField(
+            controller: _searchController,
+            focusNode: _searchFocusNode,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => _searchFocusNode.unfocus(),
+            onChanged: (val) => setState(() => _searchQuery = val.trim()),
+            decoration: InputDecoration(
+              hintText: 'Search requirements (e.g. SF9, PSA, SF10)...',
+              hintStyle: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.white38 : Colors.grey.shade500,
+              ),
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 10, right: 6),
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: hasFocus
+                        ? AppColors.primaryGreen.withValues(alpha: 0.14)
+                        : (isDark
+                            ? Colors.white.withValues(alpha: 0.06)
+                            : Colors.grey.shade100),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.search_rounded,
+                    size: 18,
+                    color: hasFocus
+                        ? AppColors.primaryGreen
+                        : (isDark ? Colors.white60 : Colors.grey.shade600),
+                  ),
+                ),
+              ),
+              prefixIconConstraints: const BoxConstraints(minWidth: 46, minHeight: 30),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      tooltip: 'Clear search',
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: isDark ? Colors.white60 : Colors.grey.shade600,
+                      ),
+                      onPressed: () {
+                        _searchController.clear();
+                        _searchFocusNode.unfocus();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              border: InputBorder.none,
+            ),
+            style: TextStyle(
+              fontSize: 13.5,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
           ),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 16),
-                  onPressed: () {
-                    _searchController.clear();
-                    _searchFocusNode.unfocus();
-                    setState(() => _searchQuery = '');
-                  },
-                )
-              : null,
-          contentPadding: const EdgeInsets.symmetric(vertical: 9),
-          border: InputBorder.none,
-        ),
-        style: TextStyle(
-          fontSize: 13,
-          color: isDark ? Colors.white : AppColors.textPrimary,
-        ),
-      ),
+        );
+      },
     );
   }
 

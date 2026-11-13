@@ -1221,7 +1221,7 @@ Files backup/restore - mirror mode or zip -->
 - dropouts and transferees, fixed the table column Grade Level when horizontal scroll the table
 - 4Ps Beneficiaries, fixed the table Key Stage / Grade Level when horizontal scroll the table -->
 
-# DOCUMENTS SCREEN
+<!-- # DOCUMENTS SCREEN
 - requirements tab, more options dropdown remove the configure requirements and documents templates
 - requirements tab, make the search bar more attractive
 
@@ -1229,7 +1229,10 @@ Files backup/restore - mirror mode or zip -->
 - in pdf file and excel files preview do the same from reports screen
 
 # SETTINGS SCREEN
-- sub screens, add "esc" function to back
+- sub screens, add "esc" function to back -->
+
+# SETTINGS SCREEN
+- document requirements screen, remove the document templates icon button at header
 
 ---
 
