@@ -161,7 +161,10 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     }
   }
 
-  Widget _buildExportPdfButton(TransparencyBoardData data) {
+  Widget _buildExportPdfButton(
+    TransparencyBoardData data, {
+    bool fullWidth = false,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final activeCat = _activeTab == _TransparencyTab.enrollment
         ? 'enrollment'
@@ -195,7 +198,12 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           borderRadius: BorderRadius.circular(8),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            width: fullWidth ? double.infinity : null,
+            height: fullWidth ? 40 : null,
+            padding: EdgeInsets.symmetric(
+              horizontal: fullWidth ? 14 : 12,
+              vertical: fullWidth ? 0 : 7,
+            ),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(8),
@@ -211,7 +219,8 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               ],
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (isThisButtonExporting)
                   const SizedBox(
@@ -265,6 +274,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     TransparencyBoardData data, {
     required String category,
     String label = 'Export PDF',
+    bool fullWidth = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isThisButtonExporting = _isExportingPdf && _exportingCategory == 'card_$category';
@@ -283,7 +293,12 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           borderRadius: BorderRadius.circular(7),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6.5),
+            width: fullWidth ? double.infinity : null,
+            height: fullWidth ? 38 : null,
+            padding: EdgeInsets.symmetric(
+              horizontal: fullWidth ? 14 : 11,
+              vertical: fullWidth ? 0 : 6.5,
+            ),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurface2 : const Color(0xFFFEF2F2),
               borderRadius: BorderRadius.circular(7),
@@ -292,7 +307,8 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               ),
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (isThisButtonExporting)
                   const SizedBox(
@@ -567,11 +583,20 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
 
           // Compact mobile view
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               titleWidget,
               const SizedBox(height: 10),
-              actions,
+              if (academicYears.isNotEmpty) ...[
+                _buildYearSelector(
+                  context,
+                  academicYears: academicYears,
+                  selectedYearId: selectedYearId,
+                  fullWidth: true,
+                ),
+                const SizedBox(height: 8),
+              ],
+              _buildExportPdfButton(data, fullWidth: true),
               const SizedBox(height: 10),
               Divider(
                 height: 1,
@@ -651,11 +676,11 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
 
               if (isNarrow && trailing != null) {
                 return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     titleWidget,
                     const SizedBox(height: 10),
-                    trailing,
+                    SizedBox(width: double.infinity, child: trailing),
                   ],
                 );
               }
@@ -689,6 +714,30 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   ) {
     final years = data.years;
     final latestYear = years.isNotEmpty ? years.last : null;
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final totalBadge = latestYear != null
+        ? Container(
+            width: isMobile ? double.infinity : null,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.primaryGreen.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Text(
+              'Active SY Total: ${latestYear.enrollment.overallTotal.total}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryGreen,
+              ),
+              textAlign: isMobile ? TextAlign.center : TextAlign.start,
+            ),
+          )
+        : null;
+
     return _buildSectionCardContainer(
       context: context,
       isDark: isDark,
@@ -697,32 +746,29 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       title: 'Data on Enrollment',
       description:
           'Presents official learner enrollment metrics across Key Stages 3 & 4 (Grades 7–12), comparative multi-year trends against previous school years, and gender disaggregation (male vs. female shares) following DepEd BEIS reporting standards.',
-      trailing: Wrap(
-        spacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          if (latestYear != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.3),
+      trailing: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (totalBadge != null) ...[
+                  totalBadge,
+                  const SizedBox(height: 8),
+                ],
+                _buildCategoryExportButton(
+                  data,
+                  category: 'enrollment',
+                  fullWidth: true,
                 ),
-              ),
-              child: Text(
-                'Active SY Total: ${latestYear.enrollment.overallTotal.total}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryGreen,
-                ),
-              ),
+              ],
+            )
+          : Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                ?totalBadge,
+                _buildCategoryExportButton(data, category: 'enrollment'),
+              ],
             ),
-          _buildCategoryExportButton(data, category: 'enrollment'),
-        ],
-      ),
       content: _buildEnrollmentSection(context, years),
     );
   }
@@ -735,6 +781,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     bool isDark,
   ) {
     final years = data.years;
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     return _buildSectionCardContainer(
       context: context,
       isDark: isDark,
@@ -743,7 +790,11 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       title: 'Dropouts & Transferees',
       description:
           'Monitors learner retention and mobility across grade levels, tracking school leavers (dropouts) and learner transfers to calculate net mobility balance and internal institutional efficiency.',
-      trailing: _buildCategoryExportButton(data, category: 'dropouts_transferees'),
+      trailing: _buildCategoryExportButton(
+        data,
+        category: 'dropouts_transferees',
+        fullWidth: isMobile,
+      ),
       content: _buildDropoutTransfereeSection(context, years),
     );
   }
@@ -757,6 +808,30 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   ) {
     final years = data.years;
     final latestYear = years.isNotEmpty ? years.last : null;
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final summaryBadge = latestYear != null
+        ? Container(
+            width: isMobile ? double.infinity : null,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.deepPurple.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.deepPurple.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Text(
+              '${latestYear.fourPs.overallTotal.fourPsCount} of ${latestYear.fourPs.overallTotal.totalStudents} (${latestYear.fourPs.overallTotal.percentage}%)',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
+              ),
+              textAlign: isMobile ? TextAlign.center : TextAlign.start,
+            ),
+          )
+        : null;
+
     return _buildSectionCardContainer(
       context: context,
       isDark: isDark,
@@ -765,32 +840,29 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       title: '4Ps Beneficiaries',
       description:
           'Analyzes Pantawid Pamilyang Pilipino Program (4Ps) learner coverage and social protection equity indicators across Junior and Senior High School grade levels.',
-      trailing: Wrap(
-        spacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          if (latestYear != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.deepPurple.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.deepPurple.withValues(alpha: 0.3),
+      trailing: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (summaryBadge != null) ...[
+                  summaryBadge,
+                  const SizedBox(height: 8),
+                ],
+                _buildCategoryExportButton(
+                  data,
+                  category: '4ps',
+                  fullWidth: true,
                 ),
-              ),
-              child: Text(
-                '${latestYear.fourPs.overallTotal.fourPsCount} of ${latestYear.fourPs.overallTotal.totalStudents} (${latestYear.fourPs.overallTotal.percentage}%)',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
-                ),
-              ),
+              ],
+            )
+          : Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                ?summaryBadge,
+                _buildCategoryExportButton(data, category: '4ps'),
+              ],
             ),
-          _buildCategoryExportButton(data, category: '4ps'),
-        ],
-      ),
       content: _buildEquity4PsSection(context, years),
     );
   }
@@ -799,6 +871,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     BuildContext context, {
     required List<AcademicYear> academicYears,
     required int? selectedYearId,
+    bool fullWidth = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sortedYears = List<AcademicYear>.from(academicYears)
@@ -812,35 +885,13 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         ? selectedYearId
         : activeAy?.id;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.calendar_month_rounded, color: AppColors.primaryGreen, size: 15),
-          const SizedBox(width: 6),
-          Text(
-            'Academic Year:',
-            style: TextStyle(
-              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(width: 6),
-          DropdownButtonHideUnderline(
-            child: DropdownButton<int>(
-              value: effectiveSelectedId,
-              isDense: true,
-              dropdownColor:
-                  isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+    final dropdown = DropdownButtonHideUnderline(
+      child: DropdownButton<int>(
+        value: effectiveSelectedId,
+        isDense: true,
+        isExpanded: fullWidth,
+        dropdownColor:
+            isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
               selectedItemBuilder: (BuildContext context) {
                 return sortedYears.map((ay) {
                   final isActive = ay.status.toLowerCase() == 'active';
@@ -899,14 +950,44 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   ),
                 );
               }).toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  HapticFeedback.selectionClick();
-                  ref.read(transparencyBoardYearProvider.notifier).state = val;
-                }
-              },
+        onChanged: (val) {
+          if (val != null) {
+            HapticFeedback.selectionClick();
+            ref.read(transparencyBoardYearProvider.notifier).state = val;
+          }
+        },
+      ),
+    );
+
+    return Container(
+      width: fullWidth ? double.infinity : null,
+      height: fullWidth ? 40 : null,
+      padding: EdgeInsets.symmetric(
+        horizontal: fullWidth ? 12 : 7,
+        vertical: fullWidth ? 4 : 1.5,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          const Icon(Icons.calendar_month_rounded, color: AppColors.primaryGreen, size: 15),
+          const SizedBox(width: 6),
+          Text(
+            'Academic Year:',
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
+          const SizedBox(width: 6),
+          if (fullWidth) Expanded(child: dropdown) else dropdown,
         ],
       ),
     );

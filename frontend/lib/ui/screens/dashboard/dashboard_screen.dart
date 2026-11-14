@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../shared/cards/stat_card.dart';
+import '../../shared/widgets/app_skeleton_loader.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/student_provider.dart';
@@ -366,7 +367,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           body: SafeArea(
         child: dashboardAsync.when(
           skipLoadingOnReload: true,
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DashboardSkeletonLoader(),
           error: (error, _) => AppErrorState.fromError(
             error: error,
             onRetry: _handleRefresh,

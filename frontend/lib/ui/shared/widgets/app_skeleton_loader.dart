@@ -339,3 +339,409 @@ class DocumentListSkeletonLoader extends StatelessWidget {
     );
   }
 }
+
+class DashboardSkeletonLoader extends StatelessWidget {
+  const DashboardSkeletonLoader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 800;
+
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(
+        isMobile ? 16 : 24,
+        isMobile ? 16 : 20,
+        isMobile ? 16 : 24,
+        isMobile ? 24 : 32,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppSkeletonLoader(width: 180, height: 24, borderRadius: 6),
+                  SizedBox(height: 8),
+                  AppSkeletonLoader(width: 240, height: 13, borderRadius: 4),
+                ],
+              ),
+              if (!isMobile)
+                const Row(
+                  children: [
+                    AppSkeletonLoader(width: 110, height: 36, borderRadius: 8),
+                    SizedBox(width: 10),
+                    AppSkeletonLoader(width: 36, height: 36, borderRadius: 8),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // KPI cards grid
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cols = constraints.maxWidth < 600
+                  ? 2
+                  : (constraints.maxWidth < 1050 ? 2 : 4);
+              const spacing = 12.0;
+              final cardWidth =
+                  (constraints.maxWidth - spacing * (cols - 1)) / cols;
+
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: List.generate(4, (_) {
+                  return Container(
+                    width: cardWidth,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                      borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.borderLight,
+                      ),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            AppSkeletonLoader(
+                              width: 85,
+                              height: 12,
+                              borderRadius: 4,
+                            ),
+                            AppSkeletonLoader(
+                              width: 34,
+                              height: 34,
+                              borderRadius: 10,
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        AppSkeletonLoader(
+                          width: 64,
+                          height: 26,
+                          borderRadius: 6,
+                        ),
+                        SizedBox(height: 8),
+                        AppSkeletonLoader(
+                          width: 110,
+                          height: 11,
+                          borderRadius: 4,
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+
+          // Charts / Activity cards
+          if (isMobile) ...[
+            _buildSectionPlaceholder(isDark, height: 220),
+            const SizedBox(height: 16),
+            _buildListCardPlaceholder(isDark, rows: 4),
+          ] else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 6,
+                  child: _buildSectionPlaceholder(isDark, height: 300),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 4,
+                  child: _buildListCardPlaceholder(isDark, rows: 5),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionPlaceholder(bool isDark, {required double height}) {
+    return Container(
+      height: height,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+        ),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              AppSkeletonLoader(width: 160, height: 16, borderRadius: 4),
+              AppSkeletonLoader(width: 80, height: 26, borderRadius: 8),
+            ],
+          ),
+          SizedBox(height: 18),
+          Expanded(
+            child: AppSkeletonLoader(
+              width: double.infinity,
+              height: double.infinity,
+              borderRadius: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListCardPlaceholder(bool isDark, {required int rows}) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AppSkeletonLoader(width: 150, height: 16, borderRadius: 4),
+          const SizedBox(height: 16),
+          ...List.generate(rows, (index) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: index == rows - 1 ? 0 : 14),
+              child: const Row(
+                children: [
+                  AppSkeletonLoader(width: 34, height: 34, borderRadius: 17),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppSkeletonLoader(
+                          width: 140,
+                          height: 13,
+                          borderRadius: 4,
+                        ),
+                        SizedBox(height: 6),
+                        AppSkeletonLoader(
+                          width: 90,
+                          height: 10,
+                          borderRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  AppSkeletonLoader(width: 48, height: 12, borderRadius: 4),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class UsersSkeletonLoader extends StatelessWidget {
+  const UsersSkeletonLoader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final isMobile = MediaQuery.of(context).size.width < 800;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Top header row
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppSkeletonLoader(width: 170, height: 24, borderRadius: 6),
+                SizedBox(height: 6),
+                AppSkeletonLoader(width: 220, height: 13, borderRadius: 4),
+              ],
+            ),
+            AppSkeletonLoader(width: 110, height: 38, borderRadius: 10),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Summary KPI strip
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cols = constraints.maxWidth < 600 ? 2 : 4;
+            const spacing = 10.0;
+            final cardW =
+                (constraints.maxWidth - spacing * (cols - 1)) / cols;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: List.generate(4, (_) {
+                return Container(
+                  width: cardW,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.borderLight,
+                    ),
+                  ),
+                  child: const Row(
+                    children: [
+                      AppSkeletonLoader(
+                        width: 34,
+                        height: 34,
+                        borderRadius: 9,
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AppSkeletonLoader(
+                              width: 55,
+                              height: 10,
+                              borderRadius: 4,
+                            ),
+                            SizedBox(height: 6),
+                            AppSkeletonLoader(
+                              width: 36,
+                              height: 18,
+                              borderRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // Search & filter bar
+        Row(
+          children: [
+            const Expanded(
+              child: AppSkeletonLoader(height: 42, borderRadius: 10),
+            ),
+            if (!isMobile) ...[
+              const SizedBox(width: 12),
+              const AppSkeletonLoader(width: 120, height: 42, borderRadius: 10),
+              const SizedBox(width: 10),
+              const AppSkeletonLoader(width: 120, height: 42, borderRadius: 10),
+            ],
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        // User rows card
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+              ),
+            ),
+            child: ListView.separated(
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              itemCount: isMobile ? 6 : 8,
+              separatorBuilder: (_, _) => Divider(
+                height: 1,
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade100,
+              ),
+              itemBuilder: (_, index) => Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 16,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    const AppSkeletonLoader(
+                      width: 38,
+                      height: 38,
+                      borderRadius: 19,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppSkeletonLoader(
+                            width: index.isEven ? 150 : 120,
+                            height: 13,
+                            borderRadius: 4,
+                          ),
+                          const SizedBox(height: 6),
+                          const AppSkeletonLoader(
+                            width: 180,
+                            height: 10,
+                            borderRadius: 4,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!isMobile) ...[
+                      const SizedBox(width: 16),
+                      const AppSkeletonLoader(
+                        width: 72,
+                        height: 22,
+                        borderRadius: 12,
+                      ),
+                      const SizedBox(width: 16),
+                      const AppSkeletonLoader(
+                        width: 68,
+                        height: 22,
+                        borderRadius: 12,
+                      ),
+                    ],
+                    const SizedBox(width: 12),
+                    const AppSkeletonLoader(
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

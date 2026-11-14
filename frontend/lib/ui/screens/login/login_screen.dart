@@ -44,6 +44,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   bool _hasBiometricCredentials = false;
   String? _biometricUsername;
   bool _isBiometricAuthenticating = false;
+  bool _didAutoTriggerBiometric = false;
 
   final FocusNode _usernameFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
@@ -167,6 +168,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       _hasBiometricCredentials = hasCreds;
       _biometricUsername = savedUser;
     });
+
+    if (supported && hasCreds && !widget.sessionExpired && !_didAutoTriggerBiometric) {
+      _didAutoTriggerBiometric = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _handleBiometricLogin();
+      });
+    }
   }
 
   void _navigateToHome() {

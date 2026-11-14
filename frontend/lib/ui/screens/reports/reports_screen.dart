@@ -692,9 +692,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           borderRadius: BorderRadius.circular(8),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
+            height: isCompact ? 40 : null,
             padding: EdgeInsets.symmetric(
               horizontal: isCompact ? 12 : 16,
-              vertical: 9,
+              vertical: isCompact ? 0 : 9,
             ),
             decoration: BoxDecoration(
               gradient: const LinearGradient(

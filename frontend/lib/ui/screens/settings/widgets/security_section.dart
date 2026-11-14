@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/services/biometric_auth_service.dart';
 import '../../../../core/utils/ip_location_helper.dart';
 import '../../../../domain/entities/user_model.dart';
 import '../../../providers/sessions_provider.dart';
@@ -31,6 +32,48 @@ class SecuritySection extends ConsumerStatefulWidget {
 class _SecuritySectionState extends ConsumerState<SecuritySection> {
   bool _isDevicesExpanded = false;
   static const int _devicesDisplayLimit = 3;
+  bool _biometricSupported = false;
+  bool _biometricEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricState();
+  }
+
+  Future<void> _loadBiometricState() async {
+    final supported = await BiometricAuthService.isSupported();
+    final enabled = supported ? await BiometricAuthService.hasSavedCredentials() : false;
+    if (!mounted) return;
+    setState(() {
+      _biometricSupported = supported;
+      _biometricEnabled = enabled;
+    });
+  }
+
+  Future<void> _toggleBiometric(bool value) async {
+    if (!value) {
+      await BiometricAuthService.clearCredentials();
+      if (!mounted) return;
+      setState(() => _biometricEnabled = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sign in with biometrics disabled on this device.'),
+          backgroundColor: AppColors.primaryGreen,
+        ),
+      );
+      return;
+    }
+
+    await BiometricAuthService.setPromptDeclined(false);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Sign out and log in once with your password to enable biometric login.'),
+        backgroundColor: AppColors.primaryGreen,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +180,65 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
             ),
           ),
         ),
+
+        if (_biometricSupported) ...[
+          const SizedBox(height: AppSizes.p16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: widget.isDark
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : Colors.grey.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: widget.isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.fingerprint_rounded,
+                    color: AppColors.primaryGreen,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: AppSizes.p12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Sign in with Biometrics',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _biometricEnabled
+                            ? 'Auto-prompt enabled on login for this device'
+                            : 'Disabled on this device',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: _biometricEnabled,
+                  activeTrackColor: AppColors.primaryGreen,
+                  onChanged: _toggleBiometric,
+                ),
+              ],
+            ),
+          ),
+        ],
 
         const SizedBox(height: AppSizes.p24),
         // ── Danger Zone / Deactivate Account Card ───────────

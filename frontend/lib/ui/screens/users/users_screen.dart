@@ -8,6 +8,7 @@ import '../../../core/utils/validators.dart';
 import '../../../domain/entities/system_user.dart';
 import '../../shared/inputs/custom_text_field.dart';
 import '../../shared/inputs/app_search_bar.dart';
+import '../../shared/widgets/app_skeleton_loader.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
@@ -676,8 +677,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                 children: [
                   Expanded(
                     child: usersAsync.when(
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
+                      loading: () => const UsersSkeletonLoader(),
                       error: (err, _) => AppErrorState.fromError(
                         error: err,
                         onRetry: _handleRefresh,
