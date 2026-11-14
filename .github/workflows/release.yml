@@ -419,6 +419,7 @@ jobs:
             --split-per-abi `
             --obfuscate `
             --split-debug-info=build/app/outputs/symbols `
+            --android-skip-build-dependency-validation `
             --build-name="$verName" `
             --build-number="$buildNum"
 
@@ -455,6 +456,7 @@ jobs:
             --release `
             --obfuscate `
             --split-debug-info=build/app/outputs/symbols `
+            --android-skip-build-dependency-validation `
             --build-name="$verName" `
             --build-number="$buildNum"
 
