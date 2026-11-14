@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter/material.dart';
@@ -44,13 +43,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   bool _hasBiometricCredentials = false;
   String? _biometricUsername;
   bool _isBiometricAuthenticating = false;
-  bool _didAutoTriggerBiometric = false;
 
   final FocusNode _usernameFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
 
   late AnimationController _animController;
-  late Animation<double> _revealAnimation;
+  late Animation<double> _headerFade;
+  late Animation<Offset> _headerSlide;
+  late Animation<double> _cardFade;
+  late Animation<Offset> _cardSlide;
 
   void _handleLogoTap() {
     _logoTapCount++;
@@ -65,18 +66,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      value: 1.0,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 500),
     );
-    _revealAnimation = CurvedAnimation(
+    _headerFade = CurvedAnimation(
       parent: _animController,
-      curve: Curves.easeInOutCubic,
+      curve: const Interval(0.0, 0.65, curve: Curves.easeOutCubic),
     );
-    
-    _usernameFocus.addListener(_onFocusChange);
-    _passwordFocus.addListener(_onFocusChange);
-    _usernameController.addListener(_onTextChange);
-    _passwordController.addListener(_onTextChange);
+    _headerSlide = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: const Interval(0.0, 0.65, curve: Curves.easeOutCubic),
+    ));
+    _cardFade = CurvedAnimation(
+      parent: _animController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+    );
+    _cardSlide = Tween<Offset>(
+      begin: const Offset(0, 0.08),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+    ));
+    _animController.forward();
 
     _loadRememberMe(); // Load saved credentials on startup
     _loadBiometricStatus();
@@ -108,26 +122,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     }
   }
 
-  void _onTextChange() {
-    if (!mounted) return;
-    _updateAnimationState();
-  }
-
-  void _onFocusChange() {
-    if (!mounted) return;
-    _updateAnimationState();
-  }
-
-  void _updateAnimationState() {
-    final hasFocus = _usernameFocus.hasFocus || _passwordFocus.hasFocus;
-    final hasText = _usernameController.text.isNotEmpty || _passwordController.text.isNotEmpty;
-    if (hasFocus || hasText) {
-      _animController.reverse();
-    } else {
-      _animController.forward();
-    }
-  }
-
   // --- Added: Load saved credentials for Remember Me ---
   Future<void> _loadRememberMe() async {
     final prefs = await SharedPreferences.getInstance();
@@ -145,10 +139,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
 
   @override
   void dispose() {
-    _usernameFocus.removeListener(_onFocusChange);
-    _passwordFocus.removeListener(_onFocusChange);
-    _usernameController.removeListener(_onTextChange);
-    _passwordController.removeListener(_onTextChange);
     _usernameFocus.dispose();
     _passwordFocus.dispose();
     _animController.dispose();
@@ -168,13 +158,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       _hasBiometricCredentials = hasCreds;
       _biometricUsername = savedUser;
     });
-
-    if (supported && hasCreds && !widget.sessionExpired && !_didAutoTriggerBiometric) {
-      _didAutoTriggerBiometric = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _handleBiometricLogin();
-      });
-    }
   }
 
   void _navigateToHome() {
@@ -353,6 +336,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   void _showForgotPasswordDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => _ForgotPasswordDialog(
         initialUsername: _usernameController.text,
         onSuccess: (msg) {
@@ -366,14 +350,73 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     );
   }
 
+  Future<void> _handleLoginScreenBack() async {
+    final primaryFocus = FocusManager.instance.primaryFocus;
+    if (primaryFocus != null &&
+        primaryFocus.hasFocus &&
+        primaryFocus.context != null) {
+      final isEditable = primaryFocus.context!.widget is EditableText ||
+          primaryFocus.context!
+                  .findAncestorWidgetOfExactType<EditableText>() !=
+              null;
+      if (isEditable) {
+        primaryFocus.unfocus();
+        return;
+      }
+    }
+
+    if (_isBiometricAuthenticating || ref.read(authProvider).isLoading) {
+      return;
+    }
+
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            SizedBox(width: 10),
+            Text('Confirm Exit'),
+          ],
+        ),
+        content: const Text('Are you sure you want to exit the app?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Exit'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldExit == true && mounted) {
+      SystemNavigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleLoginScreenBack();
       },
-      child: Scaffold(
+      child: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
@@ -398,117 +441,113 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             child: AbstractBackground(
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  final cardColor =
+                      isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
+                  final cardBorder = isDark
+                      ? AppColors.darkBorder
+                      : AppColors.borderLight;
+
                   if (constraints.maxWidth >= 800) {
-                    // Desktop: Split Layout
-                    return AnimatedBuilder(
-                      animation: _revealAnimation,
-                      builder: (context, child) {
-                        return Container(
-                          color: Colors.transparent,
+                    // Desktop: Clean Minimalist Split Layout
+                    return Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1040),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizes.p32,
+                            vertical: AppSizes.p24,
+                          ),
                           child: Row(
                             children: [
-                              if (_revealAnimation.value > 0)
-                                Flexible(
-                                  flex: (5000 * _revealAnimation.value).toInt(),
-                                  child: Opacity(
-                                    opacity: _revealAnimation.value,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(AppSizes.p48),
-                                      child: Center(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            GestureDetector(
-                                              onTap: _handleLogoTap,
-                                              child: Image.asset(
-                                                'assets/images/logo.webp',
-                                                width: 220,
-                                                height: 220,
-                                              ),
-                                            ),
-                                            const SizedBox(height: AppSizes.p24),
-                                            Text(
-                                              'Talisay Integrated School',
-                                              style: TextStyle(
-                                                fontSize: 42,
-                                                fontWeight: FontWeight.bold,
-                                                color: isDark ? Colors.white : AppColors.textPrimary,
-                                                letterSpacing: 2.0,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            Text(
-                                              'Tiaong, Quezon',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                color: isDark ? Colors.white70 : AppColors.textSecondary,
-                                                letterSpacing: 1.0,
-                                              ),
-                                            ),
-                                            const SizedBox(height: AppSizes.p32),
-                                            Text(
-                                              'Records Management System',
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                color: isDark ? Colors.white : AppColors.primaryGreen,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                            const SizedBox(height: AppSizes.p8),
-                                            Text(
-                                              'Secure Academic Records Database System',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                color: isDark ? Colors.white70 : AppColors.textSecondary,
-                                              ),
-                                            ),
-                                          ],
+                              Expanded(
+                                child: FadeTransition(
+                                  opacity: _headerFade,
+                                  child: SlideTransition(
+                                    position: _headerSlide,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        GestureDetector(
+                                          onTap: _handleLogoTap,
+                                          child: Image.asset(
+                                            'assets/images/logo.webp',
+                                            width: 112,
+                                            height: 112,
+                                          ),
                                         ),
-                                      ),
+                                        const SizedBox(height: AppSizes.p24),
+                                        Text(
+                                          'TIS RMS',
+                                          style: TextStyle(
+                                            fontSize: 40,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: -0.5,
+                                            color: isDark
+                                                ? Colors.white
+                                                : AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: AppSizes.p8),
+                                        Text(
+                                          'Talisay Integrated School • Tiaong, Quezon',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            color: isDark
+                                                ? AppColors.darkTextSecondary
+                                                : AppColors.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: AppSizes.p16),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primaryGreen
+                                                .withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: const Text(
+                                            'Records Management System',
+                                            style: TextStyle(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.primaryGreen,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
-                              Expanded(
-                                flex: 4000,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(24.0 * _revealAnimation.value),
-                                    bottomLeft: Radius.circular(24.0 * _revealAnimation.value),
-                                  ),
-                                  child: BackdropFilter(
-                                    filter: ImageFilter.blur(
-                                      sigmaX: 18.0,
-                                      sigmaY: 18.0,
-                                    ),
+                              ),
+                              const SizedBox(width: AppSizes.p48),
+                              SizedBox(
+                                width: 410,
+                                child: FadeTransition(
+                                  opacity: _cardFade,
+                                  child: SlideTransition(
+                                    position: _cardSlide,
                                     child: Container(
+                                      padding: const EdgeInsets.all(32),
                                       decoration: BoxDecoration(
-                                        color: isDark
-                                            ? AppColors.darkSurfaceCard.withValues(alpha: 0.85)
-                                            : Colors.white.withValues(alpha: 0.86),
-                                        borderRadius: BorderRadius.only(
-                                          topLeft: Radius.circular(24.0 * _revealAnimation.value),
-                                          bottomLeft: Radius.circular(24.0 * _revealAnimation.value),
-                                        ),
-                                        border: Border(
-                                          left: BorderSide(
-                                            color: (isDark ? Colors.white : AppColors.primaryGreen)
-                                                .withValues(alpha: 0.12 * _revealAnimation.value),
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                      ),
-                                      child: Align(
-                                        alignment: Alignment.topCenter,
-                                        child: SingleChildScrollView(
-                                          padding: const EdgeInsets.only(top: 80, left: 24, right: 24, bottom: 24),
-                                          child: ConstrainedBox(
-                                            constraints: const BoxConstraints(
-                                              maxWidth: 400,
+                                        color: cardColor,
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: cardBorder),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: isDark ? 0.25 : 0.06,
                                             ),
-                                            child: _buildLoginForm(),
+                                            blurRadius: 24,
+                                            offset: const Offset(0, 10),
                                           ),
-                                        ),
+                                        ],
+                                      ),
+                                      child: SingleChildScrollView(
+                                        child: _buildLoginForm(),
                                       ),
                                     ),
                                   ),
@@ -516,155 +555,110 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                               ),
                             ],
                           ),
-                        );
-                      }
-                    );
-                  } else {
-                    // Mobile: Stacked Layout
-                    return AnimatedBuilder(
-                      animation: _revealAnimation,
-                      builder: (context, child) {
-                        return Container(
-                          color: Colors.transparent,
-                          child: Column(
-                            children: [
-                              if (_revealAnimation.value > 0)
-                                ClipRect(
-                                  child: Align(
-                                    alignment: Alignment.bottomCenter,
-                                    heightFactor: _revealAnimation.value,
-                                    child: Opacity(
-                                      opacity: _revealAnimation.value,
-                                      child: Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: AppSizes.p48,
-                                          horizontal: AppSizes.p24,
-                                        ),
-                                        child: SafeArea(
-                                          bottom: false,
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              GestureDetector(
-                                                onTap: _handleLogoTap,
-                                                child: Image.asset(
-                                                  'assets/images/logo.webp',
-                                                  width: 100,
-                                                  height: 100,
-                                                ),
-                                              ),
-                                              const SizedBox(height: AppSizes.p16),
-                                              Text(
-                                                'Talisay Integrated School',
-                                                style: TextStyle(
-                                                  fontSize: 28,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isDark ? Colors.white : AppColors.textPrimary,
-                                                  letterSpacing: 1.5,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                              Text(
-                                                'Tiaong, Quezon',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: isDark ? Colors.white70 : AppColors.textSecondary,
-                                                  letterSpacing: 1.0,
-                                                ),
-                                              ),
-                                              const SizedBox(height: AppSizes.p16),
-                                              Text(
-                                                'Records Management System',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  color: isDark ? Colors.white : AppColors.primaryGreen,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                              const SizedBox(height: AppSizes.p4),
-                                              Text(
-                                                'Secure Academic Records Database System',
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: isDark ? Colors.white70 : AppColors.textSecondary,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              Expanded(
-                                child: SafeArea(
-                                  top: false,
-                                  bottom: true,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(24.0 * _revealAnimation.value),
-                                      topRight: Radius.circular(24.0 * _revealAnimation.value),
-                                    ),
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(
-                                        sigmaX: 18.0,
-                                        sigmaY: 18.0,
-                                      ),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: isDark
-                                              ? AppColors.darkSurfaceCard.withValues(alpha: 0.85)
-                                              : Colors.white.withValues(alpha: 0.86),
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: Radius.circular(24.0 * _revealAnimation.value),
-                                            topRight: Radius.circular(24.0 * _revealAnimation.value),
-                                          ),
-                                          border: Border(
-                                            top: BorderSide(
-                                              color: (isDark ? Colors.white : AppColors.primaryGreen)
-                                                  .withValues(alpha: 0.12 * _revealAnimation.value),
-                                              width: 1.5,
-                                            ),
-                                          ),
-                                        ),
-                                        child: Align(
-                                          alignment: Alignment.topCenter,
-                                          child: SingleChildScrollView(
-                                            padding: const EdgeInsets.only(top: 40, left: 24, right: 24, bottom: 24),
-                                            child: ConstrainedBox(
-                                              constraints: const BoxConstraints(
-                                                maxWidth: 400,
-                                              ),
-                                              child: _buildLoginForm(),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
+                        ),
+                      ),
                     );
                   }
+
+                  // Mobile: Centered Minimalist Layout
+                  return SafeArea(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 24,
+                        ),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 400),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              FadeTransition(
+                                opacity: _headerFade,
+                                child: SlideTransition(
+                                  position: _headerSlide,
+                                  child: Column(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: _handleLogoTap,
+                                        child: Image.asset(
+                                          'assets/images/logo.webp',
+                                          width: 72,
+                                          height: 72,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'TIS RMS',
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.3,
+                                          color: isDark
+                                              ? Colors.white
+                                              : AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Talisay Integrated School • Tiaong, Quezon',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: isDark
+                                              ? AppColors.darkTextSecondary
+                                              : AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              FadeTransition(
+                                opacity: _cardFade,
+                                child: SlideTransition(
+                                  position: _cardSlide,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(24),
+                                    decoration: BoxDecoration(
+                                      color: cardColor,
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: cardBorder),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: isDark ? 0.25 : 0.05,
+                                          ),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
+                                    ),
+                                    child: _buildLoginForm(),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
           ),
         ],
       ),
-    ));
+    )));
   }
 
   Future<void> _showServerConfigDialog() async {
     final controller = TextEditingController(text: ApiConstants.baseUrl);
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
@@ -734,6 +728,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   Widget _buildLoginForm() {
     final authState = ref.watch(authProvider);
     final isLoading = authState.isLoading;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return CallbackShortcuts(
       bindings: {
@@ -746,17 +741,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            _revealAnimation.value < 0.5 
-                ? 'Login to TIS Records Management System' 
-                : 'Login',
+            'Sign In',
             style: TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
               color: Theme.of(context).colorScheme.onSurface,
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSizes.p32),
+          const SizedBox(height: 4),
+          Text(
+            'Access your school records account',
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSizes.p24),
           CustomTextField(
             hintText: 'Username',
             prefixIcon: Icons.person_outline,
@@ -786,28 +788,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Checkbox(
-                    value: _rememberMe,
-                    activeColor: AppColors.primaryGreen,
-                    onChanged: (val) =>
-                        setState(() => _rememberMe = val ?? false),
+              InkWell(
+                borderRadius: BorderRadius.circular(6),
+                onTap: () => setState(() => _rememberMe = !_rememberMe),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: Checkbox(
+                          value: _rememberMe,
+                          activeColor: AppColors.primaryGreen,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          onChanged: (val) =>
+                              setState(() => _rememberMe = val ?? false),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Remember me',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    'Remember Me',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
+                ),
               ),
               TextButton(
                 onPressed: _showForgotPasswordDialog,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
                 child: const Text(
-                  'Forgot Password?',
+                  'Forgot password?',
                   style: TextStyle(
+                    fontSize: 13,
                     color: AppColors.primaryGreen,
                     fontWeight: FontWeight.w600,
                   ),
@@ -816,49 +841,87 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             ],
           ),
 
-          const SizedBox(height: AppSizes.p16),
-          PrimaryButton(
-            label: 'LOGIN',
-            isLoading: isLoading,
-            onPressed: _handleLogin,
+          const SizedBox(height: AppSizes.p20),
+          SizedBox(
+            height: 48,
+            child: PrimaryButton(
+              label: 'Sign In',
+              isLoading: isLoading,
+              onPressed: _handleLogin,
+            ),
           ),
           if (_biometricSupported && _hasBiometricCredentials) ...[
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: (isLoading || _isBiometricAuthenticating)
-                  ? null
-                  : _handleBiometricLogin,
-              icon: _isBiometricAuthenticating
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.primaryGreen,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.fingerprint_rounded,
-                      color: AppColors.primaryGreen,
-                      size: 20,
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Divider(
+                    color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    'or',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.textMuted,
                     ),
-              label: Text(
-                _biometricUsername != null && _biometricUsername!.isNotEmpty
-                    ? 'Sign in with Biometrics ($_biometricUsername)'
-                    : 'Sign in with Biometrics',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primaryGreen,
+                  ),
                 ),
-                overflow: TextOverflow.ellipsis,
-              ),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                side: BorderSide(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.45),
+                Expanded(
+                  child: Divider(
+                    color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                  ),
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 46,
+              child: OutlinedButton.icon(
+                onPressed: (isLoading || _isBiometricAuthenticating)
+                    ? null
+                    : _handleBiometricLogin,
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  child: _isBiometricAuthenticating
+                      ? const SizedBox(
+                          key: ValueKey('bio-loading'),
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primaryGreen,
+                          ),
+                        )
+                      : const Icon(
+                          key: ValueKey('bio-icon'),
+                          Icons.fingerprint_rounded,
+                          color: AppColors.primaryGreen,
+                          size: 20,
+                        ),
+                ),
+                label: Text(
+                  _biometricUsername != null && _biometricUsername!.isNotEmpty
+                      ? 'Sign in with Biometrics ($_biometricUsername)'
+                      : 'Sign in with Biometrics',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryGreen,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  side: BorderSide(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.45),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),
@@ -1016,103 +1079,222 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
     }
   }
 
+  bool get _hasResetProgress =>
+      _otpCtrl.text.trim().isNotEmpty ||
+      _newPassCtrl.text.isNotEmpty ||
+      _confirmPassCtrl.text.isNotEmpty;
+
+  Future<bool> _confirmDiscard({
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+        ),
+        content: Text(message, style: const TextStyle(fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Stay'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
+  Future<void> _handleBackStep() async {
+    if (_isLoading) return;
+    final ok = await _confirmDiscard(
+      title: 'Go Back?',
+      message: _hasResetProgress
+          ? 'Your entered verification code and password fields will be cleared.'
+          : 'You already requested a verification code. Go back to the username step?',
+      confirmLabel: 'Go Back',
+    );
+    if (!ok || !mounted) return;
+    setState(() {
+      _otpCtrl.clear();
+      _newPassCtrl.clear();
+      _confirmPassCtrl.clear();
+      _currentStep = 0;
+    });
+  }
+
+  Future<void> _handleClose() async {
+    if (_isLoading) return;
+    final ok = await _confirmDiscard(
+      title: 'Cancel Recovery?',
+      message: _currentStep == 1
+          ? 'Exit password recovery? You will need to request a new code if you leave.'
+          : 'Are you sure you want to exit account recovery?',
+      confirmLabel: 'Exit',
+    );
+    if (!ok || !mounted) return;
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? AppColors.darkBorder : Colors.grey.shade300;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-      ),
-      insetPadding: EdgeInsets.all(isMobile ? 16 : 24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440),
-        child: Padding(
-          padding: EdgeInsets.all(isMobile ? 18 : 24),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || _isLoading) return;
+        if (_currentStep == 1) {
+          _handleBackStep();
+        } else {
+          _handleClose();
+        }
+      },
+      child: Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        ),
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 16 : 24,
+          vertical: 24,
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
           child: SingleChildScrollView(
+            padding: EdgeInsets.all(isMobile ? 20 : 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Header
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    if (_currentStep > 0)
+                    if (_currentStep > 0) ...[
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, size: 20),
+                        icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                        tooltip: 'Back',
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: _isLoading
-                            ? null
-                            : () => setState(() => _currentStep = 0),
-                      ),
-                    if (_currentStep > 0) const SizedBox(width: 8),
-                    Icon(
-                      _currentStep == 0 ? Icons.email_outlined : Icons.lock_reset,
-                      color: AppColors.primaryGreen,
-                      size: isMobile ? 24 : 28,
-                    ),
-                    SizedBox(width: isMobile ? 8 : 12),
-                    Expanded(
-                      child: Text(
-                        _currentStep == 0 ? 'Recovery' : 'Reset',
-                        style: TextStyle(
-                          fontSize: isMobile ? 18 : 20,
-                          fontWeight: FontWeight.bold,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
                         ),
+                        onPressed: _isLoading ? null : _handleBackStep,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        _currentStep == 0
+                            ? Icons.mark_email_unread_outlined
+                            : Icons.lock_reset_rounded,
+                        color: AppColors.primaryGreen,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _currentStep == 0
+                                ? 'Account Recovery'
+                                : 'Reset Password',
+                            style: TextStyle(
+                              fontSize: isMobile ? 17 : 19,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _currentStep == 0
+                                ? 'Verify via registered email'
+                                : 'Enter code & choose new password',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.close, size: isMobile ? 20 : 24),
-                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded, size: 20),
+                      tooltip: 'Close',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      onPressed: _isLoading ? null : _handleClose,
                     ),
                   ],
                 ),
 
-                // Step Progress Indicator
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Row(
-                    children: List.generate(2, (idx) {
-                      final isActive = idx == _currentStep;
-                      final isPast = idx < _currentStep;
-                      return Expanded(
-                        child: Container(
-                          height: 4,
-                          margin: EdgeInsets.only(right: idx == 0 ? 6 : 0),
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? AppColors.primaryGreen
-                                : (isPast
-                                    ? AppColors.primaryGreen.withValues(alpha: 0.4)
-                                    : (isDark
-                                        ? AppColors.darkBorder
-                                        : Colors.grey.shade300)),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-
-                const Divider(height: 16),
+                const SizedBox(height: 16),
+                Divider(height: 1, color: borderColor.withValues(alpha: 0.6)),
+                const SizedBox(height: 18),
 
                 // ── STEP 0: Enter Username & Send Email OTP ─────────────────
                 if (_currentStep == 0) ...[
-                  Text(
-                    'Enter your account username. A 6-digit verification code will be sent to your registered email address.',
-                    style: TextStyle(
-                      fontSize: isMobile ? 12 : 13,
-                      color: AppColors.textSecondary,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.darkSurface2
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: borderColor.withValues(alpha: 0.8),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 18,
+                          color: AppColors.primaryGreen,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Enter your username to receive a 6-digit verification code on your registered email address.',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              height: 1.4,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: AppSizes.p16),
+                  const SizedBox(height: 16),
                   Form(
                     key: _usernameFormKey,
                     child: CustomTextField(
-                      hintText: 'Your Username',
+                      hintText: 'Username',
                       prefixIcon: Icons.person_outline,
                       controller: _usernameCtrl,
                       textInputAction: TextInputAction.done,
@@ -1121,21 +1303,34 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                           AppValidators.validateRequired(v, 'Username'),
                     ),
                   ),
-                  const SizedBox(height: AppSizes.p24),
+                  const SizedBox(height: 22),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('CANCEL'),
+                      Expanded(
+                        child: SizedBox(
+                          height: 46,
+                          child: OutlinedButton(
+                            onPressed: _isLoading ? null : _handleClose,
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              side: BorderSide(color: borderColor),
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 12),
-                      SizedBox(
-                        width: isMobile ? 140 : 160,
-                        child: PrimaryButton(
-                          label: 'SEND CODE',
-                          isLoading: _isLoading,
-                          onPressed: _handleSendEmailOtp,
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: 46,
+                          child: PrimaryButton(
+                            label: 'Send Code',
+                            isLoading: _isLoading,
+                            onPressed: _handleSendEmailOtp,
+                          ),
                         ),
                       ),
                     ],
@@ -1145,9 +1340,14 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                 // ── STEP 1: Enter OTP & Set New Password ────────────────────
                 if (_currentStep == 1) ...[
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.12 : 0.08),
+                      color: AppColors.primaryGreen.withValues(
+                        alpha: isDark ? 0.14 : 0.08,
+                      ),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: AppColors.primaryGreen.withValues(alpha: 0.3),
@@ -1158,14 +1358,14 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                         const Icon(
                           Icons.mark_email_read_outlined,
                           color: AppColors.primaryGreen,
-                          size: 20,
+                          size: 18,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             'Code sent to ${_maskedEmail ?? "your registered email"}',
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 12.5,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1174,56 +1374,69 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                     ),
                   ),
 
-                  const SizedBox(height: AppSizes.p16),
+                  const SizedBox(height: 16),
 
                   Form(
                     key: _resetFormKey,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // 6-digit OTP code input + Resend button
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: CustomTextField(
-                                hintText: '6-digit code',
-                                prefixIcon: Icons.pin_outlined,
-                                controller: _otpCtrl,
-                                keyboardType: TextInputType.number,
-                                maxLength: 6,
-                                validator: (v) {
-                                  if (v == null || v.trim().length != 6) {
-                                    return 'Enter full 6-digit code';
-                                  }
-                                  return null;
-                                },
+                            Text(
+                              'Verification Code',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary,
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            SizedBox(
-                              height: 48,
-                              child: OutlinedButton(
-                                onPressed: (_cooldownSeconds == 0 && !_isLoading)
-                                    ? _handleSendEmailOtp
-                                    : null,
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
+                            TextButton(
+                              onPressed: (_cooldownSeconds == 0 && !_isLoading)
+                                  ? _handleSendEmailOtp
+                                  : null,
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
                                 ),
-                                child: Text(
-                                  _cooldownSeconds > 0
-                                      ? 'Resend (${_cooldownSeconds}s)'
-                                      : 'Resend',
-                                  style: const TextStyle(fontSize: 12),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                _cooldownSeconds > 0
+                                    ? 'Resend (${_cooldownSeconds}s)'
+                                    : 'Resend Code',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 6),
+                        CustomTextField(
+                          hintText: '6-digit code',
+                          prefixIcon: Icons.pin_outlined,
+                          controller: _otpCtrl,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.next,
+                          maxLength: 6,
+                          counterText: '',
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          validator: (v) {
+                            if (v == null || v.trim().length != 6) {
+                              return 'Enter full 6-digit code';
+                            }
+                            return null;
+                          },
+                        ),
 
-                        const SizedBox(height: AppSizes.p16),
+                        const SizedBox(height: 14),
 
                         CustomTextField(
                           hintText: 'New Password',
@@ -1231,6 +1444,7 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                           controller: _newPassCtrl,
                           isPassword: true,
                           obscureText: _obscurePasswords,
+                          textInputAction: TextInputAction.next,
                           onToggleVisibility: () => setState(
                               () => _obscurePasswords = !_obscurePasswords),
                           validator: AppValidators.validatePasswordComplexity,
@@ -1240,10 +1454,12 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
 
                         if (_newPassCtrl.text.isNotEmpty) ...[
                           const SizedBox(height: 6),
-                          PasswordStrengthIndicator(password: _newPassCtrl.text),
+                          PasswordStrengthIndicator(
+                            password: _newPassCtrl.text,
+                          ),
                         ],
 
-                        const SizedBox(height: AppSizes.p16),
+                        const SizedBox(height: 14),
 
                         CustomTextField(
                           hintText: 'Confirm New Password',
@@ -1251,6 +1467,8 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                           controller: _confirmPassCtrl,
                           isPassword: true,
                           obscureText: _obscurePasswords,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _handleResetPassword(),
                           onToggleVisibility: () => setState(
                               () => _obscurePasswords = !_obscurePasswords),
                           autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -1268,24 +1486,35 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                     ),
                   ),
 
-                  const SizedBox(height: AppSizes.p24),
+                  const SizedBox(height: 22),
 
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      TextButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () => setState(() => _currentStep = 0),
-                        child: const Text('BACK'),
+                      Expanded(
+                        child: SizedBox(
+                          height: 46,
+                          child: OutlinedButton(
+                            onPressed: _isLoading ? null : _handleBackStep,
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              side: BorderSide(color: borderColor),
+                            ),
+                            child: const Text('Back'),
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 12),
-                      SizedBox(
-                        width: isMobile ? 110 : 130,
-                        child: PrimaryButton(
-                          label: 'RESET',
-                          isLoading: _isLoading,
-                          onPressed: _handleResetPassword,
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: 46,
+                          child: PrimaryButton(
+                            label: 'Reset Password',
+                            isLoading: _isLoading,
+                            onPressed: _handleResetPassword,
+                          ),
                         ),
                       ),
                     ],
@@ -1345,17 +1574,20 @@ class _NetworkScanDialogState extends State<_NetworkScanDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Local Network Scan'),
-      content: Row(
-        children: [
-          const SizedBox.square(
-            dimension: 24,
-            child: CircularProgressIndicator(strokeWidth: 2.5),
-          ),
-          const SizedBox(width: 20),
-          Expanded(child: Text(_status)),
-        ],
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        title: const Text('Local Network Scan'),
+        content: Row(
+          children: [
+            const SizedBox.square(
+              dimension: 24,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            const SizedBox(width: 20),
+            Expanded(child: Text(_status)),
+          ],
+        ),
       ),
     );
   }
