@@ -100,6 +100,7 @@ class _ReportIssueModalState extends State<ReportIssueModal> {
   }
 
   Future<void> _handleSend() async {
+    if (_isSending) return;
     if (!_formKey.currentState!.validate()) return;
     HapticService.medium();
     setState(() {
@@ -113,7 +114,7 @@ class _ReportIssueModalState extends State<ReportIssueModal> {
           baseUrl: ApiConstants.baseUrl,
           connectTimeout: const Duration(seconds: 20),
           sendTimeout: const Duration(seconds: 60),
-          receiveTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 60),
         ),
       );
 

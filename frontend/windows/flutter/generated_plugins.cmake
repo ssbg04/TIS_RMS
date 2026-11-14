@@ -7,6 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   desktop_drop
   firebase_core
   flutter_secure_storage_windows
+  local_auth_windows
   permission_handler_windows
   printing
   screen_retriever_windows

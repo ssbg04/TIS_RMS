@@ -23,6 +23,7 @@ import '../../shared/widgets/abstract_background.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/network/api_constants.dart';
 import '../../../core/network/server_discovery.dart';
+import '../../../core/services/biometric_auth_service.dart';
 import '../../shared/inputs/password_strength_indicator.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -39,6 +40,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   bool _obscurePassword = true;
   bool _rememberMe = false;
   int _logoTapCount = 0;
+  bool _biometricSupported = false;
+  bool _hasBiometricCredentials = false;
+  String? _biometricUsername;
+  bool _isBiometricAuthenticating = false;
 
   final FocusNode _usernameFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
@@ -73,6 +78,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     _passwordController.addListener(_onTextChange);
 
     _loadRememberMe(); // Load saved credentials on startup
+    _loadBiometricStatus();
     if (widget.sessionExpired) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
@@ -150,6 +156,143 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     super.dispose();
   }
 
+  Future<void> _loadBiometricStatus() async {
+    final supported = await BiometricAuthService.isSupported();
+    if (!supported || !mounted) return;
+    final hasCreds = await BiometricAuthService.hasSavedCredentials();
+    final savedUser = hasCreds ? await BiometricAuthService.getSavedUsername() : null;
+    if (!mounted) return;
+    setState(() {
+      _biometricSupported = supported;
+      _hasBiometricCredentials = hasCreds;
+      _biometricUsername = savedUser;
+    });
+  }
+
+  void _navigateToHome() {
+    if (!mounted) return;
+    final user = ref.read(authProvider).value;
+    final isDesktop = MediaQuery.of(context).size.width >= 800;
+    ref.read(activeTabProvider.notifier).setTab('Dashboard');
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => isDesktop
+            ? WindowsSidebarLayout(userRole: user!.role)
+            : AndroidBottomNavLayout(userRole: user!.role),
+      ),
+    );
+  }
+
+  void _showLoginError() {
+    final rawError = ref.read(authProvider).error;
+    final errorStr = rawError?.toString().toLowerCase() ?? '';
+    final isConnectionIssue = (rawError is DioException &&
+            (rawError.type == DioExceptionType.connectionError ||
+                rawError.type == DioExceptionType.connectionTimeout ||
+                rawError.type == DioExceptionType.receiveTimeout)) ||
+        errorStr.contains('socketexception') ||
+        errorStr.contains('connection refused') ||
+        errorStr.contains('network is unreachable') ||
+        errorStr.contains('failed host lookup') ||
+        errorStr.contains('connection closed') ||
+        errorStr.contains('handshake');
+
+    if (isConnectionIssue) {
+      DisconnectedDialog.show(context);
+      return;
+    }
+    final cleanMessage = ApiConstants.extractErrorMessage(
+      rawError,
+      'Failed to log in. Please check your credentials.',
+    );
+    showErrorDialog(
+      context,
+      'Login Failed',
+      cleanMessage,
+    );
+  }
+
+  Future<void> _promptEnableBiometric(String username, String password) async {
+    if (!_biometricSupported || !mounted) return;
+    if (_hasBiometricCredentials) {
+      await BiometricAuthService.saveCredentials(username, password);
+      return;
+    }
+    if (await BiometricAuthService.wasPromptDeclined() || !mounted) return;
+
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.fingerprint_rounded, color: AppColors.primaryGreen),
+            SizedBox(width: 10),
+            Expanded(child: Text('Enable Biometric Login?')),
+          ],
+        ),
+        content: const Text(
+          'Use your fingerprint or device biometrics to sign in faster next time on this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('never'),
+            child: const Text('Don\'t Ask'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('later'),
+            child: const Text('Not Now'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop('enable'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Enable'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'enable') {
+      await BiometricAuthService.saveCredentials(username, password);
+    } else if (result == 'never') {
+      await BiometricAuthService.setPromptDeclined(true);
+    }
+  }
+
+  Future<void> _handleBiometricLogin() async {
+    if (_isBiometricAuthenticating) return;
+    setState(() => _isBiometricAuthenticating = true);
+
+    try {
+      final creds = await BiometricAuthService.authenticateAndGetCredentials();
+      if (!mounted || creds == null) {
+        if (mounted) setState(() => _isBiometricAuthenticating = false);
+        return;
+      }
+
+      final success = await ref.read(authProvider.notifier).login(
+            creds.username,
+            creds.password,
+            rememberMe: true,
+          );
+
+      if (!mounted) return;
+      setState(() => _isBiometricAuthenticating = false);
+
+      if (success) {
+        _navigateToHome();
+      } else {
+        _showLoginError();
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isBiometricAuthenticating = false);
+    }
+  }
+
   void _handleLogin() async {
     if (_usernameController.text.trim().isEmpty ||
         _passwordController.text.isEmpty) {
@@ -161,74 +304,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       return;
     }
 
-    FocusScope.of(context).unfocus();
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
 
     final success = await ref
         .read(authProvider.notifier)
         .login(
-          _usernameController.text.trim(),
-          _passwordController.text,
+          username,
+          password,
           rememberMe: _rememberMe,
         );
 
     if (!mounted) return;
 
     if (success) {
+      // Commit autofill context BEFORE unfocusing so Android Google Password Manager
+      // receives the active field values and prompts to save the password.
+      TextInput.finishAutofillContext(shouldSave: true);
+      FocusScope.of(context).unfocus();
+
       // --- Added: Save or clear credentials based on checkbox ---
       final prefs = await SharedPreferences.getInstance();
       if (_rememberMe) {
         await prefs.setBool('rememberMe', true);
-        await prefs.setString(
-          'saved_username',
-          _usernameController.text.trim(),
-        );
+        await prefs.setString('saved_username', username);
       } else {
         await prefs.remove('rememberMe');
         await prefs.remove('saved_username');
         await prefs.remove('saved_password');
       }
 
-      if (!mounted) return;
-      final user = ref.read(authProvider).value;
-      final isDesktop = MediaQuery.of(context).size.width >= 800;
-
-      // Ensure we always redirect to Dashboard after a successful login
-      ref.read(activeTabProvider.notifier).setTab('Dashboard');
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => isDesktop
-              ? WindowsSidebarLayout(userRole: user!.role)
-              : AndroidBottomNavLayout(userRole: user!.role),
-        ),
-      );
+      await _promptEnableBiometric(username, password);
+      _navigateToHome();
     } else {
-      final rawError = ref.read(authProvider).error;
-      final errorStr = rawError?.toString().toLowerCase() ?? '';
-      final isConnectionIssue = (rawError is DioException &&
-              (rawError.type == DioExceptionType.connectionError ||
-                  rawError.type == DioExceptionType.connectionTimeout ||
-                  rawError.type == DioExceptionType.receiveTimeout)) ||
-          errorStr.contains('socketexception') ||
-          errorStr.contains('connection refused') ||
-          errorStr.contains('network is unreachable') ||
-          errorStr.contains('failed host lookup') ||
-          errorStr.contains('connection closed') ||
-          errorStr.contains('handshake');
-
-      if (isConnectionIssue) {
-        DisconnectedDialog.show(context);
-        return;
-      }
-      final cleanMessage = ApiConstants.extractErrorMessage(
-        rawError,
-        'Failed to log in. Please check your credentials.',
-      );
-      showErrorDialog(
-        context,
-        'Login Failed',
-        cleanMessage,
-      );
+      FocusScope.of(context).unfocus();
+      _showLoginError();
     }
   }
 
@@ -622,7 +732,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         const SingleActivator(LogicalKeyboardKey.enter): _handleLogin,
         const SingleActivator(LogicalKeyboardKey.numpadEnter): _handleLogin,
       },
-      child: Column(
+      child: AutofillGroup(
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -643,6 +754,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             prefixIcon: Icons.person_outline,
             controller: _usernameController,
             focusNode: _usernameFocus,
+            autofillHints: const [AutofillHints.username, AutofillHints.email],
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocus),
           ),
@@ -652,6 +764,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             prefixIcon: Icons.lock_outline,
             controller: _passwordController,
             focusNode: _passwordFocus,
+            autofillHints: const [AutofillHints.password],
             isPassword: true,
             obscureText: _obscurePassword,
             onToggleVisibility: () =>
@@ -701,7 +814,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             isLoading: isLoading,
             onPressed: _handleLogin,
           ),
+          if (_biometricSupported && _hasBiometricCredentials) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: (isLoading || _isBiometricAuthenticating)
+                  ? null
+                  : _handleBiometricLogin,
+              icon: _isBiometricAuthenticating
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primaryGreen,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.fingerprint_rounded,
+                      color: AppColors.primaryGreen,
+                      size: 20,
+                    ),
+              label: Text(
+                _biometricUsername != null && _biometricUsername!.isNotEmpty
+                    ? 'Sign in with Biometrics ($_biometricUsername)'
+                    : 'Sign in with Biometrics',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryGreen,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                side: BorderSide(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.45),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
         ],
+      ),
       ),
     );
   }
