@@ -108,7 +108,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               ],
             ),
             content: const Text(
-              'You have been logged out due to 5 minutes of inactivity.',
+              'You have been logged out due to 10 minutes of inactivity.',
             ),
             actions: [
               TextButton(
