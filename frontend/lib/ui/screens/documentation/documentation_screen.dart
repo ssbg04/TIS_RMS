@@ -10,6 +10,128 @@ class DocumentationScreen extends StatelessWidget {
   static const String docsUrl = 'https://docs.tisrms.de5.net';
 
   static Future<void> open(BuildContext context) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.darkSurfaceCard : Colors.white;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
+    final shouldOpen = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+        contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.menu_book_rounded,
+                color: AppColors.primaryGreen,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'User Guide & Documentation',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You are about to open the official TIS-RMS User Guide & Documentation portal in your web browser.',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  height: 1.45,
+                  color: textSecondary,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface2 : const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark ? Colors.white12 : const Color(0xFFE5E7EB),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.link_rounded, size: 17, color: AppColors.primaryGreen),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        docsUrl,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.copy_rounded, size: 16),
+                      tooltip: 'Copy link',
+                      splashRadius: 18,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      onPressed: () {
+                        Clipboard.setData(const ClipboardData(text: docsUrl));
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(
+                            content: Text('Documentation link copied to clipboard'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            icon: const Icon(Icons.open_in_new_rounded, size: 17),
+            label: const Text('Open in Browser'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldOpen != true || !context.mounted) return;
+
     final uri = Uri.parse(docsUrl);
     try {
       final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);

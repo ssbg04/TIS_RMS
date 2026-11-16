@@ -31,9 +31,18 @@ class SecuritySection extends ConsumerStatefulWidget {
 
 class _SecuritySectionState extends ConsumerState<SecuritySection> {
   bool _isDevicesExpanded = false;
-  static const int _devicesDisplayLimit = 3;
+  static const Duration _activeThreshold = Duration(minutes: 15);
   bool _biometricSupported = false;
   bool _biometricEnabled = false;
+
+  bool _isSessionActive(Map<String, dynamic> session) {
+    if (session['is_current'] == true) return true;
+    final raw = session['last_seen_at']?.toString();
+    if (raw == null || raw.isEmpty) return false;
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return false;
+    return DateTime.now().toUtc().difference(parsed.toUtc()).abs() <= _activeThreshold;
+  }
 
   @override
   void initState() {
@@ -312,9 +321,10 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
     final sessionsAsync = ref.watch(sessionsProvider);
     return sessionsAsync.maybeWhen(
       data: (sessions) {
-        final rememberedSessions = sessions.where((s) => s['remember_me'] != false).toList();
-        if (rememberedSessions.isEmpty) return const SizedBox.shrink();
-        final count = rememberedSessions.length;
+        final activeCount = sessions
+            .where((s) => s['remember_me'] != false && _isSessionActive(s))
+            .length;
+        if (activeCount == 0) return const SizedBox.shrink();
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
@@ -322,7 +332,7 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
-            '$count ${count == 1 ? 'device' : 'devices'}',
+            '$activeCount active',
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -350,17 +360,24 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
           );
         }
 
-        final hasMore = rememberedSessions.length > _devicesDisplayLimit;
-        final visibleSessions = (_isDevicesExpanded || !hasMore)
-            ? rememberedSessions
-            : rememberedSessions.take(_devicesDisplayLimit).toList();
+        final activeDevices = rememberedSessions.where(_isSessionActive).toList();
+        final recentDevices = rememberedSessions.where((s) => !_isSessionActive(s)).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ...visibleSessions.map((session) => _buildSessionItem(context, ref, session)),
-            if (hasMore) ...[
-              const SizedBox(height: 6),
+            if (activeDevices.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 6.0),
+                child: Text(
+                  'No active devices right now.',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              )
+            else
+              ...activeDevices.map((session) => _buildSessionItem(context, ref, session, isActiveDevice: true)),
+            if (recentDevices.isNotEmpty) ...[
+              const SizedBox(height: 4),
               Center(
                 child: TextButton.icon(
                   onPressed: () {
@@ -372,8 +389,8 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
                   ),
                   label: Text(
                     _isDevicesExpanded
-                        ? 'Load less'
-                        : 'Load more devices (${rememberedSessions.length - _devicesDisplayLimit} more)',
+                        ? 'Hide recently active devices'
+                        : 'More (${recentDevices.length} recently active)',
                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
                   ),
                   style: TextButton.styleFrom(
@@ -382,6 +399,22 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
                   ),
                 ),
               ),
+              if (_isDevicesExpanded) ...[
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'RECENTLY ACTIVE DEVICES',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+                ...recentDevices.map((session) => _buildSessionItem(context, ref, session, isActiveDevice: false)),
+              ],
             ],
             if (rememberedSessions.length > 1) ...[
               const SizedBox(height: 12),
@@ -418,7 +451,12 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
     );
   }
 
-  Widget _buildSessionItem(BuildContext context, WidgetRef ref, Map<String, dynamic> session) {
+  Widget _buildSessionItem(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> session, {
+    required bool isActiveDevice,
+  }) {
     final isCurrent = session['is_current'] == true;
     final rawPlatform = (session['platform']?.toString() ?? '').trim();
     final platformLower = (rawPlatform.isEmpty || rawPlatform.toLowerCase() == 'unknown')
@@ -608,7 +646,7 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
                   ),
                 ),
                 Text(
-                  'Active: $lastSeen',
+                  isActiveDevice ? 'Active: $lastSeen' : 'Last seen: $lastSeen',
                   style: TextStyle(
                     fontSize: 11,
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),

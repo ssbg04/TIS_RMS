@@ -74,6 +74,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onSearchFocusChanged);
+    HardwareKeyboard.instance.addHandler(_handleGlobalShortcut);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final currentTab = ref.read(studentViewTabProvider);
@@ -152,6 +153,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     _dragResetTimer?.cancel();
     _tabListener?.close();
     _debounce?.cancel();
+    HardwareKeyboard.instance.removeHandler(_handleGlobalShortcut);
     _searchController.removeListener(_onSearchChanged);
     _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchController.dispose();
@@ -160,6 +162,25 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     _horizontalScrollController.dispose();
     ref.read(studentQueryProvider.notifier).reset();
     super.dispose();
+  }
+
+  bool _handleGlobalShortcut(KeyEvent event) {
+    if (!mounted) return false;
+    if (event is! KeyDownEvent) return false;
+    if (ref.read(activeTabProvider) != 'Students') return false;
+    if (ModalRoute.of(context)?.isCurrent != true) return false;
+
+    if (HardwareKeyboard.instance.isControlPressed) {
+      if (event.logicalKey == LogicalKeyboardKey.keyF) {
+        _searchFocusNode.requestFocus();
+        return true;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.keyN) {
+        _openModal();
+        return true;
+      }
+    }
+    return false;
   }
 
   void _onSearchChanged() {

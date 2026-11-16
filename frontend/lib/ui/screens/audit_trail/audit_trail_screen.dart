@@ -1980,14 +1980,14 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                             : 'Unknown IP';
                         ViewActivityModal.show(
                           context: context,
-                          title: isActive ? 'Active Session' : 'Completed Session',
+                          title: isActive ? 'Logged In Session' : 'Logged Out Session',
                           description:
                               'User @${log.username} (${log.fullName.isNotEmpty ? log.fullName : 'No Name'}) logged in via $platformDisplay ($ipDesc).\n\n'
-                              'Login: ${pht.formatDateTime12H(log.loginAt)}\n'
-                              '${log.logoutAt != null ? 'Logout: ${pht.formatDateTime12H(log.logoutAt!)}' : 'Session is currently active.'}',
+                              'Time In: ${pht.formatDateTime12H(log.loginAt)}\n'
+                              '${log.logoutAt != null ? 'Time Out: ${pht.formatDateTime12H(log.logoutAt!)}' : 'Status: Logged In'}',
                           date: pht.formatDateTime12H(log.loginAt),
                           performedBy: log.fullName.isNotEmpty ? log.fullName : log.username,
-                          action: isActive ? 'ACTIVE' : 'LOGGED OUT',
+                          action: isActive ? 'LOGGED IN' : 'LOGGED OUT',
                           actionColor: isActive ? const Color(0xFF10B981) : Colors.grey,
                           icon: platformIcon,
                         );
@@ -2048,7 +2048,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                           runSpacing: 4,
                                           crossAxisAlignment: WrapCrossAlignment.center,
                                           children: [
-                                            // Status Badge (Active Now vs Logged Out)
+                                            // Status Badge (Logged In vs Logged Out)
                                             Container(
                                               padding: const EdgeInsets.symmetric(
                                                   horizontal: 8, vertical: 2),
@@ -2074,7 +2074,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                                     const SizedBox(width: 4),
                                                   ],
                                                   Text(
-                                                    isActive ? 'ACTIVE NOW' : 'LOGGED OUT',
+                                                    isActive ? 'LOGGED IN' : 'LOGGED OUT',
                                                     style: TextStyle(
                                                       fontSize: 11,
                                                       fontWeight: FontWeight.bold,
@@ -2111,9 +2111,9 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                             ),
                                           ],
                                         ),
-                                        // Login Timestamp
+                                        // Time In Timestamp
                                         Text(
-                                          pht.formatDateTime12H(log.loginAt),
+                                          'Time In: ${pht.formatDateTime12H(log.loginAt)}',
                                           style: TextStyle(
                                             fontSize: 11,
                                             color: Theme.of(context)
@@ -2258,7 +2258,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              'Left: ${pht.formatDateTime12H(log.logoutAt!)}',
+                                              'Time Out: ${pht.formatDateTime12H(log.logoutAt!)}',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 color: Theme.of(context)

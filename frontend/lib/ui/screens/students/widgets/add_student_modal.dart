@@ -79,6 +79,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     _middleNameController = TextEditingController();
     _lastNameController = TextEditingController();
     _extController = TextEditingController();
+    HardwareKeyboard.instance.addHandler(_handleEscapeKey);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -91,12 +92,27 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleEscapeKey);
     _lrnController.dispose();
     _firstNameController.dispose();
     _middleNameController.dispose();
     _lastNameController.dispose();
     _extController.dispose();
     super.dispose();
+  }
+
+  bool _handleEscapeKey(KeyEvent event) {
+    if (!mounted) return false;
+    if (event is! KeyDownEvent || event.logicalKey != LogicalKeyboardKey.escape) {
+      return false;
+    }
+    if (ModalRoute.of(context)?.isCurrent != true) return false;
+    if (_currentStep > 0) {
+      setState(() => _currentStep--);
+    } else {
+      _confirmClose();
+    }
+    return true;
   }
 
   bool get _hasAnyData {
