@@ -264,20 +264,27 @@
           </div>
         </div>
 
-        <h3 class="subheading">Sign In Interface Component</h3>
+        <h3 class="subheading">Sign In &amp; Password Recovery Controls</h3>
         <p class="paragraph">
           The sign-in interface features clean input fields, password visibility toggle, quick server status indication, and direct link to self-service password recovery:
         </p>
-
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/login_screen.svg" data-caption="TIS-RMS Cross-Platform Sign In Interface">
+        <div class="mockup-container" id="guide-login-tabs">
+          <div class="mockup-tabs">
+            <button class="mockup-tab-btn active" data-tab-target="g-win-login">Windows: Login</button>
+            <button class="mockup-tab-btn" data-tab-target="g-and-login">Android: Login</button>
+            <button class="mockup-tab-btn" data-tab-target="g-and-forgot">Android: Forgot Password</button>
+            <button class="mockup-tab-btn" data-tab-target="g-and-sidebar">Android: Sidebar</button>
+            <button class="mockup-tab-btn" data-tab-target="g-and-logout">Android: Logout</button>
+          </div>
+          <div class="mockup-pane active" id="g-win-login">
+            <figure class="doc-figure component-screenshot" data-lightbox="assets/images/guides/admin/admin_01.webp" data-caption="Windows Login Section (Annotated #1-#5)">
           <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/login_screen.svg" alt="TIS-RMS Cross-Platform Sign In Interface" loading="lazy">
+            <img src="assets/images/guides/admin/admin_01.webp" alt="Windows Login Section (Annotated #1-#5)" loading="lazy">
           </div>
           <figcaption>
             <div>
-              <span class="screenshot-title">TIS-RMS Cross-Platform Sign In Interface</span>
-              <p class='screenshot-sub'>Unified login modal with password visibility toggle and OTP forgot password recovery</p>
+              <span class="screenshot-title">Windows Login Section (#1-#5)</span>
+              <p class='screenshot-sub'>Username, Password visibility toggle, Remember Me, Forgot Password?, and LOGIN</p>
             </div>
             <span class="zoom-hint">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
@@ -285,6 +292,130 @@
             </span>
           </figcaption>
         </figure>
+          </div>
+          <div class="mockup-pane" id="g-and-login" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/guides/teacher/teacher_01.webp" data-caption="Android Teacher Login (Annotated #1-#6)">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/guides/teacher/teacher_01.webp" alt="Android Teacher Login (Annotated #1-#6)" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Android Teacher Login (#1-#6)</span>
+              <p class='screenshot-sub'>Username, Password, View Password icon, Remember Me, Forgot Password?, and LOGIN</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+          </div>
+          <div class="mockup-pane" id="g-and-forgot" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/guides/teacher/teacher_02.webp" data-caption="Android Forgot Password Recovery (Annotated #7-#10)">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/guides/teacher/teacher_02.webp" alt="Android Forgot Password Recovery (Annotated #7-#10)" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Android Recovery Modal (#7-#10)</span>
+              <p class='screenshot-sub'>Close, Username field, Cancel, and Send Code (6-digit email OTP)</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+          </div>
+          <div class="mockup-pane" id="g-and-sidebar" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/guides/teacher/teacher_22.webp" data-caption="Android Sidebar Navigation (Annotated #97-#100)">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/guides/teacher/teacher_22.webp" alt="Android Sidebar Navigation (Annotated #97-#100)" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Android Sidebar (#97-#100)</span>
+              <p class='screenshot-sub'>Minimize sidebar, Navigation items, User Profile, and Log Out button</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+          </div>
+          <div class="mockup-pane" id="g-and-logout" style="display:none;">
+            <figure class="doc-figure doc-figure-android" data-lightbox="assets/images/guides/teacher/teacher_23.webp" data-caption="Android Confirm Logout (Annotated #101-#102)">
+          <div class="doc-figure-img-wrap">
+            <img src="assets/images/guides/teacher/teacher_23.webp" alt="Android Confirm Logout (Annotated #101-#102)" loading="lazy">
+          </div>
+          <figcaption>
+            <div>
+              <span class="screenshot-title">Confirm Logout Modal (#101-#102)</span>
+              <p class='screenshot-sub'>Cancel or Confirm Logout</p>
+            </div>
+            <span class="zoom-hint">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              Click to enlarge
+            </span>
+          </figcaption>
+        </figure>
+          </div>
+        </div>
+
+        <div class="callout-ref-section">
+          <div class="callout-ref-header">
+            <h4>Login, Recovery & Sidebar Controls</h4>
+            <div>
+              <span class="platform-pill win">Windows</span>
+              <span class="platform-pill and">Android</span>
+            </div>
+          </div>
+          <div class="callout-ref-grid">
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">1</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">Username Field</div>
+                <div class="callout-ref-desc">Enter your assigned staff username (e.g., <code>@admin</code> or teacher username).</div>
+              </div>
+            </div>
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">2</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">Password & View Password Icon</div>
+                <div class="callout-ref-desc">Enter your account password. Click the eye icon to reveal or mask the entered password before logging in.</div>
+              </div>
+            </div>
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">3</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">Remember Me Checkbox</div>
+                <div class="callout-ref-desc">Remembers your login session on this device so you will not be asked for credentials on next launch.</div>
+              </div>
+            </div>
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">4</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">Forgot Password? (Recovery Modal)</div>
+                <div class="callout-ref-desc">Opens the Recovery popup. Enter your username and click <strong>Send Code</strong> to email a 6-digit verification code to your registered email (or click <strong>Cancel</strong> / <strong>&times;</strong> to close).</div>
+              </div>
+            </div>
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">5</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">LOGIN Button</div>
+                <div class="callout-ref-desc">Authenticates your credentials and navigates to your role-appropriate Dashboard.</div>
+              </div>
+            </div>
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">6</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">Sidebar & Confirm Logout</div>
+                <div class="callout-ref-desc">Use the sidebar toggle to minimize/expand navigation, view your profile badge and server connection status, or click <strong>Log Out</strong> (confirmed via <em>Cancel / Logout</em> dialog).</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <h3 class="subheading">Step-by-Step: Signing In</h3>
         <div class="steps-container">

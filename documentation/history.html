@@ -274,16 +274,14 @@
           <li><strong>Audit Metadata:</strong> Each log entry records the specific action performed, target record (learner name or LRN), acting staff member, and exact timestamp.</li>
           <li><strong>Detail Inspector:</strong> Administrators can click any entry to open a modal detailing before-and-after values and payload data.</li>
         </ul>
-
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/history_activities.svg" data-caption="System Activity Audit Trail &amp; Detail Inspector">
+        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/guides/admin/admin_26.webp" data-caption="Activity History / Audit Trail Section (Annotated #109-#112)">
           <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/history_activities.svg" alt="System Activity Audit Trail &amp; Detail Inspector" loading="lazy">
+            <img src="assets/images/guides/admin/admin_26.webp" alt="Activity History / Audit Trail Section (Annotated #109-#112)" loading="lazy">
           </div>
           <figcaption>
             <div>
-              <span class="screenshot-title">System Activity Audit Trail &amp; Detail Inspector</span>
-              <p class='screenshot-sub'>Searchable activity ledger detailing user actions, timestamps, affected records, and inspect modal</p>
+              <span class="screenshot-title">Activity History & Audit Trail (#109-#112)</span>
+              <p class='screenshot-sub'>Activities / Users / Sessions tabs, Search/Filter/Refresh, Action cards, and Pagination</p>
             </div>
             <span class="zoom-hint">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
@@ -291,6 +289,39 @@
             </span>
           </figcaption>
         </figure>
+
+        <div class="callout-ref-section">
+          <div class="callout-ref-header">
+            <h4>Activity History / Audit Trail Controls</h4>
+            <div>
+              <span class="platform-pill win">Windows</span>
+              <span class="platform-pill and">Android</span>
+            </div>
+          </div>
+          <div class="callout-ref-grid">
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">1</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">History View Tabs</div>
+                <div class="callout-ref-desc">Switch between <strong>Activities</strong>, <strong>Users</strong> (account lifecycle logs), and <strong>Sessions</strong> (login &amp; device history).</div>
+              </div>
+            </div>
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">2</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">Search, Filter & Refresh</div>
+                <div class="callout-ref-desc">Search logs or filter by Date Range, Action type (<code>CREATE</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>ARCHIVE</code>), User, and Role.</div>
+              </div>
+            </div>
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">3</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">Activity Cards & Pagination</div>
+                <div class="callout-ref-desc">Each entry shows the action badge, description, actor (<code>By</code>), target (<code>Target</code>), timestamp, and paginated navigation (<strong>Previous</strong>, page numbers, <strong>Next</strong>).</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <h3 class="subheading">User Account History &amp; Login Sessions</h3>
         <ul class="bullet-list">
@@ -298,39 +329,54 @@
           <li><strong>Login &amp; Session History:</strong> Displays active and historical user sessions, including username, full name, platform (Windows or Android), client IP address, login timestamp, and session status.</li>
           <li><strong>Search &amp; Pagination:</strong> Both views feature date range pickers, user filters, and responsive pagination to keep large logs manageable.</li>
         </ul>
-
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/history_users.svg" data-caption="User Account Lifecycle History">
-          <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/history_users.svg" alt="User Account Lifecycle History" loading="lazy">
-          </div>
-          <figcaption>
+        <div class="callout-ref-section">
+          <div class="callout-ref-header">
+            <h4>User Account History (Admin Only)</h4>
             <div>
-              <span class="screenshot-title">User Account Lifecycle History</span>
-              <p class='screenshot-sub'>Account modification audit log showing provisioning events, role adjustments, and admin actors</p>
+              <span class="platform-pill win">Windows</span>
             </div>
-            <span class="zoom-hint">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-              Click to enlarge
-            </span>
-          </figcaption>
-        </figure>
-        
-        <figure class="doc-figure component-screenshot" data-lightbox="assets/images/screenshots/history_sessions.svg" data-caption="Active Login Sessions &amp; IP Address Logs">
-          <div class="doc-figure-img-wrap">
-            <img src="assets/images/screenshots/history_sessions.svg" alt="Active Login Sessions &amp; IP Address Logs" loading="lazy">
           </div>
-          <figcaption>
-            <div>
-              <span class="screenshot-title">Active Login Sessions &amp; IP Address Logs</span>
-              <p class='screenshot-sub'>Session tracking table displaying client platforms, network IP addresses, login timestamps, and status</p>
+          <div class="callout-ref-grid">
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">1</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">Account Lifecycle Events</div>
+                <div class="callout-ref-desc">Tracks user creation, profile/role updates, account activations, deactivations, and administrator-initiated password resets.</div>
+              </div>
             </div>
-            <span class="zoom-hint">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-              Click to enlarge
-            </span>
-          </figcaption>
-        </figure>
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">2</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">Actor & Target Attribution</div>
+                <div class="callout-ref-desc">Records both the affected staff account and the administrator who performed the change.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="callout-ref-section">
+          <div class="callout-ref-header">
+            <h4>Login & Session History (Admin Only)</h4>
+            <div>
+              <span class="platform-pill win">Windows</span>
+            </div>
+          </div>
+          <div class="callout-ref-grid">
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">1</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">Active & Historical Sessions</div>
+                <div class="callout-ref-desc">Displays username, full name, client platform (Windows / Android), IP address, login timestamp, and session status.</div>
+              </div>
+            </div>
+            <div class="callout-ref-item">
+              <span class="callout-ref-num">2</span>
+              <div class="callout-ref-body">
+                <div class="callout-ref-title">Session Search & Filters</div>
+                <div class="callout-ref-desc">Dedicated search and filter controls for auditing remote and local network logins.</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         
         <nav class="page-navigation" aria-label="Page navigation">
