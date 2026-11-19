@@ -4,11 +4,13 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - dev
 
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release tag (e.g. v1.0.0). Leave empty to use pubspec.yaml version.'
+        description: 'Release tag (e.g. v1.0.0 or v1.0.0-dev.1). Leave empty to use pubspec.yaml version.'
         required: false
         default: ''
         type: string
@@ -223,20 +225,35 @@ jobs:
           $minor = if ($semParts.Length -ge 2) { $semParts[1] } else { "0" }
 
           $isTagPush = '${{ github.event_name }}' -eq 'push' -and '${{ github.ref }}'.StartsWith('refs/tags/')
+          $branch = '${{ github.ref_name }}'
+          $isDevBranch = $branch -eq 'dev' -or '${{ github.ref }}' -eq 'refs/heads/dev'
 
           if ($isTagPush) {
             $refTag = '${{ github.ref_name }}'
             $tag = if ($refTag.StartsWith('v')) { $refTag } else { "v$refTag" }
             $verName = $tag.TrimStart('v')
+            $isPrerelease = $tag -match '-(dev|beta|rc|alpha)'
+            $releaseTitle = if ($isPrerelease) { "Pre-release $tag" } else { "Release $tag" }
           }
           elseif ($inputTag) {
             $tag = if ($inputTag.StartsWith('v')) { $inputTag } else { "v$inputTag" }
             $verName = $tag.TrimStart('v')
+            $isPrerelease = $tag -match '-(dev|beta|rc|alpha)' -or $isDevBranch
+            $releaseTitle = if ($isPrerelease) { "Dev Build $tag" } else { "Release $tag" }
+          }
+          elseif ($isDevBranch) {
+            # Auto dev tag: e.g. v1.0.42-dev
+            $verName = "$major.$minor.$runNumber-dev"
+            $tag = "v$verName"
+            $isPrerelease = $true
+            $releaseTitle = "Dev Build $tag"
           }
           else {
             # Auto-increment patch using GitHub Actions run_number
             $verName = "$major.$minor.$runNumber"
             $tag = "v$verName"
+            $isPrerelease = $false
+            $releaseTitle = "Release $tag"
           }
 
           $buildNumber = $runNumber
@@ -245,9 +262,11 @@ jobs:
             throw "Invalid release tag '$tag'. Expected format like v1.0.0."
           }
 
-          Write-Host "Release tag  : $tag"
-          Write-Host "Version name : $verName"
-          Write-Host "Build number : $buildNumber"
+          Write-Host "Release tag   : $tag"
+          Write-Host "Version name  : $verName"
+          Write-Host "Build number  : $buildNumber"
+          Write-Host "Is Pre-release: $isPrerelease"
+          Write-Host "Release title : $releaseTitle"
 
           "tag=$tag" |
             Out-File `
@@ -267,6 +286,18 @@ jobs:
               -Encoding utf8 `
               -Append
 
+          "is_prerelease=$($isPrerelease.ToString().ToLower())" |
+            Out-File `
+              -FilePath $env:GITHUB_OUTPUT `
+              -Encoding utf8 `
+              -Append
+
+          "release_title=$releaseTitle" |
+            Out-File `
+              -FilePath $env:GITHUB_OUTPUT `
+              -Encoding utf8 `
+              -Append
+
           # Sync calculated version and build number into pubspec.yaml
           $pubspecPath = "frontend/pubspec.yaml"
           $pubContent = Get-Content $pubspecPath
@@ -275,10 +306,10 @@ jobs:
           Write-Host "Updated $pubspecPath to version: $verName+$buildNumber"
 
       # ------------------------------------------------------------
-      # Manual Release Tag
+      # Create Git Tag (for branch pushes and manual workflow dispatch)
       # ------------------------------------------------------------
-      - name: Create Git Tag for Manual Release
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+      - name: Create Git Tag if Needed
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -590,7 +621,7 @@ jobs:
         with:
           tag_name: ${{ steps.release_info.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: Release ${{ steps.release_info.outputs.tag }}
+          name: ${{ steps.release_info.outputs.release_title }}
           body_path: release_changelog.md
           files: |
             installers/TIS_RMS_Client_Setup_${{ steps.release_info.outputs.tag }}.exe
@@ -599,6 +630,7 @@ jobs:
             installers/TIS_RMS_Universal_${{ steps.release_info.outputs.tag }}.apk
           generate_release_notes: true
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.release_info.outputs.is_prerelease == 'true' }}
+          make_latest: ${{ steps.release_info.outputs.is_prerelease != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
