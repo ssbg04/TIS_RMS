@@ -10,195 +10,34 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release tag (e.g. v1.0.0 or v1.0.0-dev.1). Leave empty to use pubspec.yaml version.'
+        description: 'Release tag (e.g. v1.0.0 or v1.0.0-dev.1). Leave empty to auto-generate.'
         required: false
         default: ''
         type: string
 
-jobs:
-  build-and-release:
-    name: Build Windows & Android Artifacts
-    runs-on: windows-latest
+permissions:
+  contents: write
 
-    permissions:
-      contents: write
+jobs:
+  # ============================================================
+  # 1. Prepare Release Metadata & Tag
+  # ============================================================
+  prepare:
+    name: Prepare Release Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.release_info.outputs.tag }}
+      version_name: ${{ steps.release_info.outputs.version_name }}
+      build_number: ${{ steps.release_info.outputs.build_number }}
+      is_prerelease: ${{ steps.release_info.outputs.is_prerelease }}
+      release_title: ${{ steps.release_info.outputs.release_title }}
 
     steps:
-      # ------------------------------------------------------------
-      # Checkout
-      # ------------------------------------------------------------
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
-      # ------------------------------------------------------------
-      # Java
-      # ------------------------------------------------------------
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-
-      - name: Verify Java
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          Write-Host "JAVA_HOME = $env:JAVA_HOME"
-
-          if (-not $env:JAVA_HOME) {
-            throw "JAVA_HOME is not set."
-          }
-
-          if (-not (Test-Path "$env:JAVA_HOME\bin\java.exe")) {
-            throw "Java executable was not found at $env:JAVA_HOME\bin\java.exe"
-          }
-
-          & "$env:JAVA_HOME\bin\java.exe" -version
-
-      # ------------------------------------------------------------
-      # .NET
-      # ------------------------------------------------------------
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Verify .NET
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          dotnet --info
-
-      # ------------------------------------------------------------
-      # Flutter
-      # ------------------------------------------------------------
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.44.8'
-          channel: stable
-          cache: true
-
-      - name: Flutter Doctor
-        working-directory: frontend
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          flutter doctor -v
-
-      # ------------------------------------------------------------
-      # Android / Gradle Java Fix
-      # ------------------------------------------------------------
-      - name: Fix Android Gradle Java Configuration
-        working-directory: frontend
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          $gradleProperties = "android\gradle.properties"
-
-          if (Test-Path $gradleProperties) {
-            Write-Host "Checking $gradleProperties"
-
-            $content = Get-Content $gradleProperties
-
-            $filtered = $content | Where-Object {
-              $_ -notmatch '^\s*org\.gradle\.java\.home\s*='
-            }
-
-            if ($filtered.Count -ne $content.Count) {
-              Write-Host "Removing stale org.gradle.java.home configuration..."
-              Set-Content `
-                -Path $gradleProperties `
-                -Value $filtered `
-                -Encoding utf8
-            }
-            else {
-              Write-Host "No org.gradle.java.home override found."
-            }
-          }
-          else {
-            Write-Host "$gradleProperties does not exist."
-          }
-
-          Write-Host ""
-          Write-Host "Java used by GitHub Actions:"
-          Write-Host "JAVA_HOME = $env:JAVA_HOME"
-
-          & "$env:JAVA_HOME\bin\java.exe" -version
-
-      # ------------------------------------------------------------
-      # Google Services
-      # ------------------------------------------------------------
-      - name: Restore google-services.json from Secret
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        if: ${{ env.GOOGLE_SERVICES_JSON != '' }}
-        working-directory: frontend/android/app
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          Set-Content `
-            -Path "google-services.json" `
-            -Value $env:GOOGLE_SERVICES_JSON `
-            -Encoding utf8
-
-          Write-Host "google-services.json restored."
-
-      # ------------------------------------------------------------
-      # Android Release Keystore & Signing Configuration
-      # ------------------------------------------------------------
-      - name: Restore Android Release Keystore from Secret
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
-        working-directory: frontend/android/app
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          $base64 = $env:ANDROID_KEYSTORE_BASE64.Trim()
-          $bytes = [Convert]::FromBase64String($base64)
-          [IO.File]::WriteAllBytes("$PWD/tis_rms_release.keystore", $bytes)
-
-          Write-Host "tis_rms_release.keystore successfully restored from secret."
-
-      - name: Configure Android key.properties
-        env:
-          KEY_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_STORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEYSTORE_KEY_ALIAS }}
-        working-directory: frontend/android
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          $keystoreFile = "app/tis_rms_release.keystore"
-          if (Test-Path $keystoreFile) {
-            $storePass = if ($env:KEY_STORE_PASSWORD) { $env:KEY_STORE_PASSWORD } else { "android" }
-            $keyPass = if ($env:KEY_PASSWORD) { $env:KEY_PASSWORD } else { "android" }
-            $alias = if ($env:KEY_ALIAS) { $env:KEY_ALIAS } else { "androiddebugkey" }
-
-            @(
-              "storePassword=$storePass",
-              "keyPassword=$keyPass",
-              "keyAlias=$alias",
-              "storeFile=tis_rms_release.keystore"
-            ) | Set-Content -Path "key.properties" -Encoding ascii
-            Write-Host "Android key.properties successfully created."
-          } else {
-            Write-Warning "Keystore file not found at $keystoreFile. Build will use debug signing."
-          }
-
-
-      # ------------------------------------------------------------
-      # Determine Release Tag & Version
-      # ------------------------------------------------------------
       - name: Determine Release Tag & Version
         id: release_info
         shell: pwsh
@@ -242,14 +81,12 @@ jobs:
             $releaseTitle = if ($isPrerelease) { "Dev Build $tag" } else { "Release $tag" }
           }
           elseif ($isDevBranch) {
-            # Auto dev tag: e.g. v1.0.42-dev
             $verName = "$major.$minor.$runNumber-dev"
             $tag = "v$verName"
             $isPrerelease = $true
             $releaseTitle = "Dev Build $tag"
           }
           else {
-            # Auto-increment patch using GitHub Actions run_number
             $verName = "$major.$minor.$runNumber"
             $tag = "v$verName"
             $isPrerelease = $false
@@ -268,46 +105,12 @@ jobs:
           Write-Host "Is Pre-release: $isPrerelease"
           Write-Host "Release title : $releaseTitle"
 
-          "tag=$tag" |
-            Out-File `
-              -FilePath $env:GITHUB_OUTPUT `
-              -Encoding utf8 `
-              -Append
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "version_name=$verName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "build_number=$buildNumber" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "is_prerelease=$($isPrerelease.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "release_title=$releaseTitle" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-          "version_name=$verName" |
-            Out-File `
-              -FilePath $env:GITHUB_OUTPUT `
-              -Encoding utf8 `
-              -Append
-
-          "build_number=$buildNumber" |
-            Out-File `
-              -FilePath $env:GITHUB_OUTPUT `
-              -Encoding utf8 `
-              -Append
-
-          "is_prerelease=$($isPrerelease.ToString().ToLower())" |
-            Out-File `
-              -FilePath $env:GITHUB_OUTPUT `
-              -Encoding utf8 `
-              -Append
-
-          "release_title=$releaseTitle" |
-            Out-File `
-              -FilePath $env:GITHUB_OUTPUT `
-              -Encoding utf8 `
-              -Append
-
-          # Sync calculated version and build number into pubspec.yaml
-          $pubspecPath = "frontend/pubspec.yaml"
-          $pubContent = Get-Content $pubspecPath
-          $updatedPub = $pubContent -replace '^version:.*', "version: $verName+$buildNumber"
-          Set-Content -Path $pubspecPath -Value $updatedPub -Encoding utf8
-          Write-Host "Updated $pubspecPath to version: $verName+$buildNumber"
-
-      # ------------------------------------------------------------
-      # Create Git Tag (for branch pushes and manual workflow dispatch)
-      # ------------------------------------------------------------
       - name: Create Git Tag if Needed
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         shell: pwsh
@@ -318,33 +121,52 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           Write-Host "Checking whether tag $env:RELEASE_TAG exists..."
-
-          gh api `
-            "repos/${{ github.repository }}/git/ref/tags/$env:RELEASE_TAG" `
-            --silent 2>$null
+          gh api "repos/${{ github.repository }}/git/ref/tags/$env:RELEASE_TAG" --silent 2>$null
 
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Tag $env:RELEASE_TAG already exists."
           }
           else {
             Write-Host "Creating tag $env:RELEASE_TAG..."
-
-            gh api `
-              --method POST `
-              "repos/${{ github.repository }}/git/refs" `
+            gh api --method POST "repos/${{ github.repository }}/git/refs" `
               -f "ref=refs/tags/$env:RELEASE_TAG" `
               -f "sha=${{ github.sha }}"
 
             if ($LASTEXITCODE -ne 0) {
               throw "Failed to create tag $env:RELEASE_TAG"
             }
-
             Write-Host "Tag $env:RELEASE_TAG created successfully."
           }
 
-      # ------------------------------------------------------------
-      # Windows Build
-      # ------------------------------------------------------------
+  # ============================================================
+  # 2. Parallel Job: Windows Desktop Build
+  # ============================================================
+  build-windows:
+    name: Build Windows Desktop App
+    needs: prepare
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          cache: true
+
+      - name: Sync Version into pubspec.yaml
+        shell: pwsh
+        run: |
+          $pubspecPath = "frontend/pubspec.yaml"
+          $pubContent = Get-Content $pubspecPath
+          $updatedPub = $pubContent -replace '^version:.*', "version: ${{ needs.prepare.outputs.version_name }}+${{ needs.prepare.outputs.build_number }}"
+          Set-Content -Path $pubspecPath -Value $updatedPub -Encoding utf8
+
       - name: Build Windows Desktop App
         working-directory: frontend
         shell: pwsh
@@ -352,40 +174,34 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           flutter pub get
-
-          if ($LASTEXITCODE -ne 0) {
-            throw "flutter pub get failed."
-          }
+          if ($LASTEXITCODE -ne 0) { throw "flutter pub get failed." }
 
           flutter build windows `
             --release `
             --obfuscate `
             --split-debug-info=build/windows/symbols `
-            --build-name="${{ steps.release_info.outputs.version_name }}" `
-            --build-number="${{ steps.release_info.outputs.build_number }}"
+            --build-name="${{ needs.prepare.outputs.version_name }}" `
+            --build-number="${{ needs.prepare.outputs.build_number }}"
 
-          if ($LASTEXITCODE -ne 0) {
-            throw "Flutter Windows build failed."
-          }
+          if ($LASTEXITCODE -ne 0) { throw "Flutter Windows build failed." }
 
-          Write-Host ""
-          Write-Host "Verifying compiled Windows release binaries and plugin DLLs:"
-          $releaseDir = "build\windows\x64\runner\Release"
-          Get-ChildItem -Path "$releaseDir\*.dll" | Select-Object Name, Length
+      - name: Cache Visual C++ Redistributable
+        id: cache-vcredist
+        uses: actions/cache@v4
+        with:
+          path: frontend/vc_redist.x64.exe
+          key: vc-redist-x64-v1
 
-      # ------------------------------------------------------------
-      # Visual C++ Redistributable Dependency
-      # ------------------------------------------------------------
-      - name: Download Microsoft Visual C++ Redistributable
+      - name: Download Visual C++ Redistributable
+        if: steps.cache-vcredist.outputs.cache-hit != 'true'
         working-directory: frontend
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-
           $vcRedistUrl = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
           $vcRedistFile = "vc_redist.x64.exe"
 
-          Write-Host "Downloading Microsoft Visual C++ 2015-2022 Redistributable (x64) from $vcRedistUrl..."
+          Write-Host "Downloading Microsoft Visual C++ Redistributable (x64)..."
           $ProgressPreference = 'SilentlyContinue'
           Invoke-WebRequest -Uri $vcRedistUrl -OutFile $vcRedistFile
 
@@ -393,159 +209,235 @@ jobs:
             throw "Downloaded vc_redist.x64.exe was not found."
           }
 
-          $fileSize = (Get-Item $vcRedistFile).Length
-          Write-Host "vc_redist.x64.exe downloaded successfully. Size: $fileSize bytes."
-
-          if ($fileSize -lt 10000000) {
-            throw "Downloaded vc_redist.x64.exe appears incomplete or corrupted (size: $fileSize bytes)."
-          }
-
-      # ------------------------------------------------------------
-      # Windows Installer
-      # ------------------------------------------------------------
       - name: Compile Inno Setup Windows Installer
         working-directory: frontend
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
 
-          New-Item `
-            -ItemType Directory `
-            -Force `
-            -Path ..\installers |
-            Out-Null
+          New-Item -ItemType Directory -Force -Path ..\installers | Out-Null
 
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
-            "/DMyAppVersion=${{ steps.release_info.outputs.version_name }}" `
-            "/DOutputBaseFilename=TIS_RMS_Client_Setup_${{ steps.release_info.outputs.tag }}" `
+            "/DMyAppVersion=${{ needs.prepare.outputs.version_name }}" `
+            "/DOutputBaseFilename=TIS_RMS_Client_Setup_${{ needs.prepare.outputs.tag }}" `
             TIS_RMS_Client.iss
 
-          if ($LASTEXITCODE -ne 0) {
-            throw "Inno Setup compilation failed."
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
+
+      - name: Upload Windows Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: installers/TIS_RMS_Client_Setup_*.exe
+          if-no-files-found: error
+
+  # ============================================================
+  # 3. Parallel Job: Android App Build (on Fast Ubuntu Runner)
+  # ============================================================
+  build-android:
+    name: Build Android APKs
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          cache: true
+
+      - name: Fix Android Gradle Java Configuration
+        working-directory: frontend
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $gradleProperties = "android/gradle.properties"
+
+          if (Test-Path $gradleProperties) {
+            $content = Get-Content $gradleProperties
+            $filtered = $content | Where-Object { $_ -notmatch '^\s*org\.gradle\.java\.home\s*=' }
+            if ($filtered.Count -ne $content.Count) {
+              Set-Content -Path $gradleProperties -Value $filtered -Encoding utf8
+            }
           }
 
-      # ------------------------------------------------------------
-      # Android Build (Split 32-bit, 64-bit & Universal APKs)
-      # ------------------------------------------------------------
-      - name: Build Android APKs (Split 32-bit, 64-bit & Universal)
+      - name: Restore google-services.json from Secret
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        if: ${{ env.GOOGLE_SERVICES_JSON != '' }}
+        working-directory: frontend/android/app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Content -Path "google-services.json" -Value $env:GOOGLE_SERVICES_JSON -Encoding utf8
+
+      - name: Restore Android Release Keystore from Secret
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+        working-directory: frontend/android/app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $base64 = $env:ANDROID_KEYSTORE_BASE64.Trim()
+          $bytes = [Convert]::FromBase64String($base64)
+          [IO.File]::WriteAllBytes("$PWD/tis_rms_release.keystore", $bytes)
+
+      - name: Configure Android key.properties
+        env:
+          KEY_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEYSTORE_KEY_ALIAS }}
+        working-directory: frontend/android
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $keystoreFile = "app/tis_rms_release.keystore"
+          if (Test-Path $keystoreFile) {
+            $storePass = if ($env:KEY_STORE_PASSWORD) { $env:KEY_STORE_PASSWORD } else { "android" }
+            $keyPass = if ($env:KEY_PASSWORD) { $env:KEY_PASSWORD } else { "android" }
+            $alias = if ($env:KEY_ALIAS) { $env:KEY_ALIAS } else { "androiddebugkey" }
+
+            @(
+              "storePassword=$storePass",
+              "keyPassword=$keyPass",
+              "keyAlias=$alias",
+              "storeFile=tis_rms_release.keystore"
+            ) | Set-Content -Path "key.properties" -Encoding ascii
+          }
+
+      - name: Sync Version into pubspec.yaml
+        shell: pwsh
+        run: |
+          $pubspecPath = "frontend/pubspec.yaml"
+          $pubContent = Get-Content $pubspecPath
+          $updatedPub = $pubContent -replace '^version:.*', "version: ${{ needs.prepare.outputs.version_name }}+${{ needs.prepare.outputs.build_number }}"
+          Set-Content -Path $pubspecPath -Value $updatedPub -Encoding utf8
+
+      - name: Build Android APKs
         working-directory: frontend
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
 
-          Write-Host "Using JAVA_HOME:"
-          Write-Host $env:JAVA_HOME
+          flutter pub get
+          if ($LASTEXITCODE -ne 0) { throw "flutter pub get failed." }
 
-          & "$env:JAVA_HOME\bin\java.exe" -version
+          $tag = "${{ needs.prepare.outputs.tag }}"
+          $verName = "${{ needs.prepare.outputs.version_name }}"
+          $buildNum = "${{ needs.prepare.outputs.build_number }}"
+          $isPrerelease = "${{ needs.prepare.outputs.is_prerelease }}" -eq 'true'
 
-          $tag = "${{ steps.release_info.outputs.tag }}"
-          $verName = "${{ steps.release_info.outputs.version_name }}"
-          $buildNum = "${{ steps.release_info.outputs.build_number }}"
+          New-Item -ItemType Directory -Force -Path "../installers" | Out-Null
 
-          # 1. Build Split-per-ABI APKs (32-bit armeabi-v7a & 64-bit arm64-v8a)
-          Write-Host ""
-          Write-Host "Building Android Split-per-ABI APKs (32-bit & 64-bit)..."
+          if ($isPrerelease) {
+            Write-Host "Dev build: Building Universal APK only..."
+            flutter build apk `
+              --release `
+              --obfuscate `
+              --split-debug-info=build/app/outputs/symbols `
+              --build-name="$verName" `
+              --build-number="$buildNum"
 
-          flutter build apk `
-            --release `
-            --split-per-abi `
-            --obfuscate `
-            --split-debug-info=build/app/outputs/symbols `
-            --build-name="$verName" `
-            --build-number="$buildNum"
+            if ($LASTEXITCODE -ne 0) { throw "Flutter Android Universal APK build failed." }
 
-          if ($LASTEXITCODE -ne 0) {
-            throw "Flutter Android split-per-abi build failed."
+            $apkUni = "build/app/outputs/flutter-apk/app-release.apk"
+            if (-not (Test-Path $apkUni)) { throw "Missing $apkUni" }
+            Copy-Item $apkUni "../installers/TIS_RMS_Universal_$tag.apk" -Force
+            Copy-Item $apkUni "../installers/TIS_RMS_Universal.apk" -Force
+          }
+          else {
+            Write-Host "Production build: Building Split-per-ABI APKs (32-bit & 64-bit)..."
+            flutter build apk `
+              --release `
+              --split-per-abi `
+              --obfuscate `
+              --split-debug-info=build/app/outputs/symbols `
+              --build-name="$verName" `
+              --build-number="$buildNum"
+
+            if ($LASTEXITCODE -ne 0) { throw "Flutter Android split-per-abi build failed." }
+
+            $apk32 = "build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk"
+            $apk64 = "build/app/outputs/flutter-apk/app-arm64-v8a-release.apk"
+            Copy-Item $apk32 "../installers/TIS_RMS_32bit_$tag.apk" -Force
+            Copy-Item $apk64 "../installers/TIS_RMS_64_$tag.apk" -Force
+            Copy-Item $apk32 "../installers/TIS_RMS_32bit.apk" -Force
+            Copy-Item $apk64 "../installers/TIS_RMS_64.apk" -Force
+
+            Write-Host "Production build: Building Universal APK..."
+            flutter build apk `
+              --release `
+              --obfuscate `
+              --split-debug-info=build/app/outputs/symbols `
+              --build-name="$verName" `
+              --build-number="$buildNum"
+
+            if ($LASTEXITCODE -ne 0) { throw "Flutter Android universal APK build failed." }
+
+            $apkUni = "build/app/outputs/flutter-apk/app-release.apk"
+            Copy-Item $apkUni "../installers/TIS_RMS_Universal_$tag.apk" -Force
+            Copy-Item $apkUni "../installers/TIS_RMS_Universal.apk" -Force
           }
 
-          $apk32 = "build\app\outputs\flutter-apk\app-armeabi-v7a-release.apk"
-          $apk64 = "build\app\outputs\flutter-apk\app-arm64-v8a-release.apk"
+      - name: Upload Android APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apks
+          path: installers/TIS_RMS_*.apk
+          if-no-files-found: error
 
-          $output32 = "..\installers\TIS_RMS_32bit_$tag.apk"
-          $output64 = "..\installers\TIS_RMS_64_$tag.apk"
+  # ============================================================
+  # 4. Publish GitHub Release
+  # ============================================================
+  publish-release:
+    name: Publish Release & Upload Artifacts
+    needs: [prepare, build-windows, build-android]
+    runs-on: ubuntu-latest
 
-          if (-not (Test-Path $apk32)) {
-            throw "Split build completed without producing $apk32"
-          }
-          if (-not (Test-Path $apk64)) {
-            throw "Split build completed without producing $apk64"
-          }
+    steps:
+      - name: Checkout Repository (Full History for Changelog)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-          Copy-Item $apk32 $output32 -Force
-          Copy-Item $apk64 $output64 -Force
-          Copy-Item $apk32 "..\installers\TIS_RMS_32bit.apk" -Force
-          Copy-Item $apk64 "..\installers\TIS_RMS_64.apk" -Force
+      - name: Download Windows Installer
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: installers
 
-          Write-Host "32-bit APK copied to $output32 and ..\installers\TIS_RMS_32bit.apk"
-          Write-Host "64-bit APK copied to $output64 and ..\installers\TIS_RMS_64.apk"
+      - name: Download Android APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apks
+          path: installers
 
-          # 2. Build Universal APK (All ABIs bundled)
-          Write-Host ""
-          Write-Host "Building Android Universal APK..."
-
-          flutter build apk `
-            --release `
-            --obfuscate `
-            --split-debug-info=build/app/outputs/symbols `
-            --build-name="$verName" `
-            --build-number="$buildNum"
-
-          if ($LASTEXITCODE -ne 0) {
-            throw "Flutter Android universal APK build failed."
-          }
-
-          $apkUniversal = "build\app\outputs\flutter-apk\app-release.apk"
-          $outputUniversal = "..\installers\TIS_RMS_Universal_$tag.apk"
-
-          if (-not (Test-Path $apkUniversal)) {
-            throw "Universal build completed without producing $apkUniversal"
-          }
-
-          Copy-Item $apkUniversal $outputUniversal -Force
-          Copy-Item $apkUniversal "..\installers\TIS_RMS_Universal.apk" -Force
-
-          Write-Host "Universal APK copied to $outputUniversal and ..\installers\TIS_RMS_Universal.apk"
-
-      # ------------------------------------------------------------
-      # Verify Artifacts
-      # ------------------------------------------------------------
-      - name: Verify Release Artifacts
+      - name: Verify Downloaded Artifacts
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          Get-ChildItem -Path installers -Recurse | Select-Object Name, Length
 
-          $tag = "${{ steps.release_info.outputs.tag }}"
-          $files = @(
-            "installers\TIS_RMS_Client_Setup_$tag.exe",
-            "installers\TIS_RMS_32bit_$tag.apk",
-            "installers\TIS_RMS_64_$tag.apk",
-            "installers\TIS_RMS_Universal_$tag.apk"
-          )
-
-          foreach ($file in $files) {
-            if (-not (Test-Path $file)) {
-              throw "Missing release artifact: $file"
-            }
-
-            $size = (Get-Item $file).Length
-
-            if ($size -le 0) {
-              throw "Release artifact is empty: $file"
-            }
-
-            Write-Host "Found: $file"
-            Write-Host "Size: $size bytes"
-          }
-
-      # ------------------------------------------------------------
-      # Generate Commit-Based Changelog
-      # ------------------------------------------------------------
       - name: Generate Release Changelog
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
 
-          $tag = "${{ steps.release_info.outputs.tag }}"
+          $tag = "${{ needs.prepare.outputs.tag }}"
           $prevTag = git tag --merged HEAD --list "v*" --sort=-v:refname 2>$null |
             Where-Object { $_ -and $_ -ne $tag } |
             Select-Object -First 1
@@ -613,24 +505,19 @@ jobs:
           [System.IO.File]::WriteAllText($changelogPath, $sb.ToString(), [System.Text.UTF8Encoding]::new($false))
           Write-Host (Get-Content $changelogPath -Raw)
 
-      # ------------------------------------------------------------
-      # GitHub Release
-      # ------------------------------------------------------------
       - name: Create GitHub Release and Upload Artifacts
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.release_info.outputs.tag }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: ${{ steps.release_info.outputs.release_title }}
+          name: ${{ needs.prepare.outputs.release_title }}
           body_path: release_changelog.md
           files: |
-            installers/TIS_RMS_Client_Setup_${{ steps.release_info.outputs.tag }}.exe
-            installers/TIS_RMS_32bit_${{ steps.release_info.outputs.tag }}.apk
-            installers/TIS_RMS_64_${{ steps.release_info.outputs.tag }}.apk
-            installers/TIS_RMS_Universal_${{ steps.release_info.outputs.tag }}.apk
+            installers/TIS_RMS_Client_Setup_*.exe
+            installers/TIS_RMS_*.apk
           generate_release_notes: true
           draft: false
-          prerelease: ${{ steps.release_info.outputs.is_prerelease == 'true' }}
-          make_latest: ${{ steps.release_info.outputs.is_prerelease != 'true' }}
+          prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
+          make_latest: ${{ needs.prepare.outputs.is_prerelease != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
