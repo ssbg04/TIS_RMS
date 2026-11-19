@@ -77,6 +77,98 @@ class AuthRepository {
     }
   }
 
+  /// Sign in using token-based biometrics (no username/password needed)
+  Future<UserModel> loginWithBiometrics(String biometricToken) async {
+    try {
+      final response = await _dio.post(
+        '/auth/biometric/login',
+        data: {
+          'token': biometricToken,
+          'platform': ApiConstants.clientPlatform,
+          'device_name': ApiConstants.clientDeviceName,
+        },
+      );
+
+      if (response.data is! Map) {
+        throw Exception('Server returned an unexpected response format.');
+      }
+
+      final data = response.data as Map;
+      final token = data['token'] as String?;
+      if (token == null || token.isEmpty) {
+        throw Exception('Server did not return an authentication token.');
+      }
+
+      await _storage.write(key: _tokenKey, value: token);
+      await _storage.write(key: _rememberMeKey, value: 'true');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenKey, token);
+
+      final userData = data['user'] as Map?;
+      if (userData == null) {
+        throw Exception('Server did not return user details.');
+      }
+
+      return UserModel(
+        id: userData['id'],
+        username: userData['username'],
+        firstName: userData['firstName'],
+        lastName: userData['lastName'],
+        role: userData['role'],
+      );
+    } on DioException catch (e) {
+      final errorMessage = ApiConstants.extractErrorMessage(
+        e,
+        'Biometric sign-in failed. Please try again or use your password.',
+      );
+      throw Exception(errorMessage);
+    } catch (e) {
+      throw Exception(ApiConstants.extractErrorMessage(e));
+    }
+  }
+
+  /// Registers this device for token-based biometric sign-in
+  Future<String> registerBiometrics() async {
+    try {
+      final token = await _storage.read(key: _tokenKey);
+      final response = await _dio.post(
+        '/auth/biometric/register',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        data: {
+          'platform': ApiConstants.clientPlatform,
+          'device_name': ApiConstants.clientDeviceName,
+        },
+      );
+      final data = response.data as Map;
+      final bioToken = data['token'] as String?;
+      if (bioToken == null || bioToken.isEmpty) {
+        throw Exception('Server failed to issue biometric token.');
+      }
+      return bioToken;
+    } on DioException catch (e) {
+      throw Exception(
+        ApiConstants.extractErrorMessage(e, 'Failed to register biometric sign-in.'),
+      );
+    } catch (e) {
+      throw Exception(ApiConstants.extractErrorMessage(e));
+    }
+  }
+
+  /// Disables biometric sign-in on server for this device
+  Future<void> disableBiometrics({String? token}) async {
+    try {
+      final jwt = await _storage.read(key: _tokenKey);
+      await _dio.post(
+        '/auth/biometric/disable',
+        options: Options(headers: {'Authorization': 'Bearer $jwt'}),
+        data: {
+          'token': ?token,
+          'platform': ApiConstants.clientPlatform,
+        },
+      );
+    } catch (_) {}
+  }
+
   /// Auto-login: returns user if a valid Remember Me token is stored, otherwise null.
   Future<UserModel?> tryAutoLogin() async {
     String? rememberMe;

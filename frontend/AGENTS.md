@@ -1234,11 +1234,37 @@ Files backup/restore - mirror mode or zip -->
 <!-- # SETTINGS SCREEN
 - document requirements screen, remove the document templates icon button at header -->
 
-# SETTINGS SCREEN
+<!-- # SETTINGS SCREEN
 - both this backend and F:\SoftwareDevelopment\Capstone\TIS_RIS_Server_Manager\backend
 - about & support screen, redesign the report an issue / feedback modal
 - update the report an issue, use the gmail smtp server an email service using tistq.rms@gmail.com to send an email to crischarlesgarcia345@gmail.com, make sure the category, urgency level, subject, description, attachment are in the email to be sent to the developer using smtp.
-- update the code files first in this backend/ then to F:\SoftwareDevelopment\Capstone\TIS_RIS_Server_Manager\backend
+- update the code files first in this backend/ then to F:\SoftwareDevelopment\Capstone\TIS_RIS_Server_Manager\backend -->
+
+# Document Screen
+- file versioning upload modal not opening the preview document screen, and uploading new version rename like uploading a document
+- Redesign document type filter button: replace the unbounded full-screen popup menu with a dedicated Filter Dialog (desktop) / Bottom Sheet (mobile) with search bar, category tabs (All / JHS / SHS / Other), filter chips, and Clear/Apply actions (matching FolderFilterDialog style)
+
+# Archive Screen
+- File version sheet cannot open in this screen
+- Apply the same redesigned document type Filter Dialog / Bottom Sheet from Document Screen to replace full-screen popup menu
+
+# SETTINGS SCREEN - Security & Two-Factor Authentication (2FA)
+- Support both 2FA methods in Settings > Security Screen:
+  1. Authenticator App (TOTP - Google/Microsoft Authenticator, works offline)
+  2. Email OTP (6-digit code via registered email with Gmail SMTP)
+- Allow user to enable, disable, and select preferred 2FA method in Security screen
+- Generate and display backup recovery codes upon 2FA setup
+- Prompt 2FA verification step during login on Login Screen when 2FA is active
+
+# REPORTS SCREEN - Compliance Tab Interactive Graph Legends
+- Donut chart (Student Status Breakdown): Make legends (and pie slices) clickable to filter the report table and metrics by student status (Active, Inactive, Dropped, Graduated, Transferred); click again to toggle back to All Statuses, with active highlight/dim visual styling.
+- Bar chart (Students Per Year): Make status legends clickable toggle chips to directly show/hide that status bar series in the comparison graph without needing to open the multi-select modal.
+
+# STUDENTS SCREEN - Missing Requirements Badge & Hover/Hold Tooltip
+- Redesign the missing requirements badge on student cards and table rows to match Reports screen (Compliance tab students list):
+  - Theme-responsive colors for both light and dark mode (`AppColors.darkSurface2` / `Colors.grey.shade100`, border, indicator icons).
+  - Hover (desktop) / Long-press hold (mobile) rich tooltip with theme-aware background, border, text color, and formatted list of missing documents (instead of default plain text box).
+  - Tap opens the missing documents bottom sheet consistently.
 
 ---
 

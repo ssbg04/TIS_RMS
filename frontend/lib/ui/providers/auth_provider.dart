@@ -50,6 +50,32 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     }
   }
 
+  Future<bool> loginWithBiometrics(String biometricToken) async {
+    state = const AsyncLoading();
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      final user = await repository.loginWithBiometrics(biometricToken);
+      state = AsyncData(user);
+      ref.read(heartbeatServiceProvider).start(user);
+      ForegroundSyncService.start();
+      FcmService.registerToken();
+      return true;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  Future<String> registerBiometrics() async {
+    final repository = ref.read(authRepositoryProvider);
+    return await repository.registerBiometrics();
+  }
+
+  Future<void> disableBiometrics({String? token}) async {
+    final repository = ref.read(authRepositoryProvider);
+    await repository.disableBiometrics(token: token);
+  }
+
   /// Called from SplashScreen — tries to auto-login from stored token.
   Future<UserModel?> tryAutoLogin() async {
     try {

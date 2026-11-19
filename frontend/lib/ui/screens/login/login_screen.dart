@@ -204,12 +204,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     );
   }
 
-  Future<void> _promptEnableBiometric(String username, String password) async {
+  Future<void> _promptEnableBiometric(String username) async {
     if (!_biometricSupported || !mounted) return;
-    if (_hasBiometricCredentials) {
-      await BiometricAuthService.saveCredentials(username, password);
-      return;
-    }
+    if (_hasBiometricCredentials) return;
     if (await BiometricAuthService.wasPromptDeclined() || !mounted) return;
 
     final result = await showDialog<String>(
@@ -248,7 +245,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     );
 
     if (result == 'enable') {
-      await BiometricAuthService.saveCredentials(username, password);
+      try {
+        final token = await ref.read(authProvider.notifier).registerBiometrics();
+        await BiometricAuthService.saveBiometricToken(username, token);
+      } catch (e) {
+        debugPrint('Failed to register biometrics: $e');
+      }
     } else if (result == 'never') {
       await BiometricAuthService.setPromptDeclined(true);
     }
@@ -259,17 +261,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     setState(() => _isBiometricAuthenticating = true);
 
     try {
-      final creds = await BiometricAuthService.authenticateAndGetCredentials();
-      if (!mounted || creds == null) {
+      final bioData = await BiometricAuthService.authenticateAndGetToken();
+      if (!mounted || bioData == null) {
         if (mounted) setState(() => _isBiometricAuthenticating = false);
         return;
       }
 
-      final success = await ref.read(authProvider.notifier).login(
-            creds.username,
-            creds.password,
-            rememberMe: true,
-          );
+      final success = await ref
+          .read(authProvider.notifier)
+          .loginWithBiometrics(bioData.token);
 
       if (!mounted) return;
       setState(() => _isBiometricAuthenticating = false);
@@ -277,7 +277,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       if (success) {
         _navigateToHome();
       } else {
-        _showLoginError();
+        await BiometricAuthService.clearCredentials();
+        _loadBiometricStatus();
+        if (mounted) {
+          showErrorDialog(
+            context,
+            'Biometric Sign-In Expired',
+            'Your biometric session has expired or was revoked. Please log in with your password to re-enable biometrics.',
+          );
+        }
       }
     } catch (_) {
       if (mounted) setState(() => _isBiometricAuthenticating = false);
@@ -325,7 +333,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         await prefs.remove('saved_password');
       }
 
-      await _promptEnableBiometric(username, password);
+      await _promptEnableBiometric(username);
       _navigateToHome();
     } else {
       FocusScope.of(context).unfocus();

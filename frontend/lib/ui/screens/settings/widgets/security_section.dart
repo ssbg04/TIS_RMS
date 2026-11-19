@@ -6,6 +6,7 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/services/biometric_auth_service.dart';
 import '../../../../core/utils/ip_location_helper.dart';
 import '../../../../domain/entities/user_model.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/sessions_provider.dart';
 import 'change_password_modal.dart';
 
@@ -62,6 +63,10 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
 
   Future<void> _toggleBiometric(bool value) async {
     if (!value) {
+      try {
+        final currentBioToken = await BiometricAuthService.getSavedToken();
+        await ref.read(authProvider.notifier).disableBiometrics(token: currentBioToken);
+      } catch (_) {}
       await BiometricAuthService.clearCredentials();
       if (!mounted) return;
       setState(() => _biometricEnabled = false);
@@ -74,14 +79,32 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
       return;
     }
 
-    await BiometricAuthService.setPromptDeclined(false);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Sign out and log in once with your password to enable biometric login.'),
-        backgroundColor: AppColors.primaryGreen,
-      ),
+    // Prompt biometric scan directly to verify device owner
+    final verified = await BiometricAuthService.authenticate(
+      reason: 'Scan your fingerprint or face to enable biometric sign-in',
     );
+    if (!verified || !mounted) return;
+
+    try {
+      final token = await ref.read(authProvider.notifier).registerBiometrics();
+      await BiometricAuthService.saveBiometricToken(widget.user.username, token);
+      if (!mounted) return;
+      setState(() => _biometricEnabled = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sign in with biometrics enabled on this device.'),
+          backgroundColor: AppColors.primaryGreen,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to enable biometrics: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -321,9 +344,7 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
     final sessionsAsync = ref.watch(sessionsProvider);
     return sessionsAsync.maybeWhen(
       data: (sessions) {
-        final activeCount = sessions
-            .where((s) => s['remember_me'] != false && _isSessionActive(s))
-            .length;
+        final activeCount = sessions.where(_isSessionActive).length;
         if (activeCount == 0) return const SizedBox.shrink();
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -351,17 +372,15 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
 
     return sessionsAsync.when(
       data: (sessions) {
-        // Only show devices that have enabled "remember me"
-        final rememberedSessions = sessions.where((s) => s['remember_me'] != false).toList();
-        if (rememberedSessions.isEmpty) {
+        if (sessions.isEmpty) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Text('No active devices found with "Remember Me" enabled.', style: TextStyle(color: Colors.grey)),
+            child: Text('No active devices found.', style: TextStyle(color: Colors.grey)),
           );
         }
 
-        final activeDevices = rememberedSessions.where(_isSessionActive).toList();
-        final recentDevices = rememberedSessions.where((s) => !_isSessionActive(s)).toList();
+        final activeDevices = sessions.where(_isSessionActive).toList();
+        final recentDevices = sessions.where((s) => !_isSessionActive(s)).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -416,7 +435,7 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
                 ...recentDevices.map((session) => _buildSessionItem(context, ref, session, isActiveDevice: false)),
               ],
             ],
-            if (rememberedSessions.length > 1) ...[
+            if (sessions.length > 1) ...[
               const SizedBox(height: 12),
               Align(
                 alignment: isNarrow ? Alignment.centerLeft : Alignment.centerRight,
@@ -564,6 +583,31 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
                           ),
                         ),
                       ),
+                      if (_biometricEnabled) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.fingerprint_rounded, size: 12, color: AppColors.primaryGreen),
+                              SizedBox(width: 3),
+                              Text(
+                                'Biometrics',
+                                style: TextStyle(
+                                  color: AppColors.primaryGreen,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ],
                 ),
