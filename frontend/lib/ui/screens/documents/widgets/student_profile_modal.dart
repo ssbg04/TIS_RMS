@@ -826,7 +826,7 @@ class _StudentProfileModalBodyState
                   setState(() => _selectedTab = _StudentProfileTab.documents),
               icon: const Icon(Icons.arrow_forward_rounded, size: 14),
               label: const Text(
-                'View Documents',
+                'View',
                 style: TextStyle(fontSize: 12),
               ),
               style: TextButton.styleFrom(

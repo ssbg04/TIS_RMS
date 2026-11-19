@@ -58,13 +58,13 @@ class AndroidBottomNavLayout extends ConsumerStatefulWidget {
 
 class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     with TickerProviderStateMixin {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Set<int> _visitedIndices = {};
   Timer? _holdTimer;
-  Timer? _tabLoadingTimer;
-  bool _isTabLoading = false;
+  Timer? _drawerCloseTimer;
+  bool _isDragging = false;
+  late final AnimationController _drawerController;
+  late final AnimationController _pageTransitionController;
 
-  TabController? _tabController;
   List<Map<String, dynamic>> _tabs = [];
   List<Map<String, dynamic>> _allowedPrimary = [];
   List<Map<String, dynamic>> _allowedSecondary = [];
@@ -72,6 +72,15 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
   @override
   void initState() {
     super.initState();
+    _drawerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _pageTransitionController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+      value: 1.0,
+    );
     _initTabs();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(heartbeatServiceProvider).onConnectionLost = () {
@@ -79,12 +88,8 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           DisconnectedDialog.show(
             context,
             onReconnected: () {
-              final currentIdx = _tabController?.index ?? 0;
-              if (currentIdx < _allowedPrimary.length) {
-                final label =
-                    _allowedPrimary[currentIdx]['label'] as String? ?? '';
-                _reloadTabContent(label);
-              }
+              final label = ref.read(activeTabProvider);
+              _reloadTabContent(label);
             },
           );
         }
@@ -364,26 +369,100 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         .where((t) => (t['roles'] as List<String>).contains(widget.userRole))
         .toList();
     _tabs = [..._allowedPrimary, ..._allowedSecondary];
-
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    _tabController!.addListener(_handleTabSelection);
-  }
-
-  void _handleTabSelection() {
-    if (_tabController!.indexIsChanging) return;
-    final newLabel = _tabs[_tabController!.index]['label'] as String;
-    if (ref.read(activeTabProvider) != newLabel) {
-      ref.read(activeTabProvider.notifier).setTab(newLabel);
-      _reloadTabContent(newLabel);
-    }
   }
 
   @override
   void dispose() {
-    _tabController?.dispose();
+    _drawerController.dispose();
+    _pageTransitionController.dispose();
     _holdTimer?.cancel();
-    _tabLoadingTimer?.cancel();
+    _drawerCloseTimer?.cancel();
     super.dispose();
+  }
+
+  bool get _isDrawerOpen => _drawerController.value > 0.01;
+
+  void _openDrawer() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    HapticFeedback.selectionClick();
+    _drawerController.animateTo(
+      1.0,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _closeDrawer() {
+    _drawerCloseTimer?.cancel();
+    _drawerController.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _toggleDrawer() {
+    if (_isDrawerOpen) {
+      _closeDrawer();
+    } else {
+      _openDrawer();
+    }
+  }
+
+  void _onHorizontalDragStart(DragStartDetails details) {
+    _drawerCloseTimer?.cancel();
+    _isDragging = true;
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details, double slideWidth) {
+    final delta = details.primaryDelta ?? 0.0;
+    _drawerController.value =
+        (_drawerController.value + delta / slideWidth).clamp(0.0, 1.0);
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    _isDragging = false;
+    final velocity = details.primaryVelocity ?? 0.0;
+    if (velocity > 300) {
+      final ms =
+          ((1.0 - _drawerController.value) * 280).round().clamp(120, 280);
+      _drawerController.animateTo(
+        1.0,
+        duration: Duration(milliseconds: ms),
+        curve: Curves.easeOutCubic,
+      );
+    } else if (velocity < -300) {
+      final ms = (_drawerController.value * 250).round().clamp(120, 250);
+      _drawerController.animateTo(
+        0.0,
+        duration: Duration(milliseconds: ms),
+        curve: Curves.easeOutCubic,
+      );
+    } else if (_drawerController.value >= 0.35) {
+      final ms =
+          ((1.0 - _drawerController.value) * 280).round().clamp(120, 280);
+      _drawerController.animateTo(
+        1.0,
+        duration: Duration(milliseconds: ms),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      final ms = (_drawerController.value * 250).round().clamp(120, 250);
+      _drawerController.animateTo(
+        0.0,
+        duration: Duration(milliseconds: ms),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _onHorizontalDragCancel() {
+    _isDragging = false;
+    if (_drawerController.value < 0.35) {
+      _closeDrawer();
+    } else {
+      _openDrawer();
+    }
   }
 
   void _reloadTabContent(String label) {
@@ -437,21 +516,21 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
       ref.read(studentMultiSelectProvider.notifier).state = false;
       ref.read(studentSelectedIdsProvider.notifier).state = [];
     }
-    setState(() {
-      _isTabLoading = true;
-    });
-
-    _tabLoadingTimer?.cancel();
-    _tabLoadingTimer = Timer(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        setState(() {
-          _isTabLoading = false;
-        });
-      }
-    });
-
     ref.read(activeTabProvider.notifier).setTab(label);
     _reloadTabContent(label);
+  }
+
+  void _selectDrawerTab(String label, {required bool isSelected}) {
+    HapticFeedback.selectionClick();
+    if (!isSelected) {
+      _onNavTapped(label);
+      _drawerCloseTimer?.cancel();
+      _drawerCloseTimer = Timer(const Duration(milliseconds: 90), () {
+        if (mounted) _closeDrawer();
+      });
+    } else {
+      _closeDrawer();
+    }
   }
 
   void _showCapstoneMembers(BuildContext context) {
@@ -463,21 +542,32 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<String>(activeTabProvider, (prev, next) {
+      if (prev != next) {
+        _pageTransitionController.forward(from: 0.0);
+      }
+    });
+
     final activeTab = ref.watch(activeTabProvider);
 
     int currentIndex = _tabs.indexWhere((t) => t['label'] == activeTab);
     if (currentIndex == -1) currentIndex = 0; // Fallback to Dashboard
 
-    // if (_tabController != null && _tabController!.index != currentIndex) {
-    //   _tabController!.animateTo(currentIndex);
-    // }
-
     _visitedIndices.add(currentIndex);
+
+    final navPrimary = _allowedPrimary;
+    final navSecondary =
+        _allowedSecondary.where((t) => t['label'] != 'Settings').toList();
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+
+        if (_isDrawerOpen) {
+          _closeDrawer();
+          return;
+        }
 
         // If an editable text input has focus, unfocus it first before navigating
         final primaryFocus = FocusManager.instance.primaryFocus;
@@ -564,6 +654,11 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
             padding: mediaQuery.viewPadding,
           );
           final isDark = Theme.of(context).brightness == Brightness.dark;
+          final double screenWidth = mediaQuery.size.width;
+          final double drawerWidth = (screenWidth * 0.68).clamp(220.0, 260.0);
+          final Color drawerBackdropColor =
+              isDark ? const Color(0xFF101613) : const Color(0xFFF0F4F1);
+
           final overlayStyle = SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
             statusBarIconBrightness:
@@ -576,18 +671,16 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           final isStudentMultiSelect = (activeTab == 'Students') &&
               ref.watch(studentMultiSelectProvider);
 
-          return AnnotatedRegion<SystemUiOverlayStyle>(
-            value: isStudentMultiSelect ? SystemUiOverlayStyle.light : overlayStyle,
-            child: MediaQuery(
-              data: lockedMediaQuery,
-              child: Scaffold(
-                key: _scaffoldKey,
-                drawerEnableOpenDragGesture: !isStudentMultiSelect,
-                drawerEdgeDragWidth: isStudentMultiSelect ? 0.0 : 48.0,
-                drawerScrimColor: Colors.black54,
-                resizeToAvoidBottomInset: false,
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                appBar: isStudentMultiSelect
+          if (isStudentMultiSelect && _isDrawerOpen) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _isDrawerOpen) _closeDrawer();
+            });
+          }
+
+          final mainScaffold = Scaffold(
+            resizeToAvoidBottomInset: false,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            appBar: isStudentMultiSelect
                     ? AppBar(
                         systemOverlayStyle: SystemUiOverlayStyle.light,
                         backgroundColor: isDark
@@ -714,22 +807,20 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
                         foregroundColor: Theme.of(context).colorScheme.onSurface,
                         iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
-                        leading: Builder(
-                          builder: (context) => GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onHorizontalDragUpdate: (details) {
-                              if (details.primaryDelta != null &&
-                                  details.primaryDelta! > 4) {
-                                _scaffoldKey.currentState?.openDrawer();
-                              }
-                            },
-                            child: IconButton(
-                              icon: const Icon(Icons.menu_rounded),
-                              tooltip: 'Open navigation menu',
-                              onPressed: () {
-                                _scaffoldKey.currentState?.openDrawer();
-                              },
+                        leading: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onHorizontalDragStart: _onHorizontalDragStart,
+                          onHorizontalDragUpdate: (details) =>
+                              _onHorizontalDragUpdate(details, drawerWidth),
+                          onHorizontalDragEnd: _onHorizontalDragEnd,
+                          onHorizontalDragCancel: _onHorizontalDragCancel,
+                          child: IconButton(
+                            icon: AnimatedIcon(
+                              icon: AnimatedIcons.menu_close,
+                              progress: _drawerController,
                             ),
+                            tooltip: 'Toggle navigation menu',
+                            onPressed: _toggleDrawer,
                           ),
                         ),
                         title: Row(
@@ -992,396 +1083,409 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                           ],
                         ],
                       ),
-          drawer: RepaintBoundary(
-            child: Drawer(
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              surfaceTintColor: Colors.transparent,
-              width: 280,
-              child: SafeArea(
-              child: Column(
+            body: AbstractBackground(
+              child: AnimatedBuilder(
+                animation: _pageTransitionController,
+                child: RepaintBoundary(
+                  child: IndexedStack(
+                    index: currentIndex,
+                    children: _tabs.asMap().entries.map((entry) {
+                      return _visitedIndices.contains(entry.key)
+                          ? entry.value['screen'] as Widget
+                          : const SizedBox.shrink();
+                    }).toList(),
+                  ),
+                ),
+                builder: (context, stackChild) {
+                  final t = _pageTransitionController.value;
+                  final glide = Curves.easeOutCubic.transform(t);
+                  final opacity = const Interval(
+                    0.0,
+                    0.85,
+                    curve: Curves.easeOut,
+                  ).transform(t);
+                  return Opacity(
+                    opacity: opacity.clamp(0.0, 1.0),
+                    child: Transform.translate(
+                      offset: Offset(0, 12.0 * (1.0 - glide)),
+                      child: Transform.scale(
+                        scale: 0.985 + (0.015 * glide),
+                        child: stackChild,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value:
+                isStudentMultiSelect ? SystemUiOverlayStyle.light : overlayStyle,
+            child: MediaQuery(
+              data: lockedMediaQuery,
+              child: ColoredBox(
+                color: drawerBackdropColor,
+                child: AnimatedBuilder(
+                  animation: _drawerController,
+                  child: RepaintBoundary(child: mainScaffold),
+                  builder: (context, child) {
+                    final double t = _drawerController.value;
+                    final bool drawerVisible = t > 0.001;
+
+                    return Stack(
+                      children: [
+                        if (drawerVisible)
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: drawerWidth,
+                            child: Transform.translate(
+                              offset: Offset(-20.0 * (1.0 - t), 0),
+                              child: Opacity(
+                                opacity: t.clamp(0.0, 1.0),
+                                child: RepaintBoundary(
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.translucent,
+                                    onHorizontalDragStart:
+                                        _onHorizontalDragStart,
+                                    onHorizontalDragUpdate: (d) {
+                                      if ((d.primaryDelta ?? 0) < 0) {
+                                        _onHorizontalDragUpdate(d, drawerWidth);
+                                      }
+                                    },
+                                    onHorizontalDragEnd: _onHorizontalDragEnd,
+                                    onHorizontalDragCancel:
+                                        _onHorizontalDragCancel,
+                                    child: _buildMinimalistDrawer(
+                                      context,
+                                      activeTab,
+                                      navPrimary,
+                                      navSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (drawerVisible)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: Transform.translate(
+                                offset: Offset((drawerWidth - 14.0) * t, 0),
+                                child: Transform.scale(
+                                  scale: 1.0 - 0.20 * t,
+                                  alignment: Alignment.centerLeft,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? AppColors.darkSurfaceCard
+                                              .withValues(alpha: 0.45 * t)
+                                          : Colors.white
+                                              .withValues(alpha: 0.55 * t),
+                                      borderRadius: BorderRadius.circular(
+                                        24.0 * t,
+                                      ),
+                                      border: Border.all(
+                                        color: (isDark
+                                                ? AppColors.darkBorder
+                                                : AppColors.borderLight)
+                                            .withValues(alpha: 0.6 * t),
+                                        width: 1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        Transform.translate(
+                          offset: Offset(drawerWidth * t, 0),
+                          child: Transform.scale(
+                            scale: 1.0 - 0.14 * t,
+                            alignment: Alignment.centerLeft,
+                            child: DecoratedBox(
+                              decoration: drawerVisible
+                                  ? BoxDecoration(
+                                      borderRadius: BorderRadius.circular(
+                                        24.0 * t,
+                                      ),
+                                      border: Border.all(
+                                        color: (isDark
+                                                ? AppColors.darkBorder
+                                                : AppColors.borderLight)
+                                            .withValues(alpha: t),
+                                        width: 1,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: (isDark ? 0.45 : 0.14) * t,
+                                          ),
+                                          blurRadius: 28,
+                                          offset: const Offset(-8, 12),
+                                        ),
+                                      ],
+                                    )
+                                  : const BoxDecoration(),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(24.0 * t),
+                                clipBehavior: drawerVisible
+                                    ? Clip.antiAlias
+                                    : Clip.none,
+                                child: Stack(
+                                  children: [
+                                    child!,
+                                    if (t > 0.01)
+                                      Positioned.fill(
+                                        child: GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: _closeDrawer,
+                                          onHorizontalDragStart:
+                                              _onHorizontalDragStart,
+                                          onHorizontalDragUpdate: (d) =>
+                                              _onHorizontalDragUpdate(
+                                                d,
+                                                drawerWidth,
+                                              ),
+                                          onHorizontalDragEnd:
+                                              _onHorizontalDragEnd,
+                                          onHorizontalDragCancel:
+                                              _onHorizontalDragCancel,
+                                          child: const SizedBox.expand(),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if ((t <= 0.05 || _isDragging) && !isStudentMultiSelect)
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: 56.0,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onHorizontalDragStart: _onHorizontalDragStart,
+                              onHorizontalDragUpdate: (d) =>
+                                  _onHorizontalDragUpdate(d, drawerWidth),
+                              onHorizontalDragEnd: _onHorizontalDragEnd,
+                              onHorizontalDragCancel: _onHorizontalDragCancel,
+                              child: const SizedBox.expand(),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMinimalistDrawer(
+    BuildContext context,
+    String activeTab,
+    List<Map<String, dynamic>> navPrimary,
+    List<Map<String, dynamic>> navSecondary,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final user = ref.watch(authProvider).valueOrNull;
+    final initials =
+        user != null && user.firstName.isNotEmpty && user.lastName.isNotEmpty
+            ? '${user.firstName[0]}${user.lastName[0]}'.toUpperCase()
+            : 'SA';
+    final isSettingsActive = activeTab == 'Settings';
+
+    return Material(
+      type: MaterialType.transparency,
+      child: SafeArea(
+        right: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 14, 14),
+              child: Row(
                 children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.only(
-                      top: 16,
-                      bottom: 16,
-                      left: 24,
-                      right: 16,
-                    ),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onLongPressStart: (_) {
-                            _holdTimer = Timer(const Duration(seconds: 2), () {
-                              _showCapstoneMembers(context);
-                            });
-                          },
-                          onLongPressEnd: (_) => _holdTimer?.cancel(),
-                          onLongPressCancel: () => _holdTimer?.cancel(),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.asset(
-                                'assets/images/logo.webp',
-                                width: 36,
-                                height: 36,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'TIS RMS',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            letterSpacing: 1.2,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        const Spacer(),
-                        const _DrawerCloseButton(),
-                      ],
+                  GestureDetector(
+                    onLongPressStart: (_) {
+                      _holdTimer = Timer(const Duration(seconds: 2), () {
+                        _showCapstoneMembers(context);
+                      });
+                    },
+                    onLongPressEnd: (_) => _holdTimer?.cancel(),
+                    onLongPressCancel: () => _holdTimer?.cancel(),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/images/logo.webp',
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
-                  Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      children: [
-                        if (_allowedPrimary.isNotEmpty) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 8,
-                            ),
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'MAIN',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                            ),
-                            child: Column(
-                              children: [
-                                ..._allowedPrimary.map(
-                                  (tab) => _buildDrawerItem(
-                                    tab,
-                                    currentIndex,
-                                    _tabs,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        if (_allowedSecondary.isNotEmpty) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 8,
-                            ),
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'ADMINISTRATION',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                            ),
-                            child: Column(
-                              children: [
-                                ..._allowedSecondary.map(
-                                  (tab) => _buildDrawerItem(
-                                    tab,
-                                    currentIndex,
-                                    _tabs,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: ServerConnectionPill(compact: false),
-                    ),
-                  ),
-                  const Divider(),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 16, 24),
-                    child: Row(
-                      children: [
-                        Builder(
-                          builder: (context) {
-                            final user = ref.watch(authProvider).valueOrNull;
-                            final initials =
-                                user != null &&
-                                    user.firstName.isNotEmpty &&
-                                    user.lastName.isNotEmpty
-                                ? '${user.firstName[0]}${user.lastName[0]}'
-                                      .toUpperCase()
-                                : 'SA';
-                            return CircleAvatar(
-                              radius: 20,
-                              backgroundColor: AppColors.primaryGreen,
-                              child: Text(
-                                initials,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                ref.watch(authProvider).valueOrNull?.fullName ??
-                                    'Unknown User',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                widget.userRole.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.logout,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context); // Close drawer first
-                            showLogoutConfirmationDialog(context);
-                          },
-                        ),
-                      ],
+                  const SizedBox(width: 10),
+                  Text(
+                    'TIS RMS',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      letterSpacing: 0.9,
+                      color: onSurface,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ),
-          body: AbstractBackground(
-            child: Stack(
-              children: [
-                IndexedStack(
-                  index: currentIndex,
-                  children: _tabs.asMap().entries.map((entry) {
-                    return _visitedIndices.contains(entry.key)
-                        ? entry.value['screen'] as Widget
-                        : const SizedBox.shrink();
-                  }).toList(),
-                ),
-                if (_isTabLoading)
-                  Container(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    width: double.infinity,
-                    height: double.infinity,
-                    child: const _PageSkeletonLoader(),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  },
-),
-);
-}
-
-  Widget _buildDrawerItem(
-    Map<String, dynamic> tab,
-    int currentIndex,
-    List<Map<String, dynamic>> allTabs,
-  ) {
-    final label = tab['label'] as String;
-    final icon = tab['icon'] as IconData;
-    final activeIcon = tab['activeIcon'] as IconData? ?? icon;
-    final index = allTabs.indexWhere((t) => t['label'] == label);
-    final isSelected = index == currentIndex;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-      child: Material(
-        color: isSelected
-            ? AppColors.primaryGreen.withValues(alpha: 0.12)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () {
-            Navigator.pop(context); // Close drawer
-            if (!isSelected) {
-              _onNavTapped(label);
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 12.0,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  isSelected ? activeIcon : icon,
-                  color: isSelected
-                      ? AppColors.primaryGreen
-                      : (isDark ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6) : Colors.grey.shade600),
-                  size: 22,
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected
-                        ? AppColors.primaryGreen
-                        : (isDark ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7) : Colors.grey.shade700),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PageSkeletonLoader extends StatefulWidget {
-  const _PageSkeletonLoader();
-
-  @override
-  State<_PageSkeletonLoader> createState() => _PageSkeletonLoaderState();
-}
-
-class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
-    final secondaryColor = isDark ? Colors.grey.shade900 : Colors.grey.shade200;
-
-    return FadeTransition(
-      opacity: Tween<double>(begin: 0.3, end: 1.0).animate(_controller),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 40,
-              width: 180,
-              decoration: BoxDecoration(
-                color: baseColor,
-                borderRadius: BorderRadius.circular(8),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                children: [
+                  if (navPrimary.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 10, 12, 4),
+                      child: Text(
+                        'MAIN',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1,
+                          color: onSurface.withValues(alpha: 0.42),
+                        ),
+                      ),
+                    ),
+                    ...navPrimary.map((tab) => _buildDrawerItem(tab, activeTab)),
+                  ],
+                  if (navSecondary.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 14, 12, 4),
+                      child: Text(
+                        'ADMINISTRATION',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1,
+                          color: onSurface.withValues(alpha: 0.42),
+                        ),
+                      ),
+                    ),
+                    ...navSecondary.map(
+                      (tab) => _buildDrawerItem(tab, activeTab),
+                    ),
+                  ],
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: secondaryColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Container(
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: secondaryColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ],
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: isDark
+                  ? AppColors.darkBorder.withValues(alpha: 0.6)
+                  : AppColors.borderLight,
             ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: ListView.separated(
-                itemCount: 5,
-                physics: const NeverScrollableScrollPhysics(),
-                separatorBuilder: (_, _) => const SizedBox(height: 16),
-                itemBuilder: (_, _) => Container(
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: secondaryColor,
-                    borderRadius: BorderRadius.circular(8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 10, 14),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 17,
+                    backgroundColor: AppColors.primaryGreen,
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          user?.fullName ?? 'Unknown User',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        const ServerConnectionInline(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message: 'Settings',
+                    child: Material(
+                      color: isSettingsActive
+                          ? AppColors.primaryGreen
+                              .withValues(alpha: isDark ? 0.18 : 0.12)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _selectDrawerTab(
+                          'Settings',
+                          isSelected: isSettingsActive,
+                        ),
+                        child: SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: Icon(
+                            isSettingsActive
+                                ? Icons.settings_rounded
+                                : Icons.settings_outlined,
+                            size: 19,
+                            color: isSettingsActive
+                                ? AppColors.primaryGreen
+                                : onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Tooltip(
+                    message: 'Logout',
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () {
+                          _closeDrawer();
+                          showLogoutConfirmationDialog(context);
+                        },
+                        child: SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: Icon(
+                            Icons.logout_rounded,
+                            size: 19,
+                            color: onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1389,20 +1493,77 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
       ),
     );
   }
-}
 
-class _DrawerCloseButton extends StatelessWidget {
-  const _DrawerCloseButton();
+  Widget _buildDrawerItem(Map<String, dynamic> tab, String activeTab) {
+    final label = tab['label'] as String;
+    final icon = tab['icon'] as IconData;
+    final activeIcon = tab['activeIcon'] as IconData? ?? icon;
+    final isSelected = label == activeTab;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(
-        Icons.arrow_back,
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1.5),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => _selectDrawerTab(label, isSelected: isSelected),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.primaryGreen
+                      .withValues(alpha: isDark ? 0.16 : 0.11)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  width: 3,
+                  height: isSelected ? 18 : 0,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primaryGreen
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                SizedBox(width: isSelected ? 9 : 6),
+                Icon(
+                  isSelected ? activeIcon : icon,
+                  color: isSelected
+                      ? AppColors.primaryGreen
+                      : onSurface.withValues(alpha: 0.58),
+                  size: 19,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected
+                          ? AppColors.primaryGreen
+                          : onSurface.withValues(alpha: 0.8),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      tooltip: 'Close menu',
-      onPressed: () => Navigator.pop(context),
     );
   }
 }
