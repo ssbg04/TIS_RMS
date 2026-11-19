@@ -9,6 +9,7 @@ import 'package:window_manager/window_manager.dart';
 
 // UI Imports
 import 'ui/screens/splash/splash_screen.dart';
+import 'ui/shared/widgets/global_connectivity_banner.dart';
 import 'core/navigation/navigation_service.dart';
 // Core Imports
 import 'core/theme/app_theme.dart'; // Add this import
@@ -150,7 +151,19 @@ class TisRmsApp extends ConsumerWidget {
               color: isDark
                   ? AppColors.darkPageBackground
                   : AppColors.pageBackground,
-              child: SafeArea(child: child!),
+              child: SafeArea(
+                child: Stack(
+                  children: [
+                    child!,
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: GlobalConnectivityBanner(),
+                    ),
+                  ],
+                ),
+              ),
             ),
           );
         },

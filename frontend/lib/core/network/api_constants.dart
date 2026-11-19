@@ -1,7 +1,7 @@
 import 'dart:io' show Platform, HttpClient;
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../ui/shared/dialogs/session_expired_dialog.dart';
@@ -96,6 +96,30 @@ class ApiConstants {
     return raw.isNotEmpty ? raw : defaultMessage;
   }
 
+  /// Checks if a given URL is a local or private network address
+  static bool isLanUrl(String url) {
+    return url.contains('192.168.') ||
+        url.contains('10.') ||
+        url.contains('127.0.0.1') ||
+        url.contains('localhost') ||
+        url.contains('172.16.') ||
+        url.contains('172.17.') ||
+        url.contains('172.18.') ||
+        url.contains('172.19.') ||
+        url.contains('172.20.') ||
+        url.contains('172.21.') ||
+        url.contains('172.22.') ||
+        url.contains('172.23.') ||
+        url.contains('172.24.') ||
+        url.contains('172.25.') ||
+        url.contains('172.26.') ||
+        url.contains('172.27.') ||
+        url.contains('172.28.') ||
+        url.contains('172.29.') ||
+        url.contains('172.30.') ||
+        url.contains('172.31.');
+  }
+
   static void setBaseUrl(String url, {bool clearAuth = false}) {
     // Strip trailing slash then append /api
     final clean = url.replaceAll(RegExp(r'/+$'), '');
@@ -186,6 +210,29 @@ class ApiConstants {
           return handler.next(options);
         },
         onError: (DioException err, handler) async {
+          // Transparent LAN -> Cloud Tunnel failover on network drops or gateway errors
+          final isConnError = err.type == DioExceptionType.connectionError ||
+              err.type == DioExceptionType.connectionTimeout ||
+              err.type == DioExceptionType.sendTimeout;
+          final errStatusCode = err.response?.statusCode;
+          final isGatewayDown = errStatusCode == 502 || errStatusCode == 503 || errStatusCode == 504;
+          final alreadyRetried = err.requestOptions.extra['_failover_retried'] == true;
+
+          if (!alreadyRetried && (isConnError || isGatewayDown) && isLanUrl(_baseUrl)) {
+            debugPrint('[ApiConstants] LAN connection failed. Transparently falling back to Cloud Tunnel ($tunnelUrl)...');
+            err.requestOptions.extra['_failover_retried'] = true;
+            setBaseUrl(tunnelUrl);
+            err.requestOptions.baseUrl = _baseUrl;
+            try {
+              final response = await dio.fetch(err.requestOptions);
+              return handler.resolve(response);
+            } catch (retryErr) {
+              if (retryErr is DioException) {
+                return handler.next(retryErr);
+              }
+            }
+          }
+
           final statusCode = err.response?.statusCode;
           final data = err.response?.data;
           final isDeactivated = data is Map && data['isDeactivated'] == true;

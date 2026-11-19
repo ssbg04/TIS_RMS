@@ -60,6 +60,7 @@ dependencies:
   audioplayers: ^6.8.1
   package_info_plus: ^8.1.0
   device_info_plus: ^12.4.0
+  connectivity_plus: ^6.1.1
   spreadsheet_decoder: ^2.3.0
   pdf: ^3.12.0
   local_auth: ^3.0.2

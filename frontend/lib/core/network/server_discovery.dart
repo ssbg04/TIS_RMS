@@ -332,116 +332,162 @@ class ServerDiscoveryService {
     return null;
   }
 
-  // ─── Master Resolution: LAN First, Then Seamless Tunnel Fallback ──────────
+  // ─── Master Resolution: Fast Concurrent Race (LAN & Tunnel) ──────────
 
-  /// Resolves the optimal server endpoint:
-  /// 1. Fast Localhost check (for single-machine setups).
-  /// 2. Instant UDP LAN discovery beacon (instant <50ms auto-connect on Wi-Fi).
-  /// 3. Fast check of previously working saved LAN server.
-  /// 4. Subnet port scan fallback.
-  /// 5. Cloud Tunnel fallback (https://tis-rms.cc.cd/api).
+  /// Resolves the optimal server endpoint with minimal latency:
+  /// 1. Phase 1 (Concurrent <350ms): Races Localhost, UDP Beacon, and Saved LAN.
+  /// 2. Phase 2 (Parallel Race): If Phase 1 didn't yield a local server, concurrently
+  ///    probes Cloud Tunnel and physical subnets so remote/mobile users connect in <700ms
+  ///    instead of stalling through 254-host scans.
   static Future<String?> resolveServerWithFallback({
     void Function(String message)? onProgress,
   }) async {
-    // 1. Fast Localhost Check (< 350ms)
-    onProgress?.call('Checking local host (127.0.0.1)…');
-    final localhostAlive = await ping(
-      ApiConstants.localhostUrl,
-      timeout: const Duration(milliseconds: 350),
-    );
-    if (localhostAlive) {
-      await save(ApiConstants.localhostUrl);
-      ApiConstants.setBaseUrl(ApiConstants.localhostUrl);
-      return ApiConstants.localhostUrl;
-    }
+    // ── Phase 1: Fast Concurrent Local Checks (< 350ms) ──
+    onProgress?.call('Probing local server & LAN…');
 
-    // 2. Instant UDP LAN Discovery Beacon (< 350ms)
-    // Instantly finds the local Server Manager backend on school Wi-Fi without manual scanning!
-    onProgress?.call('Probing local network (LAN)…');
-    final udpFound = await quickUdpBeacon(timeout: const Duration(milliseconds: 350));
-    if (udpFound != null) {
-      await save(udpFound);
-      ApiConstants.setBaseUrl(udpFound);
-      return udpFound;
-    }
+    final localFutures = <Future<String?>>[];
 
-    // 3. Fast check of previously working saved server (if it's a LAN address)
-    final saved = await getSaved();
-    if (saved != null && saved.isNotEmpty && _isLanUrl(saved)) {
-      onProgress?.call('Checking saved LAN server…');
-      final alive = await ping(saved, timeout: const Duration(milliseconds: 700));
-      if (alive) {
-        ApiConstants.setBaseUrl(saved);
-        return saved;
-      }
-    }
-
-    // 4. Physical Subnet Scan (if UDP was blocked by router)
-    onProgress?.call('Scanning local network subnets…');
-    final prefixes = await getSubnetPrefixes();
-    if (prefixes.isNotEmpty) {
-      final found = await discover(
-        onProgress: (subnet, scanned, total) {
-          onProgress?.call('Scanning LAN ${subnet}x … ($scanned/$total)');
-        },
+    // 1a. Localhost check
+    localFutures.add(() async {
+      final alive = await ping(
+        ApiConstants.localhostUrl,
+        timeout: const Duration(milliseconds: 300),
       );
-      if (found != null) {
-        await save(found);
-        ApiConstants.setBaseUrl(found);
-        return found;
+      return alive ? ApiConstants.localhostUrl : null;
+    }());
+
+    // 1b. UDP Beacon (<350ms)
+    localFutures.add(quickUdpBeacon(timeout: const Duration(milliseconds: 350)));
+
+    // 1c. Saved LAN check
+    final saved = await getSaved();
+    if (saved != null && saved.isNotEmpty && ApiConstants.isLanUrl(saved)) {
+      localFutures.add(() async {
+        final alive = await ping(saved, timeout: const Duration(milliseconds: 350));
+        return alive ? saved : null;
+      }());
+    }
+
+    // Wait for the fast local checks
+    final localResults = await Future.wait(localFutures);
+    for (final res in localResults) {
+      if (res != null) {
+        await save(res);
+        ApiConstants.setBaseUrl(res);
+        return res;
       }
     }
 
-    // 5. Cloudflare Tunnel Domain Fallback (https://tis-rms.cc.cd/api)
-    onProgress?.call('Connecting to Cloud Tunnel…');
-    final tunnelAlive = await ping(
-      ApiConstants.tunnelUrl,
-      timeout: const Duration(seconds: 3),
-    );
-    if (tunnelAlive) {
-      await save(ApiConstants.tunnelUrl);
-      ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
-      return ApiConstants.tunnelUrl;
+    // ── Phase 2: Parallel Race (Cloud Tunnel vs LAN Subnet) ──
+    onProgress?.call('Connecting to server (Tunnel / LAN)…');
+
+    final completer = Completer<String?>();
+    bool completed = false;
+
+    void completeWith(String? url) {
+      if (!completed && url != null) {
+        completed = true;
+        if (!completer.isCompleted) {
+          completer.complete(url);
+        }
+      }
     }
 
-    // 5b. Legacy Cloud Tunnel Fallback (https://api.tisrms.de5.net/api)
-    onProgress?.call('Connecting to legacy Cloud Tunnel fallback...');
-    final legacyTunnelAlive = await ping(
-      ApiConstants.legacyTunnelUrl,
-      timeout: const Duration(seconds: 3),
-    );
-    if (legacyTunnelAlive) {
-      await save(ApiConstants.legacyTunnelUrl);
-      ApiConstants.setBaseUrl(ApiConstants.legacyTunnelUrl);
-      return ApiConstants.legacyTunnelUrl;
+    // Task A: Cloud Tunnel probe (fast primary path for off-campus/remote)
+    final tunnelTask = () async {
+      final tunnelAlive = await ping(
+        ApiConstants.tunnelUrl,
+        timeout: const Duration(seconds: 3),
+      );
+      if (tunnelAlive) {
+        completeWith(ApiConstants.tunnelUrl);
+        return ApiConstants.tunnelUrl;
+      }
+
+      // Legacy fallback tunnel
+      final legacyAlive = await ping(
+        ApiConstants.legacyTunnelUrl,
+        timeout: const Duration(seconds: 2),
+      );
+      if (legacyAlive) {
+        completeWith(ApiConstants.legacyTunnelUrl);
+        return ApiConstants.legacyTunnelUrl;
+      }
+      return null;
+    }();
+
+    // Task B: Subnet probe (for school LAN where router dropped UDP beacon)
+    final subnetTask = () async {
+      try {
+        final prefixes = await getSubnetPrefixes();
+        if (prefixes.isNotEmpty) {
+          final found = await discover(
+            onProgress: (subnet, scanned, total) {
+              if (!completed) {
+                onProgress?.call('Scanning LAN ${subnet}x … ($scanned/$total)');
+              }
+            },
+          );
+          if (found != null) {
+            completeWith(found);
+            return found;
+          }
+        }
+      } catch (_) {}
+      return null;
+    }();
+
+    // Race both tasks
+    await Future.any([
+      tunnelTask.then((res) {
+        if (res != null) completeWith(res);
+      }),
+      subnetTask.then((res) {
+        if (res != null) completeWith(res);
+      }),
+      // Fallback timeout safety
+      Future.delayed(const Duration(seconds: 5)),
+    ]);
+
+    // If either finished first and succeeded
+    if (completed) {
+      final winningUrl = await completer.future;
+      if (winningUrl != null) {
+        await save(winningUrl);
+        ApiConstants.setBaseUrl(winningUrl);
+
+        // If Cloud Tunnel won, let subnet discovery silently finish in background
+        // and upgrade to LAN if local server is discovered
+        if (!ApiConstants.isLanUrl(winningUrl)) {
+          subnetTask.then((lanFound) async {
+            if (lanFound != null) {
+              await save(lanFound);
+              ApiConstants.setBaseUrl(lanFound);
+            }
+          }).catchError((_) {});
+        }
+
+        return winningUrl;
+      }
     }
 
-    // Fallback default: Tunnel URL (https://tis-rms.cc.cd/api)
+    // Check if any finished right after timeout
+    final tunnelResult = await tunnelTask;
+    if (tunnelResult != null) {
+      await save(tunnelResult);
+      ApiConstants.setBaseUrl(tunnelResult);
+      return tunnelResult;
+    }
+
+    final subnetResult = await subnetTask;
+    if (subnetResult != null) {
+      await save(subnetResult);
+      ApiConstants.setBaseUrl(subnetResult);
+      return subnetResult;
+    }
+
+    // Default fallback
     ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
     return null;
-  }
-
-  /// Helper to check whether a URL points to a local or private address
-  static bool _isLanUrl(String url) {
-    return url.contains('192.168.') ||
-        url.contains('10.') ||
-        url.contains('127.0.0.1') ||
-        url.contains('localhost') ||
-        url.contains('172.16.') ||
-        url.contains('172.17.') ||
-        url.contains('172.18.') ||
-        url.contains('172.19.') ||
-        url.contains('172.20.') ||
-        url.contains('172.21.') ||
-        url.contains('172.22.') ||
-        url.contains('172.23.') ||
-        url.contains('172.24.') ||
-        url.contains('172.25.') ||
-        url.contains('172.26.') ||
-        url.contains('172.27.') ||
-        url.contains('172.28.') ||
-        url.contains('172.29.') ||
-        url.contains('172.30.') ||
-        url.contains('172.31.');
   }
 }
