@@ -4,6 +4,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/user_model.dart';
 import '../../core/network/api_constants.dart';
 
+class TwoFactorChallenge {
+  final String challengeToken;
+  final String method; // 'totp' | 'email'
+  final String? maskedEmail;
+  final String username;
+  final bool rememberMe;
+
+  const TwoFactorChallenge({
+    required this.challengeToken,
+    required this.method,
+    this.maskedEmail,
+    required this.username,
+    this.rememberMe = false,
+  });
+}
+
+class LoginOutcome {
+  final UserModel? user;
+  final TwoFactorChallenge? twoFactorChallenge;
+
+  const LoginOutcome({this.user, this.twoFactorChallenge});
+
+  bool get requiresTwoFactor => twoFactorChallenge != null;
+}
+
 class AuthRepository {
   final Dio _dio = ApiConstants.createDio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
@@ -11,7 +36,38 @@ class AuthRepository {
   static const _tokenKey = 'jwt_token';
   static const _rememberMeKey = 'remember_me';
 
-  Future<UserModel> login(
+  Future<UserModel> _persistAuthResponse(
+    Map data, {
+    required bool rememberMe,
+  }) async {
+    final token = data['token'] as String?;
+    if (token == null || token.isEmpty) {
+      throw Exception('Server did not return an authentication token.');
+    }
+
+    await _storage.write(key: _tokenKey, value: token);
+    await _storage.write(
+      key: _rememberMeKey,
+      value: rememberMe ? 'true' : 'false',
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenKey, token);
+
+    final userData = data['user'] as Map?;
+    if (userData == null) {
+      throw Exception('Server did not return user details.');
+    }
+
+    return UserModel(
+      id: userData['id'],
+      username: userData['username'],
+      firstName: userData['firstName'],
+      lastName: userData['lastName'],
+      role: userData['role'],
+    );
+  }
+
+  Future<LoginOutcome> login(
     String username,
     String password, {
     bool rememberMe = false,
@@ -35,32 +91,24 @@ class AuthRepository {
       }
 
       final data = response.data as Map;
-      final token = data['token'] as String?;
-      if (token == null || token.isEmpty) {
-        throw Exception('Server did not return an authentication token.');
+      if (data['requiresTwoFactor'] == true) {
+        final challengeToken = data['challengeToken'] as String? ?? '';
+        if (challengeToken.isEmpty) {
+          throw Exception('Server did not return a 2FA challenge token.');
+        }
+        return LoginOutcome(
+          twoFactorChallenge: TwoFactorChallenge(
+            challengeToken: challengeToken,
+            method: (data['method'] as String?) ?? 'totp',
+            maskedEmail: data['maskedEmail'] as String?,
+            username: (data['username'] as String?) ?? username,
+            rememberMe: rememberMe,
+          ),
+        );
       }
 
-      // Write to FlutterSecureStorage — consistent with all other repositories
-      await _storage.write(key: _tokenKey, value: token);
-      await _storage.write(
-        key: _rememberMeKey,
-        value: rememberMe ? 'true' : 'false',
-      );
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_tokenKey, token);
-
-      final userData = data['user'] as Map?;
-      if (userData == null) {
-        throw Exception('Server did not return user details.');
-      }
-
-      return UserModel(
-        id: userData['id'],
-        username: userData['username'],
-        firstName: userData['firstName'],
-        lastName: userData['lastName'],
-        role: userData['role'],
-      );
+      final user = await _persistAuthResponse(data, rememberMe: rememberMe);
+      return LoginOutcome(user: user);
     } on DioException catch (e) {
       final errorMessage = ApiConstants.extractErrorMessage(
         e,
@@ -521,6 +569,156 @@ class AuthRepository {
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw Exception(ApiConstants.extractErrorMessage(e, 'Failed to fetch login logs.'));
+    }
+  }
+
+  // ── Two-Factor Authentication (2FA) ─────────────────────────────────────────
+
+  Future<UserModel> verifyTwoFactorLogin({
+    required String challengeToken,
+    required String code,
+    bool isBackupCode = false,
+    bool rememberMe = false,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/auth/2fa/verify-login',
+        data: {
+          'challengeToken': challengeToken,
+          'code': code,
+          'isBackupCode': isBackupCode,
+          'platform': ApiConstants.clientPlatform,
+          'device_name': ApiConstants.clientDeviceName,
+        },
+      );
+      if (response.data is! Map) {
+        throw Exception('Server returned an unexpected response format.');
+      }
+      return await _persistAuthResponse(
+        response.data as Map,
+        rememberMe: rememberMe,
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        ApiConstants.extractErrorMessage(e, 'Two-factor verification failed.'),
+      );
+    }
+  }
+
+  Future<String> resendTwoFactorLoginOtp(String challengeToken) async {
+    try {
+      final response = await _dio.post(
+        '/auth/2fa/resend-login-otp',
+        data: {'challengeToken': challengeToken},
+      );
+      return (response.data?['message'] as String?) ??
+          'Verification code resent.';
+    } on DioException catch (e) {
+      throw Exception(
+        ApiConstants.extractErrorMessage(e, 'Failed to resend verification code.'),
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> getTwoFactorStatus() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get('/auth/2fa/status', options: options);
+      return Map<String, dynamic>.from(response.data as Map);
+    } on DioException catch (e) {
+      throw Exception(
+        ApiConstants.extractErrorMessage(e, 'Failed to fetch 2FA status.'),
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> setupTotp() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post('/auth/2fa/totp/setup', options: options);
+      return Map<String, dynamic>.from(response.data as Map);
+    } on DioException catch (e) {
+      throw Exception(
+        ApiConstants.extractErrorMessage(e, 'Failed to start authenticator setup.'),
+      );
+    }
+  }
+
+  Future<List<String>> confirmTotp(String code) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post(
+        '/auth/2fa/totp/confirm',
+        data: {'code': code},
+        options: options,
+      );
+      return List<String>.from(response.data['backupCodes'] as List);
+    } on DioException catch (e) {
+      throw Exception(
+        ApiConstants.extractErrorMessage(e, 'Invalid verification code.'),
+      );
+    }
+  }
+
+  Future<String?> setupEmailTwoFactor() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post(
+        '/auth/2fa/email/setup',
+        options: options,
+      );
+      return response.data['maskedEmail'] as String?;
+    } on DioException catch (e) {
+      throw Exception(
+        ApiConstants.extractErrorMessage(e, 'Failed to send verification code.'),
+      );
+    }
+  }
+
+  Future<List<String>> confirmEmailTwoFactor(String code) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post(
+        '/auth/2fa/email/confirm',
+        data: {'code': code},
+        options: options,
+      );
+      return List<String>.from(response.data['backupCodes'] as List);
+    } on DioException catch (e) {
+      throw Exception(
+        ApiConstants.extractErrorMessage(e, 'Invalid verification code.'),
+      );
+    }
+  }
+
+  Future<List<String>> regenerateTwoFactorBackupCodes(String password) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post(
+        '/auth/2fa/backup-codes/regenerate',
+        data: {'password': password},
+        options: options,
+      );
+      return List<String>.from(response.data['backupCodes'] as List);
+    } on DioException catch (e) {
+      throw Exception(
+        ApiConstants.extractErrorMessage(e, 'Failed to regenerate backup codes.'),
+      );
+    }
+  }
+
+  Future<void> disableTwoFactor(String password) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post(
+        '/auth/2fa/disable',
+        data: {'password': password},
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        ApiConstants.extractErrorMessage(e, 'Failed to disable 2FA.'),
+      );
     }
   }
 }

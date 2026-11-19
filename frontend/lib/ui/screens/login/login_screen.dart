@@ -24,6 +24,7 @@ import '../../../core/network/api_constants.dart';
 import '../../../core/network/server_discovery.dart';
 import '../../../core/services/biometric_auth_service.dart';
 import '../../shared/inputs/password_strength_indicator.dart';
+import 'widgets/two_factor_verify_modal.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   final bool sessionExpired;
@@ -292,6 +293,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     }
   }
 
+  Future<void> _finalizePasswordLogin(String username) async {
+    // Commit autofill context BEFORE unfocusing so Android Google Password Manager
+    // receives the active field values and prompts to save the password.
+    TextInput.finishAutofillContext(shouldSave: true);
+    FocusScope.of(context).unfocus();
+
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setBool('rememberMe', true);
+      await prefs.setString('saved_username', username);
+    } else {
+      await prefs.remove('rememberMe');
+      await prefs.remove('saved_username');
+      await prefs.remove('saved_password');
+    }
+
+    await _promptEnableBiometric(username);
+    if (mounted) _navigateToHome();
+  }
+
   void _handleLogin() async {
     if (_usernameController.text.trim().isEmpty ||
         _passwordController.text.isEmpty) {
@@ -317,28 +338,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     if (!mounted) return;
 
     if (success) {
-      // Commit autofill context BEFORE unfocusing so Android Google Password Manager
-      // receives the active field values and prompts to save the password.
-      TextInput.finishAutofillContext(shouldSave: true);
-      FocusScope.of(context).unfocus();
-
-      // --- Added: Save or clear credentials based on checkbox ---
-      final prefs = await SharedPreferences.getInstance();
-      if (_rememberMe) {
-        await prefs.setBool('rememberMe', true);
-        await prefs.setString('saved_username', username);
-      } else {
-        await prefs.remove('rememberMe');
-        await prefs.remove('saved_username');
-        await prefs.remove('saved_password');
-      }
-
-      await _promptEnableBiometric(username);
-      _navigateToHome();
-    } else {
-      FocusScope.of(context).unfocus();
-      _showLoginError();
+      await _finalizePasswordLogin(username);
+      return;
     }
+
+    final challenge = ref.read(authProvider.notifier).pendingTwoFactorChallenge;
+    if (challenge != null) {
+      final verified = await TwoFactorVerifyModal.show(
+        context,
+        challenge: challenge,
+      );
+      ref.read(authProvider.notifier).clearPendingTwoFactorChallenge();
+      if (verified == true && mounted) {
+        await _finalizePasswordLogin(username);
+      }
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    _showLoginError();
   }
 
   void _showForgotPasswordDialog() {

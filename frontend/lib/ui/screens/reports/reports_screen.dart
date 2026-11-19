@@ -3978,104 +3978,118 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   // ── Status Donut Chart ───────────────────────────────────────────────────
   Widget _buildStatusDonutChart(StudentCounts counts, {required bool isDesktop}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final selectedStatus = ref.watch(selectedStatusFilterProvider);
     final total = counts.active +
         counts.inactive +
         counts.dropped +
         counts.transferee +
         counts.graduated;
 
+    final allStatuses = [
+      (
+        statusValue: 'Enrolled',
+        label: 'Active',
+        count: counts.active,
+        color: isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen,
+      ),
+      (
+        statusValue: 'Inactive',
+        label: 'Inactive',
+        count: counts.inactive,
+        color: isDark ? const Color(0xFF78909C) : Colors.blueGrey.shade400,
+      ),
+      (
+        statusValue: 'Dropped',
+        label: 'Dropped',
+        count: counts.dropped,
+        color: isDark ? const Color(0xFFD67878) : Colors.red.shade400,
+      ),
+      (
+        statusValue: 'Graduated',
+        label: 'Graduated',
+        count: counts.graduated,
+        color: isDark ? const Color(0xFF7EAAD8) : const Color(0xFF1E88E5),
+      ),
+      (
+        statusValue: 'Transferred',
+        label: 'Transferred',
+        count: counts.transferee,
+        color: isDark ? const Color(0xFFE5A663) : Colors.amber.shade700,
+      ),
+    ];
+
+    final pieSegments = allStatuses.where((s) => s.count > 0).toList();
+    final visibleLegends = allStatuses
+        .where((s) =>
+            s.statusValue != 'Inactive' ||
+            s.count > 0 ||
+            selectedStatus == 'Inactive')
+        .toList();
+
+    void toggleStatus(String statusVal) {
+      HapticFeedback.selectionClick();
+      final current = ref.read(selectedStatusFilterProvider);
+      ref.read(selectedStatusFilterProvider.notifier).state =
+          current == statusVal ? null : statusVal;
+      setState(() => _currentPage = 0);
+    }
+
+    final selectedSegment = selectedStatus != null
+        ? allStatuses.where((s) => s.statusValue == selectedStatus).firstOrNull
+        : null;
+
     final Widget donutWidget = SizedBox(
-      height: 190,
+      height: isDesktop ? 175 : 190,
       child: Stack(
         alignment: Alignment.center,
         children: [
           PieChart(
             PieChartData(
-              sections: [
-                if (counts.active > 0)
-                  PieChartSectionData(
-                    color: isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen,
-                    value: counts.active.toDouble(),
-                    title:
-                        '${(counts.active / total * 100).toStringAsFixed(0)}%',
-                    radius: 48,
-                    titleStyle: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+              sections: pieSegments.map((seg) {
+                final isSelected = selectedStatus == seg.statusValue;
+                final isDimmed = selectedStatus != null && !isSelected;
+                return PieChartSectionData(
+                  color: isDimmed ? seg.color.withValues(alpha: 0.32) : seg.color,
+                  value: seg.count.toDouble(),
+                  title: '${(seg.count / total * 100).toStringAsFixed(0)}%',
+                  radius: isSelected ? 54 : (isDimmed ? 42 : 48),
+                  titleStyle: TextStyle(
+                    fontSize: isSelected ? 12 : 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
-                if (counts.inactive > 0)
-                  PieChartSectionData(
-                    color: isDark ? const Color(0xFF78909C) : Colors.blueGrey.shade400,
-                    value: counts.inactive.toDouble(),
-                    title:
-                        '${(counts.inactive / total * 100).toStringAsFixed(0)}%',
-                    radius: 48,
-                    titleStyle: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                if (counts.dropped > 0)
-                  PieChartSectionData(
-                    color: isDark ? const Color(0xFFD67878) : Colors.red.shade400,
-                    value: counts.dropped.toDouble(),
-                    title:
-                        '${(counts.dropped / total * 100).toStringAsFixed(0)}%',
-                    radius: 52,
-                    titleStyle: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                if (counts.graduated > 0)
-                  PieChartSectionData(
-                    color: isDark ? const Color(0xFF7EAAD8) : const Color(0xFF1E88E5),
-                    value: counts.graduated.toDouble(),
-                    title:
-                        '${(counts.graduated / total * 100).toStringAsFixed(0)}%',
-                    radius: 52,
-                    titleStyle: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                if (counts.transferee > 0)
-                  PieChartSectionData(
-                    color: isDark ? const Color(0xFFE5A663) : Colors.amber.shade700,
-                    value: counts.transferee.toDouble(),
-                    title:
-                        '${(counts.transferee / total * 100).toStringAsFixed(0)}%',
-                    radius: 52,
-                    titleStyle: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-              ],
+                );
+              }).toList(),
               centerSpaceRadius: 55,
               sectionsSpace: 3,
-              pieTouchData: PieTouchData(enabled: true),
+              pieTouchData: PieTouchData(
+                enabled: true,
+                touchCallback: (event, response) {
+                  if (event is FlTapUpEvent && response?.touchedSection != null) {
+                    final idx = response!.touchedSection!.touchedSectionIndex;
+                    if (idx >= 0 && idx < pieSegments.length) {
+                      toggleStatus(pieSegments[idx].statusValue);
+                    }
+                  }
+                },
+              ),
             ),
           ),
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '$total',
+                selectedSegment != null ? '${selectedSegment.count}' : '$total',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  color: selectedSegment != null
+                      ? selectedSegment.color
+                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                 ),
               ),
               Text(
-                'Students',
+                selectedSegment != null ? selectedSegment.label : 'Students',
                 style: TextStyle(
                   fontSize: 11,
                   color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
@@ -4089,7 +4103,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
-      height: isDesktop ? 360 : null,
+      height: isDesktop ? 385 : null,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: _cardDecoration(),
       child: Column(
@@ -4134,22 +4148,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               )
             else
               donutWidget,
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              children: [
-                _buildLegendItem(
-                    isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen, 'Active (${counts.active})'),
-                if (counts.inactive > 0)
-                  _buildLegendItem(
-                      isDark ? const Color(0xFF78909C) : Colors.blueGrey.shade400, 'Inactive (${counts.inactive})'),
-                _buildLegendItem(isDark ? const Color(0xFFD67878) : Colors.red.shade400, 'Dropped (${counts.dropped})'),
-                _buildLegendItem(
-                    isDark ? const Color(0xFF7EAAD8) : const Color(0xFF1E88E5), 'Graduated (${counts.graduated})'),
-                _buildLegendItem(
-                    isDark ? const Color(0xFFE5A663) : Colors.amber.shade700, 'Transferred (${counts.transferee})'),
-              ],
+              spacing: 8,
+              runSpacing: 6,
+              children: visibleLegends.map((seg) {
+                final isSelected = selectedStatus == seg.statusValue;
+                final isDimmed = selectedStatus != null && !isSelected;
+                return _buildInteractiveLegendChip(
+                  color: seg.color,
+                  text: '${seg.label} (${seg.count})',
+                  isActive: isSelected,
+                  isDimmed: isDimmed,
+                  tooltip: isSelected
+                      ? 'Tap to show all statuses'
+                      : 'Tap to filter by ${seg.label}',
+                  onTap: () => toggleStatus(seg.statusValue),
+                );
+              }).toList(),
             ),
           ],
         ],
@@ -4469,7 +4485,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
-      height: isDesktop ? 360 : null,
+      height: isDesktop ? 385 : null,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: _cardDecoration(),
       child: Column(
@@ -4861,15 +4877,31 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   color: Colors.orange,
                 ),
               ];
-              final active = allStatusOptions
-                  .where((o) => statuses.contains(o.key))
-                  .toList();
               return Wrap(
-                spacing: 16,
-                runSpacing: 8,
-                children: active
-                    .map((o) => _buildLegendItem(o.color, o.label))
-                    .toList(),
+                spacing: 8,
+                runSpacing: 6,
+                children: allStatusOptions.map((o) {
+                  final isEnabled = statuses.contains(o.key);
+                  return _buildInteractiveLegendChip(
+                    color: o.color,
+                    text: o.label,
+                    isActive: isEnabled,
+                    isDimmed: !isEnabled,
+                    strikeThrough: !isEnabled,
+                    tooltip: isEnabled
+                        ? 'Tap to hide ${o.label}'
+                        : 'Tap to show ${o.label}',
+                    onTap: () {
+                      if (isEnabled && statuses.length <= 1) return;
+                      HapticFeedback.selectionClick();
+                      ref
+                          .read(
+                            yearlyComparisonSelectedStatusesProvider.notifier,
+                          )
+                          .toggle(o.key);
+                    },
+                  );
+                }).toList(),
               );
             },
           ),
@@ -5316,6 +5348,93 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildInteractiveLegendChip({
+    required Color color,
+    required String text,
+    required bool isActive,
+    required bool isDimmed,
+    bool strikeThrough = false,
+    String? tooltip,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Tooltip(
+      message: tooltip ?? text,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(20),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 160),
+              opacity: isDimmed ? 0.45 : 1.0,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? color.withValues(alpha: isDark ? 0.22 : 0.13)
+                      : (isDark
+                            ? Colors.white.withValues(alpha: 0.04)
+                            : Colors.grey.shade100),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isActive
+                        ? color
+                        : (isDark
+                              ? AppColors.darkBorder
+                              : Colors.grey.shade300),
+                    width: isActive ? 1.2 : 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: strikeThrough ? Colors.transparent : color,
+                        borderRadius: BorderRadius.circular(3),
+                        border: strikeThrough
+                            ? Border.all(
+                                color: color.withValues(alpha: 0.75),
+                                width: 1.5,
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      text,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight:
+                            isActive ? FontWeight.w600 : FontWeight.w500,
+                        decoration: strikeThrough
+                            ? TextDecoration.lineThrough
+                            : null,
+                        color: isActive
+                            ? (isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary)
+                            : (isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

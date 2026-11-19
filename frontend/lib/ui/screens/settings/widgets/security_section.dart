@@ -9,6 +9,7 @@ import '../../../../domain/entities/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/sessions_provider.dart';
 import 'change_password_modal.dart';
+import 'two_factor_setup_modal.dart';
 
 class SecuritySection extends ConsumerStatefulWidget {
   final UserModel user;
@@ -35,6 +36,8 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
   static const Duration _activeThreshold = Duration(minutes: 15);
   bool _biometricSupported = false;
   bool _biometricEnabled = false;
+  Map<String, dynamic>? _twoFactorStatus;
+  bool _isLoading2fa = true;
 
   bool _isSessionActive(Map<String, dynamic> session) {
     if (session['is_current'] == true) return true;
@@ -49,6 +52,31 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
   void initState() {
     super.initState();
     _loadBiometricState();
+    _loadTwoFactorStatus();
+  }
+
+  Future<void> _loadTwoFactorStatus() async {
+    try {
+      final status = await ref.read(authProvider.notifier).getTwoFactorStatus();
+      if (!mounted) return;
+      setState(() {
+        _twoFactorStatus = status;
+        _isLoading2fa = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _isLoading2fa = false);
+    }
+  }
+
+  Future<void> _openTwoFactorModal() async {
+    if (_isLoading2fa) return;
+    final changed = await TwoFactorSetupModal.show(
+      context,
+      status: _twoFactorStatus ?? const {'enabled': false},
+    );
+    if (changed == true && mounted) {
+      await _loadTwoFactorStatus();
+    }
   }
 
   Future<void> _loadBiometricState() async {
@@ -271,6 +299,10 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
             ),
           ),
         ],
+
+        const SizedBox(height: AppSizes.p16),
+        // ── Two-Factor Authentication (2FA) Card ───────────
+        _buildTwoFactorCard(context),
 
         const SizedBox(height: AppSizes.p24),
         // ── Danger Zone / Deactivate Account Card ───────────
@@ -758,5 +790,129 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
         }
       }
     }
+  }
+
+  Widget _buildTwoFactorCard(BuildContext context) {
+    final enabled = _twoFactorStatus?['enabled'] == true;
+    final method = _twoFactorStatus?['method'] as String?;
+    final remaining =
+        (_twoFactorStatus?['backupCodesRemaining'] as num?)?.toInt() ?? 0;
+
+    final String statusLabel;
+    final String subtitle;
+    if (_isLoading2fa) {
+      statusLabel = 'Loading...';
+      subtitle = 'Checking two-factor authentication status...';
+    } else if (enabled) {
+      final isTotp = method == 'totp';
+      statusLabel = isTotp ? 'TOTP Active' : 'Email OTP';
+      final methodName = isTotp ? 'Authenticator App' : 'Email OTP';
+      subtitle = 'Protected via $methodName • $remaining backup codes left';
+    } else {
+      statusLabel = 'Off';
+      subtitle =
+          'Add an extra layer of security with Authenticator App or Email OTP';
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: _isLoading2fa ? null : _openTwoFactorModal,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: widget.isDark
+                ? Colors.white.withValues(alpha: 0.04)
+                : Colors.grey.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: widget.isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.verified_user_outlined,
+                  color: AppColors.primaryGreen,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSizes.p12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        const Text(
+                          'Two-Factor Authentication (2FA)',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: enabled
+                                ? AppColors.primaryGreen.withValues(alpha: 0.14)
+                                : (widget.isDark
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : Colors.grey.shade200),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              color: enabled
+                                  ? (widget.isDark
+                                        ? const Color(0xFF76BA8A)
+                                        : AppColors.primaryGreen)
+                                  : (widget.isDark
+                                        ? AppColors.darkTextSecondary
+                                        : Colors.grey.shade700),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: widget.isDark ? AppColors.darkTextSecondary : Colors.grey,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

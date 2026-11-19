@@ -937,15 +937,38 @@ class DocumentRepository {
   Future<int> uploadDocumentVersion(
     int documentId,
     String filePath, {
+    String? customFileName,
+    int? studentId,
+    String? documentType,
+    int? requirementId,
     String? notes,
     void Function(int, int)? onSendProgress,
   }) async {
     try {
       final options = await _getAuthOptions();
-      final fileName = filePath.split(RegExp(r'[\\/]')).last;
+      final rawFileName = filePath.split(RegExp(r'[\\/]')).last;
+      final effectiveFileName =
+          (customFileName != null && customFileName.trim().isNotEmpty)
+          ? customFileName.trim()
+          : rawFileName;
+      final cleanDocType =
+          (documentType != null && documentType.trim().isNotEmpty)
+          ? documentType.trim()
+          : null;
+      final cleanNotes = (notes != null && notes.trim().isNotEmpty)
+          ? notes.trim()
+          : null;
+
+      // Place text metadata BEFORE 'document' so Multer reads them in destination/filename
       final formData = FormData.fromMap({
-        'document': await MultipartFile.fromFile(filePath, filename: fileName),
-        if (notes != null) 'notes': notes,
+        'studentId': ?studentId?.toString(),
+        'documentType': ?cleanDocType,
+        'requirementId': ?requirementId?.toString(),
+        'notes': ?cleanNotes,
+        'document': await MultipartFile.fromFile(
+          filePath,
+          filename: effectiveFileName,
+        ),
       });
       final response = await _dio.post(
         '/documents/$documentId/upload-version',

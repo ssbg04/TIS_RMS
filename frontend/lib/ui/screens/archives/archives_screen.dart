@@ -21,6 +21,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../documents/widgets/bulk_operations_bar.dart';
 import '../documents/widgets/document_preview_modal.dart';
+import '../documents/widgets/document_version_history_sheet.dart';
+import '../documents/widgets/document_type_filter_dialog.dart';
 import '../documents/widgets/file_folder_card.dart';
 import '../documents/widgets/styled_folder_icon.dart';
 import '../documents/widgets/print_queue_modal.dart';
@@ -274,8 +276,10 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
   // ── Document file menu (print, download, preview) ──────────────
   Future<void> _handleDocumentAction(String action, DocumentModel doc) async {
-    if (action == 'preview') {
+    if (action == 'preview' || action == 'open_with') {
       _handlePreview(doc);
+    } else if (action == 'version_history') {
+      showDocumentVersionHistory(context, document: doc);
     } else if (action == 'properties') {
       DocumentPropertiesDialog.show(context, document: doc);
     } else if (action == 'select') {
@@ -948,154 +952,38 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
             // Filter button (Dropdown only for Document Type, between Search and Print)
             if (_tabController.index == 1 || isFolderOpened) ...[
-              PopupMenuButton<String>(
-                tooltip: 'Filter by Document Type',
-                padding: const EdgeInsets.all(8),
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                onOpened: () {
-                  ref.invalidate(realtimeDocumentTypesProvider);
-                  ref.invalidate(documentRequirementsProvider);
-                },
-                icon: Badge(
-                  isLabelVisible: _getActiveFilterCount() > 0,
-                  label: Text(_getActiveFilterCount().toString()),
-                  child: Icon(
-                    Icons.tune_rounded,
-                    size: 20,
-                    color: _getActiveFilterCount() > 0
-                        ? AppColors.primaryGreen
-                        : (isDark
-                            ? AppColors.darkTextPrimary
-                            : Colors.black87),
+              Tooltip(
+                message: 'Filter by Document Type',
+                child: IconButton(
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  icon: Badge(
+                    isLabelVisible: _getActiveFilterCount() > 0,
+                    label: Text(_getActiveFilterCount().toString()),
+                    child: Icon(
+                      Icons.tune_rounded,
+                      size: 20,
+                      color: _getActiveFilterCount() > 0
+                          ? AppColors.primaryGreen
+                          : (isDark
+                              ? AppColors.darkTextPrimary
+                              : Colors.black87),
+                    ),
                   ),
+                  onPressed: () async {
+                    final result = await DocumentTypeFilterDialog.show(
+                      context,
+                      selectedDocumentType: _selectedDocumentType,
+                    );
+                    if (result == null || !mounted) return;
+                    setState(() {
+                      if (result.jhsItems.isNotEmpty) _jhsItems = result.jhsItems;
+                      if (result.shsItems.isNotEmpty) _shsItems = result.shsItems;
+                      _selectedDocumentType = result.selectedType;
+                    });
+                    _applyFilters();
+                  },
                 ),
-                onSelected: (type) {
-                  setState(() {
-                    _selectedDocumentType = type;
-                  });
-                  _applyFilters();
-                },
-                itemBuilder: (context) {
-                  final realtimeData = ref.read(realtimeDocumentTypesProvider).asData?.value;
-                  final requirementsData = ref.read(documentRequirementsProvider).asData?.value ?? [];
-                  List<String> jhsReqs = [];
-                  List<String> shsReqs = [];
-                  List<String> generalReqs = [];
-
-                  if (realtimeData != null) {
-                    jhsReqs = List<String>.from(realtimeData['jhs'] ?? []);
-                    shsReqs = List<String>.from(realtimeData['shs'] ?? []);
-                    generalReqs = List<String>.from(realtimeData['general'] ?? []);
-                  } else {
-                    jhsReqs = requirementsData
-                        .where((r) => r.category == 'JHS')
-                        .map((r) => r.name.replaceFirst(RegExp(r'^(JHS|SHS)\s*-\s*', caseSensitive: false), ''))
-                        .toSet()
-                        .toList()
-                      ..sort();
-                    shsReqs = requirementsData
-                        .where((r) => r.category == 'SHS')
-                        .map((r) => r.name.replaceFirst(RegExp(r'^(JHS|SHS)\s*-\s*', caseSensitive: false), ''))
-                        .toSet()
-                        .toList()
-                      ..sort();
-                  }
-
-                  // Update cached lists for _applyFilters
-                  if (jhsReqs.isNotEmpty) _jhsItems = jhsReqs;
-                  if (shsReqs.isNotEmpty) _shsItems = shsReqs;
-
-                  final List<PopupMenuEntry<String>> items = [];
-
-                  Widget buildHeader(String title) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white54 : Colors.black54,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    );
-                  }
-
-                  PopupMenuItem<String> buildItem(String value, String label, {bool isSubItem = false}) {
-                    final isSelected = _selectedDocumentType == value;
-                    return PopupMenuItem<String>(
-                      value: value,
-                      height: 38,
-                      child: Row(
-                        children: [
-                          if (isSubItem) const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                color: isSelected
-                                    ? AppColors.primaryGreen
-                                    : (isDark ? Colors.white : Colors.black87),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (isSelected)
-                            const Icon(
-                              Icons.check_rounded,
-                              size: 16,
-                              color: AppColors.primaryGreen,
-                            ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  items.add(buildItem('All Types', 'All Types'));
-                  items.add(const PopupMenuDivider(height: 8));
-
-                  if (jhsReqs.isNotEmpty) {
-                    items.add(PopupMenuItem<String>(
-                      enabled: false,
-                      height: 28,
-                      child: buildHeader('JUNIOR HIGH SCHOOL'),
-                    ));
-                    items.add(buildItem('All JHS', 'All JHS', isSubItem: true));
-                    for (final doc in jhsReqs) {
-                      items.add(buildItem(doc, doc, isSubItem: true));
-                    }
-                  }
-
-                  if (shsReqs.isNotEmpty) {
-                    items.add(const PopupMenuDivider(height: 8));
-                    items.add(PopupMenuItem<String>(
-                      enabled: false,
-                      height: 28,
-                      child: buildHeader('SENIOR HIGH SCHOOL'),
-                    ));
-                    items.add(buildItem('All SHS', 'All SHS', isSubItem: true));
-                    for (final doc in shsReqs) {
-                      items.add(buildItem(doc, doc, isSubItem: true));
-                    }
-                  }
-
-                  if (generalReqs.isNotEmpty) {
-                    items.add(const PopupMenuDivider(height: 8));
-                    items.add(PopupMenuItem<String>(
-                      enabled: false,
-                      height: 28,
-                      child: buildHeader('OTHER DOCUMENTS'),
-                    ));
-                    for (final doc in generalReqs) {
-                      items.add(buildItem(doc, doc, isSubItem: true));
-                    }
-                  }
-
-                  return items;
-                },
               ),
               const SizedBox(width: 2),
             ],

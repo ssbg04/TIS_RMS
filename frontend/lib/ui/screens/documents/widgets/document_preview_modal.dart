@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -21,6 +20,7 @@ import '../../../shared/dialogs/document_properties_dialog.dart';
 import '../../../shared/widgets/pdf_excel_preview_view.dart';
 import 'student_profile_modal.dart';
 import 'document_version_history_sheet.dart';
+import 'upload_version_modal.dart';
 
 /// Shows a fullscreen rich preview dialog for any document type:
 /// • Images (jpg/jpeg/png/gif/webp/bmp) → inline image with in-viewer zoom
@@ -448,27 +448,32 @@ class _DocumentPreviewDialogState
     }
   }
 
-  /// Pick a file (or use [prePickedPath]) and upload it as a new version.
+  /// Open UploadVersionModal when no [prePickedPath] is supplied, or directly
+  /// upload an externally edited file with canonical document-type renaming.
   Future<void> _uploadNewVersion({String? prePickedPath}) async {
-    if (widget.document == null) return;
-    String? filePath = prePickedPath;
+    final doc = widget.document;
+    if (doc == null) return;
 
-    if (filePath == null) {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'xls', 'xlsx', 'doc', 'docx', 'csv'],
-        allowMultiple: false,
-      );
-      if (result == null || result.files.single.path == null) return;
-      filePath = result.files.single.path!;
+    if (prePickedPath == null) {
+      final uploaded = await UploadVersionModal.show(context, document: doc);
+      if (uploaded == true && mounted) {
+        Navigator.of(context).pop();
+      }
+      return;
     }
 
     if (!mounted) return;
     setState(() => _isUploadingVersion = true);
     try {
+      final pickedName = prePickedPath.split(RegExp(r'[\\/]')).last;
+      final renamedFileName = computeNormalizedVersionFileName(doc, pickedName);
       final nextVersion = await _docRepo.uploadDocumentVersion(
-        widget.document!.id,
-        filePath,
+        doc.id,
+        prePickedPath,
+        customFileName: renamedFileName,
+        studentId: doc.studentId,
+        documentType: doc.documentType,
+        requirementId: doc.requirementId,
       );
       // Invalidate provider so the documents list refreshes
       ref.invalidate(documentPageProvider);
@@ -476,10 +481,15 @@ class _DocumentPreviewDialogState
       showSuccessDialog(
         context,
         message: 'Version $nextVersion uploaded successfully.',
+        notes: 'Saved as "$renamedFileName".',
       );
     } catch (e) {
       if (!mounted) return;
-      showErrorDialog(context, 'Upload Failed', e.toString().replaceFirst('Exception: ', ''));
+      showErrorDialog(
+        context,
+        'Upload Failed',
+        e.toString().replaceFirst('Exception: ', ''),
+      );
     } finally {
       if (mounted) setState(() => _isUploadingVersion = false);
     }

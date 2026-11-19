@@ -1241,27 +1241,31 @@ Files backup/restore - mirror mode or zip -->
 - update the code files first in this backend/ then to F:\SoftwareDevelopment\Capstone\TIS_RIS_Server_Manager\backend -->
 
 # Document Screen
-- file versioning upload modal not opening the preview document screen, and uploading new version rename like uploading a document
-- Redesign document type filter button: replace the unbounded full-screen popup menu with a dedicated Filter Dialog (desktop) / Bottom Sheet (mobile) with search bar, category tabs (All / JHS / SHS / Other), filter chips, and Clear/Apply actions (matching FolderFilterDialog style)
+- [x] file versioning upload modal not opening the preview document screen, and uploading new version rename like uploading a document
+- [x] Redesign document type filter button: replace the unbounded full-screen popup menu with a dedicated Filter Dialog (desktop) / Bottom Sheet (mobile) with search bar, category tabs (All / JHS / SHS / Other), filter chips, and Clear/Apply actions (matching FolderFilterDialog style)
 
 # Archive Screen
-- File version sheet cannot open in this screen
-- Apply the same redesigned document type Filter Dialog / Bottom Sheet from Document Screen to replace full-screen popup menu
+- [x] File version sheet cannot open in this screen
+- [x] Apply the same redesigned document type Filter Dialog / Bottom Sheet from Document Screen to replace full-screen popup menu
 
 # SETTINGS SCREEN - Security & Two-Factor Authentication (2FA)
-- Support both 2FA methods in Settings > Security Screen:
-  1. Authenticator App (TOTP - Google/Microsoft Authenticator, works offline)
-  2. Email OTP (6-digit code via registered email with Gmail SMTP)
-- Allow user to enable, disable, and select preferred 2FA method in Security screen
-- Generate and display backup recovery codes upon 2FA setup
-- Prompt 2FA verification step during login on Login Screen when 2FA is active
+- [x] Support both 2FA methods in Settings > Security Screen:
+  - Authenticator App (TOTP - Google/Microsoft Authenticator, works offline)
+  - Email OTP (6-digit code via registered email with Gmail SMTP)
+- [x] Allow user to enable, disable, and select preferred 2FA method in Security screen
+- [x] Generate and display backup recovery codes upon 2FA setup
+- [x] Prompt 2FA verification step during login on Login Screen when 2FA is active
 
-# REPORTS SCREEN - Compliance Tab Interactive Graph Legends
-- Donut chart (Student Status Breakdown): Make legends (and pie slices) clickable to filter the report table and metrics by student status (Active, Inactive, Dropped, Graduated, Transferred); click again to toggle back to All Statuses, with active highlight/dim visual styling.
-- Bar chart (Students Per Year): Make status legends clickable toggle chips to directly show/hide that status bar series in the comparison graph without needing to open the multi-select modal.
+# REPORTS SCREEN - Compliance Tab Interactive Graph Legends & Filter Separation
+- [x] Donut chart (Student Status Breakdown): Make legends (and pie slices) clickable to filter the report table and metrics by student status (Active, Inactive, Dropped, Graduated, Transferred); click again to toggle back to All Statuses, with active highlight/dim visual styling.
+- [x] Bar chart (Students Per Year): Make status legends clickable toggle chips to directly show/hide that status bar series in the comparison graph without needing to open the multi-select modal.
+- [ ] Separate Student Status from Main Filter Bar:
+  - Remove redundant "Student Status" dropdown from the top cohort filter bar (keep only Academic Year, Grade Level, and Section for cleaner cohort scoping).
+  - Let the Donut chart breakdown and its interactive legend chips serve as the primary visual status filter controller.
+  - Display an active dismissible filter chip (e.g., `Status: Dropped [✕]`) in the student compliance list table header for quick feedback and 1-tap reset.
 
 # STUDENTS SCREEN - Missing Requirements Badge & Hover/Hold Tooltip
-- Redesign the missing requirements badge on student cards and table rows to match Reports screen (Compliance tab students list):
+- [x] Redesign the missing requirements badge on student cards and table rows to match Reports screen (Compliance tab students list):
   - Theme-responsive colors for both light and dark mode (`AppColors.darkSurface2` / `Colors.grey.shade100`, border, indicator icons).
   - Hover (desktop) / Long-press hold (mobile) rich tooltip with theme-aware background, border, text color, and formatted list of missing documents (instead of default plain text box).
   - Tap opens the missing documents bottom sheet consistently.

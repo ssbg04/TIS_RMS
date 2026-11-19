@@ -21,9 +21,25 @@ final authProvider = AsyncNotifierProvider<AuthNotifier, UserModel?>(() {
 });
 
 class AuthNotifier extends AsyncNotifier<UserModel?> {
+  TwoFactorChallenge? _pendingTwoFactorChallenge;
+
+  TwoFactorChallenge? get pendingTwoFactorChallenge =>
+      _pendingTwoFactorChallenge;
+
+  void clearPendingTwoFactorChallenge() {
+    _pendingTwoFactorChallenge = null;
+  }
+
   @override
   FutureOr<UserModel?> build() {
     return null; // Always starts null; auto-login handled in SplashScreen
+  }
+
+  void _completeSessionStart(UserModel user) {
+    state = AsyncData(user);
+    ref.read(heartbeatServiceProvider).start(user);
+    ForegroundSyncService.start();
+    FcmService.registerToken();
   }
 
   Future<bool> login(
@@ -31,18 +47,21 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     String password, {
     bool rememberMe = false,
   }) async {
+    _pendingTwoFactorChallenge = null;
     state = const AsyncLoading();
     try {
       final repository = ref.read(authRepositoryProvider);
-      final user = await repository.login(
+      final outcome = await repository.login(
         username,
         password,
         rememberMe: rememberMe,
       );
-      state = AsyncData(user);
-      ref.read(heartbeatServiceProvider).start(user);
-      ForegroundSyncService.start();
-      FcmService.registerToken();
+      if (outcome.requiresTwoFactor) {
+        _pendingTwoFactorChallenge = outcome.twoFactorChallenge;
+        state = const AsyncData(null);
+        return false;
+      }
+      _completeSessionStart(outcome.user!);
       return true;
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -50,15 +69,69 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     }
   }
 
+  Future<bool> verifyTwoFactorLogin({
+    required String challengeToken,
+    required String code,
+    bool isBackupCode = false,
+    bool rememberMe = false,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      final user = await repository.verifyTwoFactorLogin(
+        challengeToken: challengeToken,
+        code: code,
+        isBackupCode: isBackupCode,
+        rememberMe: rememberMe,
+      );
+      _pendingTwoFactorChallenge = null;
+      _completeSessionStart(user);
+      return true;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  Future<String> resendTwoFactorLoginOtp(String challengeToken) {
+    return ref.read(authRepositoryProvider).resendTwoFactorLoginOtp(challengeToken);
+  }
+
+  Future<Map<String, dynamic>> getTwoFactorStatus() {
+    return ref.read(authRepositoryProvider).getTwoFactorStatus();
+  }
+
+  Future<Map<String, dynamic>> setupTotp() {
+    return ref.read(authRepositoryProvider).setupTotp();
+  }
+
+  Future<List<String>> confirmTotp(String code) {
+    return ref.read(authRepositoryProvider).confirmTotp(code);
+  }
+
+  Future<String?> setupEmailTwoFactor() {
+    return ref.read(authRepositoryProvider).setupEmailTwoFactor();
+  }
+
+  Future<List<String>> confirmEmailTwoFactor(String code) {
+    return ref.read(authRepositoryProvider).confirmEmailTwoFactor(code);
+  }
+
+  Future<List<String>> regenerateTwoFactorBackupCodes(String password) {
+    return ref.read(authRepositoryProvider).regenerateTwoFactorBackupCodes(password);
+  }
+
+  Future<void> disableTwoFactor(String password) {
+    return ref.read(authRepositoryProvider).disableTwoFactor(password);
+  }
+
   Future<bool> loginWithBiometrics(String biometricToken) async {
+    _pendingTwoFactorChallenge = null;
     state = const AsyncLoading();
     try {
       final repository = ref.read(authRepositoryProvider);
       final user = await repository.loginWithBiometrics(biometricToken);
-      state = AsyncData(user);
-      ref.read(heartbeatServiceProvider).start(user);
-      ForegroundSyncService.start();
-      FcmService.registerToken();
+      _completeSessionStart(user);
       return true;
     } catch (e, st) {
       state = AsyncError(e, st);

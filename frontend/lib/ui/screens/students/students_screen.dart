@@ -1970,11 +1970,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           )
         : cardBg;
 
-    final int completedCount = (s.totalDocumentsCount - s.missingDocumentsCount)
-        .clamp(0, s.totalDocumentsCount);
-    final bool isComplete =
-        s.missingDocumentsCount == 0 && s.totalDocumentsCount > 0;
-
     return RepaintBoundary(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -2161,103 +2156,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
                   // Document completion counter (aligned fixed-width column)
                   SizedBox(
-                    width: 195,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (s.totalDocumentsCount > 0)
-                          Tooltip(
-                            message: _buildMissingDocsTooltip(s),
-                            waitDuration: const Duration(milliseconds: 250),
-                            showDuration: const Duration(seconds: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? const Color(0xFF2C2C2E)
-                                  : const Color(0xFF1E293B),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            textStyle: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              height: 1.4,
-                            ),
-                            child: InkWell(
-                              onTap: () => _showDocumentStatusSheet(context, s),
-                              borderRadius: BorderRadius.circular(6),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isComplete
-                                      ? AppColors.success
-                                          .withValues(alpha: isDark ? 0.2 : 0.1)
-                                      : Colors.orange
-                                          .withValues(alpha: isDark ? 0.2 : 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: isComplete
-                                        ? AppColors.success
-                                            .withValues(alpha: 0.3)
-                                        : Colors.orange
-                                            .withValues(alpha: 0.3),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      isComplete
-                                          ? Icons.check_circle_outline_rounded
-                                          : Icons.pending_outlined,
-                                      size: 12,
-                                      color: isComplete
-                                          ? AppColors.success
-                                          : Colors.orange,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      isComplete
-                                          ? '$completedCount/${s.totalDocumentsCount} Complete'
-                                          : '$completedCount/${s.totalDocumentsCount} (${s.missingDocumentsCount} Missing)',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: isComplete
-                                            ? AppColors.success
-                                            : (isDark
-                                                ? Colors.orange.shade300
-                                                : Colors.orange.shade800),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          )
-                        else
-                          Text(
-                            'No Requirements',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                      ],
+                    width: 205,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: _buildMissingDocsBadge(
+                        context,
+                        s,
+                        isDark: isDark,
+                        isMobile: false,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -2348,14 +2255,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             cardBg,
           )
         : cardBg;
-
-    final int completedCount = (s.totalDocumentsCount - s.missingDocumentsCount)
-        .clamp(0, s.totalDocumentsCount);
-    final bool isComplete =
-        s.missingDocumentsCount == 0 && s.totalDocumentsCount > 0;
-    final docColor = isComplete
-        ? AppColors.success
-        : (s.totalDocumentsCount > 0 ? Colors.orange : Colors.grey);
 
     return RepaintBoundary(
       child: GestureDetector(
@@ -2554,66 +2453,14 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                 : AppColors.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 5),
 
-                        // Row 3: Document completion counter
-                        Tooltip(
-                          message: _buildMissingDocsTooltip(s),
-                          waitDuration: const Duration(milliseconds: 250),
-                          showDuration: const Duration(seconds: 4),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF2C2C2E)
-                                : const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          textStyle: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
-                          child: InkWell(
-                            onTap: () => _showDocumentStatusSheet(context, s),
-                            borderRadius: BorderRadius.circular(4),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isComplete
-                                        ? Icons.check_circle_rounded
-                                        : (s.totalDocumentsCount > 0
-                                            ? Icons.pending_rounded
-                                            : Icons.info_outline_rounded),
-                                    size: 11,
-                                    color: docColor,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    s.totalDocumentsCount > 0
-                                        ? '$completedCount/${s.totalDocumentsCount} Docs ${isComplete ? "• Complete" : "• ${s.missingDocumentsCount} Missing"}'
-                                        : 'No Document Requirements',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: docColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                        // Row 3: Document completion badge (hover/hold tooltip + tap bottom sheet)
+                        _buildMissingDocsBadge(
+                          context,
+                          s,
+                          isDark: isDark,
+                          isMobile: true,
                         ),
                       ],
                     ),
@@ -2636,23 +2483,302 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
 
-  String _buildMissingDocsTooltip(StudentModel s) {
-    if (s.totalDocumentsCount == 0) {
-      return 'No document requirements for this student';
-    }
-    if (s.missingDocumentsCount == 0) {
-      return 'All requirements submitted (${s.totalDocumentsCount}/${s.totalDocumentsCount})';
-    }
-    final buffer = StringBuffer('Missing Requirements (${s.missingDocumentsCount}):\n');
-    if (s.missingDocuments.isNotEmpty) {
-      for (final doc in s.missingDocuments) {
-        final cleanDoc = doc.replaceFirst(RegExp(r'^\[(JHS|SHS)\]\s*', caseSensitive: false), '');
-        buffer.writeln('• $cleanDoc');
-      }
+  Widget _buildMissingDocsTooltipWidget({
+    required BuildContext context,
+    required StudentModel student,
+    required Widget child,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final InlineSpan richMessage;
+
+    if (student.totalDocumentsCount == 0) {
+      richMessage = TextSpan(
+        children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Icon(
+                Icons.info_outline_rounded,
+                size: 15,
+                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+              ),
+            ),
+          ),
+          TextSpan(
+            text: 'No document requirements for this student',
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      );
+    } else if (student.missingDocumentsCount == 0) {
+      richMessage = TextSpan(
+        children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Icon(
+                Icons.check_circle_rounded,
+                size: 15,
+                color: isDark ? const Color(0xFF76BA8A) : Colors.green.shade700,
+              ),
+            ),
+          ),
+          TextSpan(
+            text:
+                'All documents completed (${student.totalDocumentsCount}/${student.totalDocumentsCount})',
+            style: TextStyle(
+              color: isDark ? const Color(0xFF76BA8A) : Colors.green.shade700,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      );
     } else {
-      buffer.writeln('• ${s.missingDocumentsCount} document(s) pending');
+      final jhsDocs = student.missingDocuments
+          .where((d) => d.toUpperCase().startsWith('[JHS]'))
+          .map(
+            (d) => d
+                .replaceFirst(RegExp(r'^\[JHS\]\s*', caseSensitive: false), '')
+                .trim(),
+          )
+          .toList();
+      final shsDocs = student.missingDocuments
+          .where((d) => d.toUpperCase().startsWith('[SHS]'))
+          .map(
+            (d) => d
+                .replaceFirst(RegExp(r'^\[SHS\]\s*', caseSensitive: false), '')
+                .trim(),
+          )
+          .toList();
+      final otherDocs = student.missingDocuments
+          .where(
+            (d) =>
+                !d.toUpperCase().startsWith('[JHS]') &&
+                !d.toUpperCase().startsWith('[SHS]'),
+          )
+          .map((d) => d.trim())
+          .where((d) => d.isNotEmpty)
+          .toList();
+
+      final spanChildren = <InlineSpan>[
+        TextSpan(
+          text: 'Missing Documents (${student.missingDocumentsCount}):\n',
+          style: TextStyle(
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 12.5,
+          ),
+        ),
+      ];
+
+      if (jhsDocs.isNotEmpty) {
+        spanChildren.add(
+          TextSpan(
+            text: '\nJHS Requirements:\n',
+            style: TextStyle(
+              color: isDark ? const Color(0xFF80CBC4) : const Color(0xFF00796B),
+              fontWeight: FontWeight.bold,
+              fontSize: 11.5,
+            ),
+          ),
+        );
+        for (final doc in jhsDocs) {
+          spanChildren.add(
+            TextSpan(
+              text: '  • $doc\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          );
+        }
+      }
+
+      if (shsDocs.isNotEmpty) {
+        spanChildren.add(
+          TextSpan(
+            text: '\nSHS Requirements:\n',
+            style: TextStyle(
+              color: isDark ? const Color(0xFFB39DDB) : const Color(0xFF6A1B9A),
+              fontWeight: FontWeight.bold,
+              fontSize: 11.5,
+            ),
+          ),
+        );
+        for (final doc in shsDocs) {
+          spanChildren.add(
+            TextSpan(
+              text: '  • $doc\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          );
+        }
+      }
+
+      if (otherDocs.isNotEmpty) {
+        if (jhsDocs.isNotEmpty || shsDocs.isNotEmpty) {
+          spanChildren.add(
+            TextSpan(
+              text: '\nOther Requirements:\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 11.5,
+              ),
+            ),
+          );
+        }
+        for (final doc in otherDocs) {
+          spanChildren.add(
+            TextSpan(
+              text: '  • $doc\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          );
+        }
+      } else if (jhsDocs.isEmpty && shsDocs.isEmpty) {
+        spanChildren.add(
+          TextSpan(
+            text: '  • ${student.missingDocumentsCount} document(s) pending',
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              fontSize: 12,
+              height: 1.35,
+            ),
+          ),
+        );
+      }
+
+      richMessage = TextSpan(children: spanChildren);
     }
-    return buffer.toString().trimRight();
+
+    return Tooltip(
+      richMessage: richMessage,
+      waitDuration: const Duration(milliseconds: 250),
+      showDuration: const Duration(seconds: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black45 : Colors.black.withValues(alpha: 0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      preferBelow: false,
+      child: child,
+    );
+  }
+
+  Widget _buildMissingDocsBadge(
+    BuildContext context,
+    StudentModel s, {
+    required bool isDark,
+    required bool isMobile,
+  }) {
+    final int completedCount = (s.totalDocumentsCount - s.missingDocumentsCount)
+        .clamp(0, s.totalDocumentsCount);
+    final bool hasRequirements = s.totalDocumentsCount > 0;
+    final bool isComplete = s.missingDocumentsCount == 0 && hasRequirements;
+
+    final IconData iconData = !hasRequirements
+        ? Icons.info_outline_rounded
+        : (isComplete
+              ? Icons.check_circle_outline_rounded
+              : Icons.info_outline_rounded);
+
+    final Color iconColor = !hasRequirements
+        ? (isDark ? AppColors.darkTextSecondary : Colors.grey.shade600)
+        : (isComplete
+              ? (isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen)
+              : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade700));
+
+    final Color labelColor = !hasRequirements
+        ? (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)
+        : (isComplete
+              ? (isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen)
+              : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary));
+
+    final String labelText;
+    if (!hasRequirements) {
+      labelText = isMobile ? 'No Document Requirements' : 'No Requirements';
+    } else if (isComplete) {
+      labelText = '$completedCount/${s.totalDocumentsCount} Complete';
+    } else {
+      labelText =
+          '$completedCount/${s.totalDocumentsCount} (${s.missingDocumentsCount} Missing)';
+    }
+
+    return _buildMissingDocsTooltipWidget(
+      context: context,
+      student: s,
+      child: InkWell(
+        onTap: () => _showDocumentStatusSheet(context, s),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+              width: 0.8,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(iconData, size: 13, color: iconColor),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  labelText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: labelColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ),
+              if (hasRequirements) ...[
+                const SizedBox(width: 2),
+                Icon(
+                  Icons.arrow_drop_down_rounded,
+                  size: 16,
+                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showDocumentStatusSheet(BuildContext context, StudentModel s) {
