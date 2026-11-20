@@ -15,7 +15,6 @@ class GlobalConnectivityBanner extends ConsumerStatefulWidget {
 
 class _GlobalConnectivityBannerState
     extends ConsumerState<GlobalConnectivityBanner> {
-  ServerConnectionStatus? _previousStatus;
   bool _showRestoredBanner = false;
   Timer? _restoredTimer;
 
@@ -25,70 +24,78 @@ class _GlobalConnectivityBannerState
     super.dispose();
   }
 
-  void _handleStatusChange(ServerConnectionStatus current) {
-    if (_previousStatus != null &&
-        (_previousStatus == ServerConnectionStatus.offline ||
-            _previousStatus == ServerConnectionStatus.reconnecting) &&
+  void _onStatusChanged(
+    ServerConnectionStatus? previous,
+    ServerConnectionStatus current,
+  ) {
+    if (previous != null &&
+        (previous == ServerConnectionStatus.offline ||
+            previous == ServerConnectionStatus.reconnecting) &&
         current == ServerConnectionStatus.connected) {
-      // Transitioned back to connected: flash a brief positive confirmation
-      setState(() {
-        _showRestoredBanner = true;
-      });
+      setState(() => _showRestoredBanner = true);
       _restoredTimer?.cancel();
       _restoredTimer = Timer(const Duration(milliseconds: 2200), () {
         if (mounted) {
-          setState(() {
-            _showRestoredBanner = false;
-          });
+          setState(() => _showRestoredBanner = false);
         }
       });
-    } else if (current != ServerConnectionStatus.connected) {
+    } else if (current != ServerConnectionStatus.connected && _showRestoredBanner) {
       _restoredTimer?.cancel();
-      _showRestoredBanner = false;
+      setState(() => _showRestoredBanner = false);
     }
-    _previousStatus = current;
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ServerConnectionStatus>(
+      serverConnectionStatusProvider,
+      _onStatusChanged,
+    );
+
     final status = ref.watch(serverConnectionStatusProvider);
-    _handleStatusChange(status);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final isOffline = status == ServerConnectionStatus.offline;
     final isReconnecting = status == ServerConnectionStatus.reconnecting;
-    final isRestored = _showRestoredBanner && status == ServerConnectionStatus.connected;
+    final isRestored =
+        _showRestoredBanner && status == ServerConnectionStatus.connected;
 
     final isVisible = isOffline || isReconnecting || isRestored;
 
     final Color bgColor;
     final Color textColor;
     final Color borderColor;
+    final Color accentColor;
     final IconData icon;
     final String message;
     final bool showProgress;
 
     if (isRestored) {
-      bgColor = const Color(0xFF065F46); // Emerald 800
-      textColor = const Color(0xFFD1FAE5); // Emerald 100
-      borderColor = const Color(0xFF10B981);
+      accentColor = const Color(0xFF10B981);
+      bgColor = isDark ? const Color(0xFF0F2922) : const Color(0xFFECFDF5);
+      textColor = isDark ? const Color(0xFFA7F3D0) : const Color(0xFF065F46);
+      borderColor = accentColor.withValues(alpha: isDark ? 0.45 : 0.35);
       icon = Icons.check_circle_rounded;
       message = 'Connection restored — back online';
       showProgress = false;
     } else if (isReconnecting) {
-      bgColor = const Color(0xFF78350F); // Amber 900
-      textColor = const Color(0xFFFEF3C7); // Amber 100
-      borderColor = const Color(0xFFF59E0B);
+      accentColor = const Color(0xFFF59E0B);
+      bgColor = isDark ? const Color(0xFF2B2111) : const Color(0xFFFFFBEB);
+      textColor = isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E);
+      borderColor = accentColor.withValues(alpha: isDark ? 0.45 : 0.40);
       icon = Icons.sync_rounded;
       message = 'Reconnecting to server…';
       showProgress = true;
     } else if (isOffline) {
-      bgColor = const Color(0xFF7F1D1D); // Red 900
-      textColor = const Color(0xFFFEE2E2); // Red 100
-      borderColor = const Color(0xFFEF4444);
+      accentColor = const Color(0xFFEF4444);
+      bgColor = isDark ? const Color(0xFF2D1517) : const Color(0xFFFEF2F2);
+      textColor = isDark ? const Color(0xFFFECACA) : const Color(0xFF991B1B);
+      borderColor = accentColor.withValues(alpha: isDark ? 0.45 : 0.35);
       icon = Icons.wifi_off_rounded;
       message = 'Offline — Trying to reconnect';
       showProgress = false;
     } else {
+      accentColor = Colors.transparent;
       bgColor = Colors.transparent;
       textColor = Colors.transparent;
       borderColor = Colors.transparent;
@@ -99,84 +106,107 @@ class _GlobalConnectivityBannerState
 
     return IgnorePointer(
       ignoring: !isVisible,
-      child: AnimatedSlide(
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-        offset: isVisible ? Offset.zero : const Offset(0, -1.2),
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 240),
-          opacity: isVisible ? 1.0 : 0.0,
-          child: Container(
-            width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: bgColor.withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: borderColor.withValues(alpha: 0.4), width: 1),
-              boxShadow: isVisible
-                  ? [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ]
-                  : null,
-            ),
-            child: Row(
-              children: [
-                if (showProgress)
-                  SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(textColor),
-                    ),
-                  )
-                else
-                  Icon(icon, size: 16, color: textColor),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    message,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+      child: Material(
+        type: MaterialType.transparency,
+        child: AnimatedSlide(
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+          offset: isVisible ? Offset.zero : const Offset(0, -1.2),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 240),
+            opacity: isVisible ? 1.0 : 0.0,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
                   ),
-                ),
-                if (isOffline) ...[
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () => ref.read(heartbeatServiceProvider).checkNow(),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.20),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'Retry',
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: bgColor.withValues(alpha: 0.96),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderColor, width: 1),
+                    boxShadow: isVisible
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: isDark ? 0.35 : 0.10,
+                              ),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      if (showProgress)
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(accentColor),
+                          ),
+                        )
+                      else
+                        Icon(icon, size: 16, color: accentColor),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          message,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.15,
+                            decoration: TextDecoration.none,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
+                      if (isOffline) ...[
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () =>
+                              ref.read(heartbeatServiceProvider).checkNow(),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: accentColor.withValues(
+                                alpha: isDark ? 0.22 : 0.12,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Retry',
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ],
-              ],
+                ),
+              ),
             ),
           ),
         ),
