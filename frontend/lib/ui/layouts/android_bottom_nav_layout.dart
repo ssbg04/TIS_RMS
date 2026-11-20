@@ -400,11 +400,11 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
 
   void _openDrawer() {
     FocusManager.instance.primaryFocus?.unfocus();
-    HapticFeedback.selectionClick();
+    HapticFeedback.lightImpact();
     _drawerController.animateTo(
       1.0,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutQuart,
     );
   }
 
@@ -412,8 +412,8 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     _drawerCloseTimer?.cancel();
     _drawerController.animateTo(
       0.0,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeInOutCubic,
     );
   }
 
@@ -541,7 +541,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     if (!isSelected) {
       _onNavTapped(label);
       _drawerCloseTimer?.cancel();
-      _drawerCloseTimer = Timer(const Duration(milliseconds: 90), () {
+      _drawerCloseTimer = Timer(const Duration(milliseconds: 40), () {
         if (mounted) _closeDrawer();
       });
     } else {
@@ -1128,15 +1128,15 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   final glide = Curves.easeOutCubic.transform(t);
                   final opacity = const Interval(
                     0.0,
-                    0.85,
+                    0.80,
                     curve: Curves.easeOut,
                   ).transform(t);
                   return Opacity(
                     opacity: opacity.clamp(0.0, 1.0),
                     child: Transform.translate(
-                      offset: Offset(0, 12.0 * (1.0 - glide)),
+                      offset: Offset(0, 10.0 * (1.0 - glide)),
                       child: Transform.scale(
-                        scale: 0.985 + (0.015 * glide),
+                        scale: 0.97 + (0.03 * glide),
                         child: stackChild,
                       ),
                     ),
@@ -1151,14 +1151,43 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                 isStudentMultiSelect ? SystemUiOverlayStyle.light : overlayStyle,
             child: MediaQuery(
               data: lockedMediaQuery,
-              child: ColoredBox(
-                color: drawerBackdropColor,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [
+                            Color.lerp(
+                              const Color(0xFF0E1411),
+                              AppColors.primaryGreen,
+                              0.12,
+                            )!,
+                            const Color(0xFF0E1411),
+                          ]
+                        : [
+                            Color.lerp(
+                              const Color(0xFFF3F6F4),
+                              AppColors.primaryGreen,
+                              0.07,
+                            )!,
+                            drawerBackdropColor,
+                          ],
+                  ),
+                ),
                 child: AnimatedBuilder(
                   animation: _drawerController,
                   child: RepaintBoundary(child: mainScaffold),
                   builder: (context, child) {
                     final double t = _drawerController.value;
                     final bool drawerVisible = t > 0.001;
+                    final double cardRadius = 26.0 * t;
+                    final double cardScale = 1.0 - 0.14 * t;
+                    final Matrix4 perspectiveTransform = Matrix4.identity()
+                      ..translateByDouble(drawerWidth * t, 0.0, 0.0, 1.0)
+                      ..scaleByDouble(cardScale, cardScale, 1.0, 1.0)
+                      ..setEntry(3, 2, 0.001)
+                      ..rotateY(-0.04 * t);
 
                     return Stack(
                       children: [
@@ -1169,27 +1198,34 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                             bottom: 0,
                             width: drawerWidth,
                             child: Transform.translate(
-                              offset: Offset(-20.0 * (1.0 - t), 0),
-                              child: Opacity(
-                                opacity: t.clamp(0.0, 1.0),
-                                child: RepaintBoundary(
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.translucent,
-                                    onHorizontalDragStart:
-                                        _onHorizontalDragStart,
-                                    onHorizontalDragUpdate: (d) {
-                                      if ((d.primaryDelta ?? 0) < 0) {
-                                        _onHorizontalDragUpdate(d, drawerWidth);
-                                      }
-                                    },
-                                    onHorizontalDragEnd: _onHorizontalDragEnd,
-                                    onHorizontalDragCancel:
-                                        _onHorizontalDragCancel,
-                                    child: _buildMinimalistDrawer(
-                                      context,
-                                      activeTab,
-                                      navPrimary,
-                                      navSecondary,
+                              offset: Offset(-24.0 * (1.0 - t), 0),
+                              child: Transform.scale(
+                                scale: 0.96 + (0.04 * t),
+                                alignment: Alignment.centerLeft,
+                                child: Opacity(
+                                  opacity: t.clamp(0.0, 1.0),
+                                  child: RepaintBoundary(
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onHorizontalDragStart:
+                                          _onHorizontalDragStart,
+                                      onHorizontalDragUpdate: (d) {
+                                        if ((d.primaryDelta ?? 0) < 0) {
+                                          _onHorizontalDragUpdate(
+                                            d,
+                                            drawerWidth,
+                                          );
+                                        }
+                                      },
+                                      onHorizontalDragEnd: _onHorizontalDragEnd,
+                                      onHorizontalDragCancel:
+                                          _onHorizontalDragCancel,
+                                      child: _buildMinimalistDrawer(
+                                        context,
+                                        activeTab,
+                                        navPrimary,
+                                        navSecondary,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -1200,25 +1236,25 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                           Positioned.fill(
                             child: IgnorePointer(
                               child: Transform.translate(
-                                offset: Offset((drawerWidth - 14.0) * t, 0),
+                                offset: Offset((drawerWidth - 18.0) * t, 0),
                                 child: Transform.scale(
-                                  scale: 1.0 - 0.20 * t,
+                                  scale: 1.0 - 0.19 * t,
                                   alignment: Alignment.centerLeft,
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: isDark
                                           ? AppColors.darkSurfaceCard
-                                              .withValues(alpha: 0.45 * t)
+                                              .withValues(alpha: 0.42 * t)
                                           : Colors.white
-                                              .withValues(alpha: 0.55 * t),
+                                              .withValues(alpha: 0.52 * t),
                                       borderRadius: BorderRadius.circular(
-                                        24.0 * t,
+                                        cardRadius,
                                       ),
                                       border: Border.all(
                                         color: (isDark
                                                 ? AppColors.darkBorder
                                                 : AppColors.borderLight)
-                                            .withValues(alpha: 0.6 * t),
+                                            .withValues(alpha: 0.55 * t),
                                         width: 1,
                                       ),
                                     ),
@@ -1227,64 +1263,65 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                               ),
                             ),
                           ),
-                        Transform.translate(
-                          offset: Offset(drawerWidth * t, 0),
-                          child: Transform.scale(
-                            scale: 1.0 - 0.14 * t,
-                            alignment: Alignment.centerLeft,
-                            child: DecoratedBox(
-                              decoration: drawerVisible
-                                  ? BoxDecoration(
-                                      borderRadius: BorderRadius.circular(
-                                        24.0 * t,
+                        Transform(
+                          transform: perspectiveTransform,
+                          alignment: Alignment.centerLeft,
+                          child: DecoratedBox(
+                            decoration: drawerVisible
+                                ? BoxDecoration(
+                                    borderRadius: BorderRadius.circular(
+                                      cardRadius,
+                                    ),
+                                    border: Border.all(
+                                      color: (isDark
+                                              ? AppColors.darkBorder
+                                              : AppColors.borderLight)
+                                          .withValues(alpha: t),
+                                      width: 1,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: (isDark ? 0.50 : 0.15) * t,
+                                        ),
+                                        blurRadius: 30,
+                                        offset: const Offset(-10, 14),
                                       ),
-                                      border: Border.all(
-                                        color: (isDark
-                                                ? AppColors.darkBorder
-                                                : AppColors.borderLight)
-                                            .withValues(alpha: t),
-                                        width: 1,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
+                                    ],
+                                  )
+                                : const BoxDecoration(),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(cardRadius),
+                              clipBehavior: drawerVisible
+                                  ? Clip.antiAlias
+                                  : Clip.none,
+                              child: Stack(
+                                children: [
+                                  child!,
+                                  if (t > 0.01)
+                                    Positioned.fill(
+                                      child: GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: _closeDrawer,
+                                        onHorizontalDragStart:
+                                            _onHorizontalDragStart,
+                                        onHorizontalDragUpdate: (d) =>
+                                            _onHorizontalDragUpdate(
+                                              d,
+                                              drawerWidth,
+                                            ),
+                                        onHorizontalDragEnd:
+                                            _onHorizontalDragEnd,
+                                        onHorizontalDragCancel:
+                                            _onHorizontalDragCancel,
+                                        child: ColoredBox(
                                           color: Colors.black.withValues(
-                                            alpha: (isDark ? 0.45 : 0.14) * t,
+                                            alpha: (isDark ? 0.24 : 0.08) * t,
                                           ),
-                                          blurRadius: 28,
-                                          offset: const Offset(-8, 12),
-                                        ),
-                                      ],
-                                    )
-                                  : const BoxDecoration(),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(24.0 * t),
-                                clipBehavior: drawerVisible
-                                    ? Clip.antiAlias
-                                    : Clip.none,
-                                child: Stack(
-                                  children: [
-                                    child!,
-                                    if (t > 0.01)
-                                      Positioned.fill(
-                                        child: GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onTap: _closeDrawer,
-                                          onHorizontalDragStart:
-                                              _onHorizontalDragStart,
-                                          onHorizontalDragUpdate: (d) =>
-                                              _onHorizontalDragUpdate(
-                                                d,
-                                                drawerWidth,
-                                              ),
-                                          onHorizontalDragEnd:
-                                              _onHorizontalDragEnd,
-                                          onHorizontalDragCancel:
-                                              _onHorizontalDragCancel,
-                                          child: const SizedBox.expand(),
                                         ),
                                       ),
-                                  ],
-                                ),
+                                    ),
+                                ],
                               ),
                             ),
                           ),
@@ -1566,10 +1603,18 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
             height: 40,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.primaryGreen
-                      .withValues(alpha: isDark ? 0.16 : 0.11)
-                  : Colors.transparent,
+              gradient: isSelected
+                  ? LinearGradient(
+                      colors: [
+                        AppColors.primaryGreen.withValues(
+                          alpha: isDark ? 0.22 : 0.14,
+                        ),
+                        AppColors.primaryGreen.withValues(
+                          alpha: isDark ? 0.08 : 0.05,
+                        ),
+                      ],
+                    )
+                  : null,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
