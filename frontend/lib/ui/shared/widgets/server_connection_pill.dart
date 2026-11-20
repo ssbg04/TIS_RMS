@@ -30,32 +30,51 @@ class ServerConnectionPill extends ConsumerWidget {
     final bgColor = color.withValues(alpha: isDark ? 0.20 : 0.12);
 
     if (compact) {
-      return Tooltip(
-        message: 'Server: $label',
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: status == ServerConnectionStatus.offline
-              ? () => ref.read(heartbeatServiceProvider).checkNow()
-              : null,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: color.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
+      if (status == ServerConnectionStatus.connected) {
+        return const SizedBox.shrink();
+      }
+      return Padding(
+        padding: const EdgeInsets.only(left: 8),
+        child: Tooltip(
+          message: status == ServerConnectionStatus.offline
+              ? 'Server: Offline (Tap to retry)'
+              : 'Server: $label',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: status == ServerConnectionStatus.offline
+                ? () => ref.read(heartbeatServiceProvider).checkNow()
+                : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: color.withValues(alpha: 0.35)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 5),
+                  Text(
+                    status == ServerConnectionStatus.offline
+                        ? 'Offline'
+                        : 'Syncing',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

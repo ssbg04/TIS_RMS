@@ -1129,7 +1129,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       child: Container(
         height: 52,
         margin: EdgeInsets.symmetric(
-          horizontal: isMobile ? 8 : 16,
+          horizontal: isMobile ? 12 : 16,
           vertical: 8,
         ),
         padding: EdgeInsets.symmetric(horizontal: isMobile ? 6 : 12),

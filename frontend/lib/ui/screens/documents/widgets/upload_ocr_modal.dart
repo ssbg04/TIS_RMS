@@ -47,6 +47,23 @@ class _UploadEntry {
   UploadStatus status = UploadStatus.pending;
   String? errorMessage;
 
+  // Hybrid document identification state
+  bool isIdentifying = false;
+  bool hasIdentified = false;
+  bool userOverridden = false;
+  String? detectionMethod; // 'filename', 'pdf_text', 'ocr'
+  int confidence = 0;
+  String confidenceLevel = 'low'; // 'high', 'medium', 'low'
+  int? detectedRequirementId;
+  String? detectedRequirementName;
+  String identityStatus = 'not_checked'; // 'verified', 'mismatch', 'unknown', 'not_checked', 'matched_unselected'
+  String? identityMessage;
+  String? detectedLrn;
+  String? detectedStudentName;
+  int? suggestedStudentId;
+  String? suggestedStudentLrn;
+  String? suggestedStudentName;
+
   _UploadEntry({
     required this.file,
     required this.fileName,
@@ -215,6 +232,9 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       }).toList();
       _currentStep = 1;
       widget.stepNotifier?.value = _currentStep; // Jump to review step
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _identifyAllPending();
+      });
     }
     _lrnController.addListener(_onLrnChanged);
   }
@@ -257,6 +277,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           _matchedStudentId = student.id;
           _isSearchingStudent = false;
         });
+        _identifyAllPending();
       }
     } catch (_) {
       if (mounted) setState(() => _isSearchingStudent = false);
@@ -286,6 +307,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
             // Re-run auto-detect whenever student changes
             _autoDetectAll();
           });
+          _identifyAllPending();
         }
       } else if (mounted) {
         setState(() {
@@ -336,6 +358,9 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         widget.stepNotifier?.value = _currentStep;
       }
     });
+    for (final entry in newEntries) {
+      _identifyEntry(entry);
+    }
   }
 
   void _handleDroppedFiles(List<dynamic> xFiles) {
@@ -379,6 +404,9 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           widget.stepNotifier?.value = _currentStep;
         }
       });
+      for (final entry in newEntries) {
+        _identifyEntry(entry);
+      }
     }
   }
 
@@ -657,6 +685,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
             widget.stepNotifier?.value = _currentStep;
           }
         });
+        _identifyEntry(entry);
       } else if (hasImages) {
         final newEntries = <_UploadEntry>[];
         for (int i = 0; i < result.images!.length; i++) {
@@ -687,6 +716,9 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
             _currentStep = 1;
             widget.stepNotifier?.value = _currentStep;
           });
+          for (final entry in newEntries) {
+            _identifyEntry(entry);
+          }
         }
       }
     } catch (e) {
@@ -713,6 +745,102 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           'Scanner Error',
           'Failed to scan document: $e',
         );
+      }
+    }
+  }
+
+  // ── Hybrid backend identification (Filename -> PDF Text -> OCR) ──
+  Future<void> _identifyAllPending() async {
+    for (final entry in _entries) {
+      if (entry.status == UploadStatus.pending) {
+        await _identifyEntry(entry);
+      }
+    }
+  }
+
+  Future<void> _identifyEntry(_UploadEntry entry) async {
+    if (!mounted || !entry.file.existsSync()) return;
+
+    setState(() => entry.isIdentifying = true);
+
+    try {
+      final storage = const FlutterSecureStorage();
+      final token = await storage.read(key: 'jwt_token');
+      final dio = ApiConstants.createDio(BaseOptions(
+        headers: {'Authorization': 'Bearer $token'},
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 45),
+      ));
+
+      final map = <String, dynamic>{
+        'document': await MultipartFile.fromFile(
+          entry.file.path,
+          filename: entry.fileName,
+        ),
+      };
+      if (_matchedStudentId != null) {
+        map['studentId'] = _matchedStudentId;
+      }
+      final lrnText = _lrnController.text.trim();
+      if (lrnText.length == 12) {
+        map['lrn'] = lrnText;
+      }
+
+      final res = await dio.post('/documents/identify', data: FormData.fromMap(map));
+      if (!mounted) return;
+
+      final data = res.data as Map<String, dynamic>;
+      final reqId = data['requirementId'] as int?;
+      final conf = (data['confidence'] as num?)?.toInt() ?? 0;
+      final confLevel = (data['confidenceLevel'] as String?) ?? 'low';
+      final method = (data['detectionMethod'] as String?) ?? 'filename';
+      final identity = (data['identity'] as Map<String, dynamic>?) ?? {};
+
+      final requirements = ref.read(documentRequirementsProvider).value ?? [];
+      dynamic matchedReq;
+      if (reqId != null) {
+        matchedReq = requirements.cast<dynamic>().firstWhere(
+          (r) => r.id == reqId,
+          orElse: () => null,
+        );
+      }
+
+      setState(() {
+        entry.isIdentifying = false;
+        entry.hasIdentified = true;
+        entry.detectionMethod = method;
+        entry.confidence = conf;
+        entry.confidenceLevel = confLevel;
+        entry.detectedRequirementId = reqId;
+        entry.detectedRequirementName =
+            (matchedReq?.name as String?) ?? (data['requirementRawName'] as String?);
+
+        entry.identityStatus = (identity['status'] as String?) ?? 'not_checked';
+        entry.identityMessage = identity['message'] as String?;
+        entry.detectedLrn = identity['detectedLrn'] as String?;
+        entry.detectedStudentName = identity['detectedStudentName'] as String?;
+        entry.suggestedStudentId = identity['suggestedStudentId'] as int?;
+        entry.suggestedStudentLrn = identity['suggestedStudentLrn'] as String?;
+        entry.suggestedStudentName = identity['suggestedStudentName'] as String?;
+
+        // Respect prefilled requirement or manual admin override
+        if (widget.prefilledRequirementId == null && !entry.userOverridden) {
+          if (confLevel == 'high' && matchedReq != null) {
+            entry.selectedRequirementId = matchedReq.id as int;
+            entry.selectedDocumentType = matchedReq.name as String;
+          } else if (confLevel == 'medium' || confLevel == 'low') {
+            // Medium: leave for admin confirmation; Low: leave unselected
+            entry.selectedRequirementId = null;
+            entry.selectedDocumentType = null;
+          }
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          entry.isIdentifying = false;
+          entry.hasIdentified = true;
+        });
       }
     }
   }
@@ -876,6 +1004,40 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       return;
     }
 
+    // Warn administrator if any file has a student identity mismatch
+    final mismatched = pending.where((e) => e.identityStatus == 'mismatch').toList();
+    if (mismatched.isNotEmpty) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.red),
+              SizedBox(width: 8),
+              Expanded(child: Text('Student Identity Mismatch')),
+            ],
+          ),
+          content: Text(
+            '${mismatched.length} file(s) appear to belong to a different student:\n\n'
+            '${mismatched.map((e) => '• ${e.fileName}: ${e.identityMessage ?? "LRN mismatch"}').join('\n')}\n\n'
+            'Are you sure you want to upload these files to the selected student?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('CANCEL'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+              child: const Text('UPLOAD ANYWAY'),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true || !mounted) return;
+    }
+
     setState(() => _isUploading = true);
 
     try {
@@ -916,6 +1078,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
             'studentId': finalStudentId,
             'documentType': entry.selectedDocumentType,
             'requirementId': entry.selectedRequirementId,
+            'originalFileName': entry.fileName,
+            if (entry.detectionMethod != null) 'detectionMethod': entry.detectionMethod,
+            if (entry.detectedRequirementId != null) 'detectedRequirementId': entry.detectedRequirementId,
+            'detectedConfidence': entry.confidence,
             'document': await MultipartFile.fromFile(
               entry.file.path,
               filename: newFileName,
@@ -1068,22 +1234,34 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           const SizedBox(height: 6),
           Row(
             children: [
-              Text(
-                '✓ ${_matchedStudent!.fullName}',
-                style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.primaryGreen,
-                    fontWeight: FontWeight.w600),
-              ),
-              if (_matchedStudent!.gradeSection.isNotEmpty) ...[
-                Text(
-                  ' • ${_matchedStudent!.gradeSection}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '✓ ${_matchedStudent!.fullName}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primaryGreen,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (_matchedStudent!.gradeSection.isNotEmpty)
+                        TextSpan(
+                          text: ' • ${_matchedStudent!.gradeSection}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                    ],
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -1274,7 +1452,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                 style: const TextStyle(color: AppColors.error)),
             data: (requirements) {
               for (final entry in _entries) {
-                if (entry.selectedRequirementId == null) {
+                if (entry.selectedRequirementId == null && !entry.hasIdentified && !entry.isIdentifying) {
                   _applyAutoDetect(entry, requirements);
                 }
               }
@@ -1288,42 +1466,80 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                     return _buildFileCard(idx, item, requirements);
                   }),
                   const SizedBox(height: 12),
-                  // Add more files
+                  // Add more files & learned rules
                   if (!_isUploading && !_allDone)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      alignment: WrapAlignment.center,
+                    Column(
                       children: [
-                        if (Platform.isAndroid || Platform.isIOS)
-                          SizedBox(
-                            width: 140,
-                            height: 40,
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.document_scanner_outlined, size: 18),
-                              label: const Text('Scan More'),
-                              onPressed: _scanDocument,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.primaryGreen,
-                                side: const BorderSide(color: AppColors.primaryGreen),
-                                padding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                        Row(
+                          children: [
+                            if (Platform.isAndroid || Platform.isIOS) ...[
+                              Expanded(
+                                child: SizedBox(
+                                  height: 40,
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(
+                                        Icons.document_scanner_outlined,
+                                        size: 17),
+                                    label: const Text('Scan More',
+                                        overflow: TextOverflow.ellipsis),
+                                    onPressed: _scanDocument,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.primaryGreen,
+                                      side: const BorderSide(
+                                          color: AppColors.primaryGreen),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            Expanded(
+                              child: SizedBox(
+                                height: 40,
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.folder_open, size: 17),
+                                  label: const Text('Add Files',
+                                      overflow: TextOverflow.ellipsis),
+                                  onPressed: _pickFiles,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.primaryGreen,
+                                    side: const BorderSide(
+                                        color: AppColors.primaryGreen),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
                         SizedBox(
-                          width: 140,
-                          height: 40,
+                          width: double.infinity,
+                          height: 38,
                           child: OutlinedButton.icon(
-                            icon: const Icon(Icons.folder_open, size: 18),
-                            label: const Text('Add Files'),
-                            onPressed: _pickFiles,
+                            icon: const Icon(Icons.auto_awesome_outlined,
+                                size: 16),
+                            label: const Text('Learned Rules'),
+                            onPressed: _showLearnedAliasesDialog,
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.primaryGreen,
-                              side: const BorderSide(color: AppColors.primaryGreen),
-                              padding: EdgeInsets.zero,
+                              foregroundColor: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
+                              side: BorderSide(
+                                  color: isDark
+                                      ? AppColors.darkBorder
+                                      : Colors.grey.shade300),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -1515,7 +1731,8 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                           style: TextStyle(
                               fontSize: 11, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                         ),
-                        if (item.selectedRequirementId != null &&
+                        if (!item.isIdentifying &&
+                            item.selectedRequirementId != null &&
                             !isDone &&
                             !isError) ...[
                           Text(' · ',
@@ -1525,23 +1742,32 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                           const SizedBox(width: 3),
                           Flexible(
                             child: Text(
-                              'Auto-detected',
+                              item.userOverridden ? 'Selected' : 'Auto-detected',
                               style: const TextStyle(
                                   fontSize: 11, color: AppColors.primaryGreen),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
-                        if (item.selectedRequirementId == null) ...[
+                        if (!item.isIdentifying && item.selectedRequirementId == null) ...[
                           Text(' · ',
                               style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
-                          const Icon(Icons.warning_amber_rounded,
-                              size: 12, color: Colors.orange),
+                          Icon(
+                            item.confidenceLevel == 'medium'
+                                ? Icons.help_outline_rounded
+                                : Icons.warning_amber_rounded,
+                            size: 12,
+                            color: Colors.orange,
+                          ),
                           const SizedBox(width: 3),
-                          const Text(
-                            'Not detected — select manually',
-                            style:
-                                TextStyle(fontSize: 11, color: Colors.orange),
+                          Flexible(
+                            child: Text(
+                              item.confidenceLevel == 'medium'
+                                  ? 'Confirm suggestion below'
+                                  : 'Not detected — select manually',
+                              style: const TextStyle(fontSize: 11, color: Colors.orange),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ],
@@ -1602,8 +1828,12 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
             ),
           ],
 
-          // Document type dropdown (pending state only)
+          // Document detection panel + requirement dropdown (pending state only)
           if (!isDone && !isError && !isUploading) ...[
+            if (item.hasIdentified || item.isIdentifying) ...[
+              const SizedBox(height: 10),
+              _buildDetectionPanel(item, requirements, isDark),
+            ],
             const SizedBox(height: 10),
             _buildRequirementDropdown(idx, item, requirements),
             if (linkedTemplate != null) ...[
@@ -1612,6 +1842,425 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
             ],
           ],
         ],
+      ),
+    );
+  }
+
+  String _detectionMethodLabel(String? method) {
+    switch (method) {
+      case 'pdf_text':
+        return 'PDF Text';
+      case 'ocr':
+        return 'OCR';
+      default:
+        return 'Filename';
+    }
+  }
+
+  Widget _buildDetectionPanel(
+      _UploadEntry item, List<dynamic> requirements, bool isDark) {
+    if (item.isIdentifying) {
+      return Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+          ),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primaryGreen,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Identifying document...',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final methodLabel = _detectionMethodLabel(item.detectionMethod);
+    final isHigh = item.confidenceLevel == 'high';
+    final isMedium = item.confidenceLevel == 'medium';
+    final Color confColor = isHigh
+        ? AppColors.primaryGreen
+        : (isMedium ? Colors.orange : Colors.grey);
+    final String confText = isHigh
+        ? 'High confidence (${item.confidence}%)'
+        : (isMedium
+            ? 'Medium confidence (${item.confidence}%)'
+            : (item.confidence > 0
+                ? 'Low confidence (${item.confidence}%)'
+                : 'Low confidence'));
+
+    final bool isVerified = item.identityStatus == 'verified';
+    final bool isMismatch = item.identityStatus == 'mismatch';
+    final bool isMatchedUnselected = item.identityStatus == 'matched_unselected';
+
+    final Color idColor = isVerified
+        ? AppColors.primaryGreen
+        : (isMismatch
+            ? Colors.red
+            : (isMatchedUnselected ? Colors.blue : Colors.grey));
+    final String idBadgeText = isVerified
+        ? 'Verified'
+        : (isMismatch
+            ? 'Mismatch'
+            : (isMatchedUnselected ? 'Student Found' : 'Unverified'));
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isMismatch
+            ? Colors.red.withValues(alpha: isDark ? 0.12 : 0.05)
+            : (isDark ? AppColors.darkSurface2 : Colors.grey.shade50),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isMismatch
+              ? Colors.red.withValues(alpha: 0.45)
+              : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.document_scanner_outlined,
+                size: 14,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Document Detection',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.bold,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  methodLabel,
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _detectionChip(
+                label: item.detectedRequirementName ?? 'No match',
+                prefix: 'Detected: ',
+                color: confColor,
+                isDark: isDark,
+              ),
+              _detectionChip(
+                label: confText,
+                color: confColor,
+                isDark: isDark,
+              ),
+              _detectionChip(
+                label: idBadgeText,
+                prefix: 'Student: ',
+                color: idColor,
+                isDark: isDark,
+              ),
+            ],
+          ),
+          if (isMismatch && item.identityMessage != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.error_outline, size: 15, color: Colors.red),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      item.identityMessage!,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (isMatchedUnselected &&
+              item.suggestedStudentLrn != null &&
+              _matchedStudent == null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.person_search, size: 15, color: Colors.blue),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Detected: ${item.suggestedStudentName ?? ''} (${item.suggestedStudentLrn})',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      _lrnController.text = item.suggestedStudentLrn!;
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: const Size(0, 26),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Use Student',
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (isMedium &&
+              item.detectedRequirementId != null &&
+              item.selectedRequirementId != item.detectedRequirementId) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.lightbulb_outline,
+                      size: 15, color: Colors.orange),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Suggested: ${item.detectedRequirementName ?? "Requirement"}',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.orange,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      final match = requirements.cast<dynamic>().firstWhere(
+                        (r) => r.id == item.detectedRequirementId,
+                        orElse: () => null,
+                      );
+                      if (match != null) {
+                        setState(() {
+                          item.selectedRequirementId = match.id as int;
+                          item.selectedDocumentType = match.name as String;
+                        });
+                      }
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.orange.shade800,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: const Size(0, 26),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Confirm',
+                      style:
+                          TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _detectionChip({
+    required String label,
+    String? prefix,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.18 : 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        '${prefix ?? ''}$label',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showLearnedAliasesDialog() async {
+    final storage = const FlutterSecureStorage();
+    final token = await storage.read(key: 'jwt_token');
+    final dio = ApiConstants.createDio(BaseOptions(
+      headers: {'Authorization': 'Bearer $token'},
+    ));
+
+    List<dynamic> aliases = [];
+    String? loadError;
+    try {
+      final res = await dio.get('/documents/identification-aliases');
+      aliases = (res.data['aliases'] as List?) ?? [];
+    } catch (e) {
+      loadError = 'Failed to load learned rules.';
+    }
+
+    if (!mounted) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome, color: AppColors.primaryGreen, size: 20),
+              SizedBox(width: 8),
+              Expanded(child: Text('Document Identification Rules')),
+            ],
+          ),
+          content: SizedBox(
+            width: 480,
+            height: 360,
+            child: loadError != null
+                ? Center(child: Text(loadError))
+                : aliases.isEmpty
+                    ? const Center(child: Text('No learned rules yet.'))
+                    : ListView.separated(
+                        itemCount: aliases.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (_, i) {
+                          final a = aliases[i] as Map<String, dynamic>;
+                          final isLearned = a['source'] == 'admin_learned';
+                          final approved = (a['is_approved'] ?? 1) == 1;
+                          return ListTile(
+                            dense: true,
+                            title: Text(
+                              '"${a['alias']}" → ${a['requirement_name']}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${isLearned ? "Learned from admin" : "System default"} • Used ${a['usage_count'] ?? 0}x',
+                              style: const TextStyle(fontSize: 11.5),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Switch(
+                                  value: approved,
+                                  activeThumbColor: AppColors.primaryGreen,
+                                  onChanged: (val) async {
+                                    try {
+                                      await dio.patch(
+                                        '/documents/identification-aliases/${a['id']}',
+                                        data: {'isApproved': val},
+                                      );
+                                      setDlgState(() {
+                                        a['is_approved'] = val ? 1 : 0;
+                                      });
+                                    } catch (_) {}
+                                  },
+                                ),
+                                if (isLearned)
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 18, color: Colors.red),
+                                    onPressed: () async {
+                                      try {
+                                        await dio.delete(
+                                          '/documents/identification-aliases/${a['id']}',
+                                        );
+                                        setDlgState(() {
+                                          aliases.removeAt(i);
+                                        });
+                                      } catch (_) {}
+                                    },
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('CLOSE'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1751,6 +2400,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         if (val == null || val < 0) return;
         final req = requirements.firstWhere((r) => r.id == val);
         setState(() {
+          item.userOverridden = true;
           item.selectedRequirementId = val;
           item.selectedDocumentType = req.name as String;
         });

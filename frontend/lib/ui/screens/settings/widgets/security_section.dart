@@ -81,7 +81,9 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
 
   Future<void> _loadBiometricState() async {
     final supported = await BiometricAuthService.isSupported();
-    final enabled = supported ? await BiometricAuthService.hasSavedCredentials() : false;
+    final enabled = supported
+        ? await BiometricAuthService.hasSavedCredentialsFor(widget.user.username)
+        : false;
     if (!mounted) return;
     setState(() {
       _biometricSupported = supported;
@@ -92,15 +94,15 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
   Future<void> _toggleBiometric(bool value) async {
     if (!value) {
       try {
-        final currentBioToken = await BiometricAuthService.getSavedToken();
+        final currentBioToken = await BiometricAuthService.getSavedTokenFor(widget.user.username);
         await ref.read(authProvider.notifier).disableBiometrics(token: currentBioToken);
       } catch (_) {}
-      await BiometricAuthService.clearCredentials();
+      await BiometricAuthService.clearCredentialsFor(widget.user.username);
       if (!mounted) return;
       setState(() => _biometricEnabled = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sign in with biometrics disabled on this device.'),
+        SnackBar(
+          content: Text('Sign in with biometrics disabled for @${widget.user.username} on this device.'),
           backgroundColor: AppColors.primaryGreen,
         ),
       );
@@ -119,8 +121,8 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
       if (!mounted) return;
       setState(() => _biometricEnabled = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sign in with biometrics enabled on this device.'),
+        SnackBar(
+          content: Text('Sign in with biometrics enabled for @${widget.user.username} on this device.'),
           backgroundColor: AppColors.primaryGreen,
         ),
       );

@@ -830,10 +830,27 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                         ],
                       )
                     : AppBar(
+                        toolbarHeight: 62,
+                        titleSpacing: 6,
                         systemOverlayStyle: overlayStyle,
-                        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+                        backgroundColor: isDark
+                            ? AppColors.darkSurfaceCard.withValues(alpha: 0.94)
+                            : Colors.white.withValues(alpha: 0.96),
                         foregroundColor: Theme.of(context).colorScheme.onSurface,
                         iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
+                        elevation: 0,
+                        scrolledUnderElevation: 0,
+                        surfaceTintColor: Colors.transparent,
+                        bottom: PreferredSize(
+                          preferredSize: const Size.fromHeight(1),
+                          child: Container(
+                            height: 1,
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.07)
+                                : Colors.black.withValues(alpha: 0.06),
+                          ),
+                        ),
+                        leadingWidth: 56,
                         leading: GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onHorizontalDragStart: _onHorizontalDragStart,
@@ -841,57 +858,94 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                               _onHorizontalDragUpdate(details, drawerWidth),
                           onHorizontalDragEnd: _onHorizontalDragEnd,
                           onHorizontalDragCancel: _onHorizontalDragCancel,
-                          child: IconButton(
-                            icon: AnimatedIcon(
-                              icon: AnimatedIcons.menu_close,
-                              progress: _drawerController,
+                          child: Center(
+                            child: Tooltip(
+                              message: 'Toggle navigation menu',
+                              child: Material(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.06)
+                                    : Colors.black.withValues(alpha: 0.045),
+                                borderRadius: BorderRadius.circular(11),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(11),
+                                  onTap: _toggleDrawer,
+                                  child: Container(
+                                    width: 38,
+                                    height: 38,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(11),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? Colors.white.withValues(alpha: 0.08)
+                                            : Colors.black.withValues(alpha: 0.06),
+                                      ),
+                                    ),
+                                    child: AnimatedIcon(
+                                      icon: AnimatedIcons.menu_close,
+                                      progress: _drawerController,
+                                      size: 21,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                            tooltip: 'Toggle navigation menu',
-                            onPressed: _toggleDrawer,
                           ),
                         ),
                         title: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              activeTab,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
+                            Flexible(
+                              child: Text(
+                                activeTab,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.3,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 8),
                             const ServerConnectionPill(compact: true),
                           ],
                         ),
-                        elevation: 0,
-                        surfaceTintColor: Colors.transparent,
                         actions: [
                           if (activeTab == 'Dashboard') ...[
-                            // 1. Search Icon
-                            Consumer(
-                              builder: (context, ref, _) {
-                                return Tooltip(
-                                  message: 'Search Students',
-                                  child: IconButton(
-                                    icon: const Icon(Icons.search, size: 22),
-                                    onPressed: () => _showStudentSearchDialog(
-                                      context,
-                                      ref,
-                                      navigateToStudents: true,
-                                    ),
-                                  ),
-                                );
-                              },
+                            _headerIconBtn(
+                              isDark: isDark,
+                              tooltip: 'Search Students',
+                              icon: Icons.search_rounded,
+                              onTap: () => _showStudentSearchDialog(
+                                context,
+                                ref,
+                                navigateToStudents: true,
+                              ),
                             ),
-                            // 2. Notification Icon with Unread Badge
-                            const NotificationIconButton(iconSize: 22),
-                            // 3. Profile Avatar Dropdown
+                            const SizedBox(width: 6),
+                            Container(
+                              width: 38,
+                              height: 38,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.06)
+                                    : Colors.black.withValues(alpha: 0.045),
+                                borderRadius: BorderRadius.circular(11),
+                                border: Border.all(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : Colors.black.withValues(alpha: 0.06),
+                                ),
+                              ),
+                              child: const NotificationIconButton(iconSize: 20),
+                            ),
+                            const SizedBox(width: 8),
                             Consumer(
                               builder: (context, ref, _) {
                                 final user = ref.watch(authProvider).valueOrNull;
                                 return Padding(
-                                  padding: const EdgeInsets.only(left: 4, right: 12),
+                                  padding: const EdgeInsets.only(right: 12),
                                   child: ProfileDropdownMenu(
                                     user: user,
                                     onRefresh: () =>
@@ -903,21 +957,14 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                           ],
 
                           if (activeTab == 'Documents') ...[
-                            // 1. Search Icon (left side of Print List icon)
-                            Consumer(
-                              builder: (context, ref, _) {
-                                return Tooltip(
-                                  message: 'Search Documents',
-                                  child: IconButton(
-                                    icon: const Icon(Icons.search, size: 22),
-                                    onPressed: () =>
-                                        _showDocumentSearchDialog(context, ref),
-                                  ),
-                                );
-                              },
+                            _headerIconBtn(
+                              isDark: isDark,
+                              tooltip: 'Search Documents',
+                              icon: Icons.search_rounded,
+                              onTap: () => _showDocumentSearchDialog(context, ref),
                             ),
-                            // 2. Print List Icon (for non-teachers)
-                            if (widget.userRole != 'teacher')
+                            if (widget.userRole != 'teacher') ...[
+                              const SizedBox(width: 6),
                               Consumer(
                                 builder: (context, ref, _) {
                                   final queueAsync = ref.watch(printQueueProvider);
@@ -925,87 +972,42 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                     data: (items) => items.length,
                                     orElse: () => 0,
                                   );
-                                  return Tooltip(
-                                    message: 'Print List',
-                                    child: IconButton(
-                                      icon: Badge(
-                                        isLabelVisible: count > 0,
-                                        label: Text(count.toString()),
-                                        child: const Icon(Icons.print_rounded, size: 22),
-                                      ),
-                                      onPressed: () => PrintQueueModal.show(context),
-                                    ),
+                                  return _headerIconBtn(
+                                    isDark: isDark,
+                                    tooltip: 'Print List',
+                                    icon: Icons.print_rounded,
+                                    badgeCount: count,
+                                    onTap: () => PrintQueueModal.show(context),
                                   );
                                 },
                               ),
-                            // 3. Upload Document Icon (High-Attraction Elevated Primary CTA)
-                            Tooltip(
-                              message: 'Upload Document',
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                margin: const EdgeInsets.only(left: 4, right: 8),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF00B074),
-                                      AppColors.primaryGreen,
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primaryGreen.withValues(alpha: 0.4),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(10),
-                                    onTap: () {
-                                      final openedFolder = ref.read(openedFolderProvider);
-                                      final studentId = openedFolder?.id ??
-                                          ref.read(documentQueryProvider).studentId;
-                                      UploadOcrModal.show(
-                                        context,
-                                        prefilledStudentId: studentId,
-                                        prefilledLrn: openedFolder?.lrn,
-                                      );
-                                    },
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.cloud_upload_rounded,
-                                        size: 20,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
+                            ],
+                            const SizedBox(width: 8),
+                            _headerPrimaryCta(
+                              tooltip: 'Upload Document',
+                              icon: Icons.cloud_upload_rounded,
+                              onTap: () {
+                                final openedFolder = ref.read(openedFolderProvider);
+                                final studentId = openedFolder?.id ??
+                                    ref.read(documentQueryProvider).studentId;
+                                UploadOcrModal.show(
+                                  context,
+                                  prefilledStudentId: studentId,
+                                  prefilledLrn: openedFolder?.lrn,
+                                );
+                              },
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 12),
                           ],
                           if (activeTab == 'Archives') ...[
-                            // 1. Search Icon
-                            Consumer(
-                              builder: (context, ref, _) {
-                                return Tooltip(
-                                  message: 'Search Archives',
-                                  child: IconButton(
-                                    icon: const Icon(Icons.search, size: 22),
-                                    onPressed: () =>
-                                        _showArchiveSearchDialog(context, ref),
-                                  ),
-                                );
-                              },
+                            _headerIconBtn(
+                              isDark: isDark,
+                              tooltip: 'Search Archives',
+                              icon: Icons.search_rounded,
+                              onTap: () => _showArchiveSearchDialog(context, ref),
                             ),
-                            // 2. Print List Icon (for non-teachers)
-                            if (widget.userRole != 'teacher')
+                            if (widget.userRole != 'teacher') ...[
+                              const SizedBox(width: 6),
                               Consumer(
                                 builder: (context, ref, _) {
                                   final queueAsync = ref.watch(printQueueProvider);
@@ -1013,100 +1015,56 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                     data: (items) => items.length,
                                     orElse: () => 0,
                                   );
-                                  return Tooltip(
-                                    message: 'Print List',
-                                    child: IconButton(
-                                      icon: Badge(
-                                        isLabelVisible: count > 0,
-                                        label: Text(count.toString()),
-                                        child: const Icon(Icons.print_rounded, size: 22),
-                                      ),
-                                      onPressed: () => PrintQueueModal.show(context),
-                                    ),
+                                  return _headerIconBtn(
+                                    isDark: isDark,
+                                    tooltip: 'Print List',
+                                    icon: Icons.print_rounded,
+                                    badgeCount: count,
+                                    onTap: () => PrintQueueModal.show(context),
                                   );
                                 },
                               ),
-                            const SizedBox(width: 4),
+                            ],
+                            const SizedBox(width: 12),
                           ],
                           if (activeTab == 'Users') ...[
-                            // 1. Search Icon
                             Consumer(
                               builder: (context, ref, _) {
                                 final query = ref.watch(userSearchQueryProvider);
-                                return Tooltip(
-                                  message: query.isNotEmpty
+                                return _headerIconBtn(
+                                  isDark: isDark,
+                                  tooltip: query.isNotEmpty
                                       ? 'Clear Search'
                                       : 'Search Users',
-                                  child: IconButton(
-                                    icon: Icon(
-                                      query.isNotEmpty
-                                          ? Icons.close
-                                          : Icons.search,
-                                      size: 22,
-                                    ),
-                                    onPressed: () {
-                                      if (query.isNotEmpty) {
-                                        ref.read(userSearchQueryProvider.notifier).state = '';
-                                      } else {
-                                        _showUserSearchDialog(context, ref);
-                                      }
-                                    },
-                                  ),
+                                  icon: query.isNotEmpty
+                                      ? Icons.close_rounded
+                                      : Icons.search_rounded,
+                                  onTap: () {
+                                    if (query.isNotEmpty) {
+                                      ref.read(userSearchQueryProvider.notifier).state = '';
+                                    } else {
+                                      _showUserSearchDialog(context, ref);
+                                    }
+                                  },
                                 );
                               },
                             ),
-                            // 2. Academic & Class Management (Admin shortcut)
-                            if (widget.userRole == 'admin')
-                              Tooltip(
-                                message: 'Academic & Class Management',
-                                child: IconButton(
-                                  icon: const Icon(Icons.school_outlined, size: 22),
-                                  onPressed: () =>
-                                      TeacherManagementModal.open(context),
-                                ),
+                            if (widget.userRole == 'admin') ...[
+                              const SizedBox(width: 6),
+                              _headerIconBtn(
+                                isDark: isDark,
+                                tooltip: 'Academic & Class Management',
+                                icon: Icons.school_outlined,
+                                onTap: () => TeacherManagementModal.open(context),
                               ),
-                            // 3. Add User Button (High-Attraction Elevated Primary CTA)
-                            Tooltip(
-                              message: 'Add User',
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                margin: const EdgeInsets.only(left: 4, right: 8),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF00B074),
-                                      AppColors.primaryGreen,
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primaryGreen.withValues(alpha: 0.4),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(10),
-                                    onTap: () => AddEditUserModal.show(context),
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.person_add_rounded,
-                                        size: 20,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
+                            ],
+                            const SizedBox(width: 8),
+                            _headerPrimaryCta(
+                              tooltip: 'Add User',
+                              icon: Icons.person_add_rounded,
+                              onTap: () => AddEditUserModal.show(context),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 12),
                           ],
                         ],
                       ),
@@ -1350,6 +1308,89 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _headerIconBtn({
+    required bool isDark,
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onTap,
+    int badgeCount = 0,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.black.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(11),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(11),
+          onTap: onTap,
+          child: Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.06),
+              ),
+            ),
+            child: badgeCount > 0
+                ? Badge(
+                    label: Text(badgeCount.toString()),
+                    child: Icon(icon, size: 20),
+                  )
+                : Icon(icon, size: 20),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _headerPrimaryCta({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF00B074),
+              AppColors.primaryGreen,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(11),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryGreen.withValues(alpha: 0.35),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(11),
+            onTap: onTap,
+            child: Center(
+              child: Icon(icon, size: 20, color: Colors.white),
+            ),
+          ),
+        ),
       ),
     );
   }

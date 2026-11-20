@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter/material.dart';
@@ -42,8 +43,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   int _logoTapCount = 0;
   bool _biometricSupported = false;
   bool _hasBiometricCredentials = false;
+  List<String> _enrolledBiometricUsers = [];
   String? _biometricUsername;
   bool _isBiometricAuthenticating = false;
+  String? _inlineError;
+  bool _capsLockOn = false;
 
   final FocusNode _usernameFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
@@ -95,6 +99,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
 
     _loadRememberMe(); // Load saved credentials on startup
     _loadBiometricStatus();
+    _usernameController.addListener(_clearInlineError);
+    _passwordController.addListener(_clearInlineError);
+    _passwordFocus.addListener(_checkCapsLock);
     if (widget.sessionExpired) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
@@ -123,23 +130,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     }
   }
 
-  // --- Added: Load saved credentials for Remember Me ---
+  void _clearInlineError() {
+    if (_inlineError != null && mounted) {
+      setState(() => _inlineError = null);
+    }
+    _checkCapsLock();
+  }
+
+  void _checkCapsLock() {
+    if (kIsWeb || !(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      return;
+    }
+    final isOn = HardwareKeyboard.instance.lockModesEnabled
+        .contains(KeyboardLockMode.capsLock);
+    if (isOn != _capsLockOn && mounted) {
+      setState(() => _capsLockOn = isOn);
+    }
+  }
+
+  // --- Added: Load saved username for Remember Me ---
   Future<void> _loadRememberMe() async {
     final prefs = await SharedPreferences.getInstance();
+    if (prefs.containsKey('saved_password')) {
+      await prefs.remove('saved_password');
+    }
     final isRemembered = prefs.getBool('rememberMe') ?? false;
 
-    if (isRemembered) {
+    if (isRemembered && mounted) {
       setState(() {
         _rememberMe = true;
         _usernameController.text = prefs.getString('saved_username') ?? '';
-        // Note: For a production app, use 'flutter_secure_storage' to save passwords securely.
-        _passwordController.text = prefs.getString('saved_password') ?? '';
       });
     }
   }
 
   @override
   void dispose() {
+    _usernameController.removeListener(_clearInlineError);
+    _passwordController.removeListener(_clearInlineError);
+    _passwordFocus.removeListener(_checkCapsLock);
     _usernameFocus.dispose();
     _passwordFocus.dispose();
     _animController.dispose();
@@ -151,13 +180,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   Future<void> _loadBiometricStatus() async {
     final supported = await BiometricAuthService.isSupported();
     if (!supported || !mounted) return;
-    final hasCreds = await BiometricAuthService.hasSavedCredentials();
-    final savedUser = hasCreds ? await BiometricAuthService.getSavedUsername() : null;
+    final enrolled = await BiometricAuthService.getEnrolledUsernames();
+    final lastUser = await BiometricAuthService.getLastUsername();
     if (!mounted) return;
     setState(() {
       _biometricSupported = supported;
-      _hasBiometricCredentials = hasCreds;
-      _biometricUsername = savedUser;
+      _enrolledBiometricUsers = enrolled;
+      _hasBiometricCredentials = enrolled.isNotEmpty;
+      _biometricUsername = (lastUser != null && enrolled.contains(lastUser))
+          ? lastUser
+          : (enrolled.isNotEmpty ? enrolled.first : null);
     });
   }
 
@@ -198,19 +230,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       rawError,
       'Failed to log in. Please check your credentials.',
     );
-    showErrorDialog(
-      context,
-      'Login Failed',
-      cleanMessage,
-    );
+    if (mounted) {
+      setState(() => _inlineError = cleanMessage);
+    }
   }
 
   Future<void> _handleBiometricLogin() async {
     if (_isBiometricAuthenticating) return;
+
+    final typedUser = _usernameController.text.trim();
+    String? targetUser;
+
+    if (typedUser.isNotEmpty) {
+      final hasCreds =
+          await BiometricAuthService.hasSavedCredentialsFor(typedUser);
+      if (!hasCreds) {
+        setState(() {
+          _inlineError =
+              '@$typedUser has not enabled biometric sign-in on this device. Please enter your password.';
+        });
+        return;
+      }
+      targetUser = typedUser;
+    } else if (_enrolledBiometricUsers.length > 1) {
+      targetUser = await _showAccountPickerModal(_enrolledBiometricUsers);
+      if (targetUser == null || !mounted) return;
+    } else if (_enrolledBiometricUsers.isNotEmpty) {
+      targetUser = _enrolledBiometricUsers.first;
+    } else {
+      return;
+    }
+
     setState(() => _isBiometricAuthenticating = true);
 
     try {
-      final bioData = await BiometricAuthService.authenticateAndGetToken();
+      final bioData = await BiometricAuthService.authenticateAndGetToken(
+        requestedUsername: targetUser,
+      );
       if (!mounted || bioData == null) {
         if (mounted) setState(() => _isBiometricAuthenticating = false);
         return;
@@ -226,7 +282,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       if (success) {
         _navigateToHome();
       } else {
-        await BiometricAuthService.clearCredentials();
+        await BiometricAuthService.clearCredentialsFor(bioData.username);
         _loadBiometricStatus();
         if (mounted) {
           showErrorDialog(
@@ -239,6 +295,66 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     } catch (_) {
       if (mounted) setState(() => _isBiometricAuthenticating = false);
     }
+  }
+
+  Future<String?> _showAccountPickerModal(List<String> users) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.fingerprint_rounded,
+                      color: AppColors.primaryGreen),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Select Account to Unlock',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...users.map(
+                (u) => ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor:
+                        AppColors.primaryGreen.withValues(alpha: 0.12),
+                    child: Text(
+                      u.isNotEmpty ? u[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        color: AppColors.primaryGreen,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  title: Text(u,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  trailing:
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  onTap: () => Navigator.of(ctx).pop(u),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _finalizePasswordLogin(String username) async {
@@ -264,12 +380,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   void _handleLogin() async {
     if (_usernameController.text.trim().isEmpty ||
         _passwordController.text.isEmpty) {
-      showErrorDialog(
-        context,
-        'Missing Credentials',
-        'Please enter both your username and password to continue.',
-      );
+      setState(() {
+        _inlineError = 'Please enter both your username and password.';
+      });
       return;
+    }
+    if (_inlineError != null) {
+      setState(() => _inlineError = null);
     }
 
     final username = _usernameController.text.trim();
@@ -413,13 +530,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             ),
           Expanded(
             child: AbstractBackground(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final cardColor =
-                      isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
-                  final cardBorder = isDark
-                      ? AppColors.darkBorder
-                      : AppColors.borderLight;
+              blurSigma: 6.0,
+              withOverlay: true,
+              overlayOpacity: isDark ? 0.36 : 0.22,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: const Alignment(-0.25, -0.25),
+                          radius: 1.15,
+                          colors: [
+                            AppColors.primaryGreen.withValues(
+                              alpha: isDark ? 0.14 : 0.10,
+                            ),
+                            Colors.transparent,
+                            Colors.black.withValues(
+                              alpha: isDark ? 0.30 : 0.08,
+                            ),
+                          ],
+                          stops: const [0.0, 0.55, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cardColor = isDark
+                          ? AppColors.darkSurfaceCard.withValues(alpha: 0.80)
+                          : AppColors.surfaceWhite.withValues(alpha: 0.86);
+                      final cardBorder = isDark
+                          ? Colors.white.withValues(alpha: 0.10)
+                          : Colors.white.withValues(alpha: 0.75);
 
                   if (constraints.maxWidth >= 800) {
                     // Desktop: Clean Minimalist Split Layout
@@ -492,6 +636,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                             ),
                                           ),
                                         ),
+                                        const SizedBox(height: 16),
+                                        _buildServerFooterPill(isDark),
                                       ],
                                     ),
                                   ),
@@ -504,22 +650,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                   opacity: _cardFade,
                                   child: SlideTransition(
                                     position: _cardSlide,
-                                    child: Container(
+                                    child: _buildGlassCard(
+                                      isDark: isDark,
+                                      cardColor: cardColor,
+                                      cardBorder: cardBorder,
                                       padding: const EdgeInsets.all(32),
-                                      decoration: BoxDecoration(
-                                        color: cardColor,
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: cardBorder),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: isDark ? 0.25 : 0.06,
-                                            ),
-                                            blurRadius: 24,
-                                            offset: const Offset(0, 10),
-                                          ),
-                                        ],
-                                      ),
                                       child: SingleChildScrollView(
                                         child: _buildLoginForm(),
                                       ),
@@ -593,26 +728,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                 opacity: _cardFade,
                                 child: SlideTransition(
                                   position: _cardSlide,
-                                  child: Container(
+                                  child: _buildGlassCard(
+                                    isDark: isDark,
+                                    cardColor: cardColor,
+                                    cardBorder: cardBorder,
                                     padding: const EdgeInsets.all(24),
-                                    decoration: BoxDecoration(
-                                      color: cardColor,
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: cardBorder),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: isDark ? 0.25 : 0.05,
-                                          ),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 8),
-                                        ),
-                                      ],
-                                    ),
                                     child: _buildLoginForm(),
                                   ),
                                 ),
                               ),
+                              const SizedBox(height: 16),
+                              _buildServerFooterPill(isDark),
                             ],
                           ),
                         ),
@@ -621,11 +747,97 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                   );
                 },
               ),
+                ],
+              ),
             ),
           ),
         ],
       ),
     )));
+  }
+
+  Widget _buildGlassCard({
+    required bool isDark,
+    required Color cardColor,
+    required Color cardBorder,
+    required EdgeInsets padding,
+    required Widget child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.07),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: cardBorder),
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServerFooterPill(bool isDark) {
+    final uri = Uri.tryParse(ApiConstants.baseUrl);
+    final hostLabel = (uri != null && uri.host.isNotEmpty)
+        ? '${uri.host}${uri.hasPort ? ':${uri.port}' : ''}'
+        : ApiConstants.baseUrl;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: _showServerConfigDialog,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: (isDark ? Colors.black : Colors.white)
+              .withValues(alpha: isDark ? 0.30 : 0.55),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: (isDark ? Colors.white : Colors.black)
+                .withValues(alpha: isDark ? 0.10 : 0.08),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.dns_outlined,
+              size: 13,
+              color: AppColors.primaryGreen,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                'Server: $hostLabel • Configure',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _showServerConfigDialog() async {
@@ -816,88 +1028,166 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
           ),
 
           const SizedBox(height: AppSizes.p20),
-          SizedBox(
-            height: 48,
-            child: PrimaryButton(
-              label: 'Sign In',
-              isLoading: isLoading,
-              onPressed: _handleLogin,
-            ),
-          ),
-          if (_biometricSupported && _hasBiometricCredentials) ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Divider(
-                    color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(
-                    'or',
+          if (_capsLockOn) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Icon(Icons.keyboard_capslock_rounded,
+                      size: 15, color: Colors.amber.shade700),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Caps Lock is on',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark
-                          ? AppColors.darkTextMuted
-                          : AppColors.textMuted,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.amber.shade700,
                     ),
                   ),
-                ),
-                Expanded(
-                  child: Divider(
-                    color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 14),
-            SizedBox(
-              height: 46,
-              child: OutlinedButton.icon(
-                onPressed: (isLoading || _isBiometricAuthenticating)
-                    ? null
-                    : _handleBiometricLogin,
-                icon: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  child: _isBiometricAuthenticating
-                      ? const SizedBox(
-                          key: ValueKey('bio-loading'),
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.primaryGreen,
-                          ),
-                        )
-                      : const Icon(
-                          key: ValueKey('bio-icon'),
-                          Icons.fingerprint_rounded,
-                          color: AppColors.primaryGreen,
-                          size: 20,
-                        ),
-                ),
-                label: Text(
-                  _biometricUsername != null && _biometricUsername!.isNotEmpty
-                      ? 'Sign in with Biometrics ($_biometricUsername)'
-                      : 'Sign in with Biometrics',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primaryGreen,
+          ],
+          if (_inlineError != null) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: isDark ? 0.16 : 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.35)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.error_outline_rounded,
+                      size: 17, color: Colors.red),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _inlineError!,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  side: BorderSide(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.45),
+                  InkWell(
+                    onTap: () => setState(() => _inlineError = null),
+                    child: const Icon(Icons.close, size: 16, color: Colors.red),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                ],
+              ),
+            ),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: PrimaryButton(
+                    label: 'Sign In',
+                    isLoading: isLoading,
+                    onPressed: _handleLogin,
                   ),
                 ),
               ),
+              if (_biometricSupported && _hasBiometricCredentials) ...[
+                const SizedBox(width: 10),
+                Tooltip(
+                  message: _biometricUsername != null &&
+                          _biometricUsername!.isNotEmpty
+                      ? 'Sign in with Biometrics ($_biometricUsername)'
+                      : 'Sign in with Biometrics',
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: (isLoading || _isBiometricAuthenticating)
+                          ? null
+                          : _handleBiometricLogin,
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: AppColors.primaryGreen
+                            .withValues(alpha: isDark ? 0.14 : 0.08),
+                        side: BorderSide(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.45),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 180),
+                        child: _isBiometricAuthenticating
+                            ? const SizedBox(
+                                key: ValueKey('bio-loading'),
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.primaryGreen,
+                                ),
+                              )
+                            : const Icon(
+                                key: ValueKey('bio-icon'),
+                                Icons.fingerprint_rounded,
+                                color: AppColors.primaryGreen,
+                                size: 24,
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (_biometricSupported && _hasBiometricCredentials) ...[
+            const SizedBox(height: 10),
+            Center(
+              child: Builder(builder: (context) {
+                final typed = _usernameController.text.trim();
+                final String caption;
+                final bool isWarning;
+
+                if (typed.isNotEmpty) {
+                  final hasCreds = _enrolledBiometricUsers
+                      .any((u) => u.toLowerCase() == typed.toLowerCase());
+                  if (hasCreds) {
+                    caption = 'Biometric unlock ready for @$typed';
+                    isWarning = false;
+                  } else {
+                    caption = '@$typed has not enabled biometrics';
+                    isWarning = true;
+                  }
+                } else if (_enrolledBiometricUsers.length > 1) {
+                  caption = 'Tap fingerprint to select account to unlock';
+                  isWarning = false;
+                } else if (_enrolledBiometricUsers.isNotEmpty) {
+                  caption =
+                      'Biometric unlock ready for @${_enrolledBiometricUsers.first}';
+                  isWarning = false;
+                } else {
+                  caption = '';
+                  isWarning = false;
+                }
+
+                if (caption.isEmpty) return const SizedBox.shrink();
+                return Text(
+                  caption,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight:
+                        isWarning ? FontWeight.w600 : FontWeight.normal,
+                    color: isWarning
+                        ? Colors.orange.shade700
+                        : (isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary),
+                  ),
+                );
+              }),
             ),
           ],
         ],
