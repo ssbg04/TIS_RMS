@@ -320,7 +320,8 @@ class _DocumentPreviewDialogState
       } else {
         if (_token == null || widget.document == null) return;
         final tempDir = await DownloadService.getDocumentTempDirectory();
-        filePath = '${tempDir.path}${Platform.pathSeparator}$_fileName';
+        final safeName = _fileName.replaceAll(RegExp(r'[<>:"/\\|?*\x00-\x1F]'), '_');
+        filePath = '${tempDir.path}${Platform.pathSeparator}$safeName';
         final file = File(filePath);
         if (!await file.exists()) {
           final dio = Dio();
@@ -328,31 +329,22 @@ class _DocumentPreviewDialogState
         }
       }
 
-      if (Platform.isWindows) {
-        if (openWith) {
-          // Use openwith.exe (built-in since Windows 8) for the native "Open With" dialog
-          final result = await Process.run(
-            'openwith.exe',
-            [filePath],
-            runInShell: false,
-          );
-          if (result.exitCode != 0) {
-            // Fallback: use rundll32 shell verb
-            await Process.run(
-              'cmd',
-              ['/c', 'rundll32.exe', 'shell32.dll,OpenAs_RunDLL', filePath],
-              runInShell: true,
-            );
-          }
-        } else {
+      if (Platform.isWindows && openWith) {
+        // Use openwith.exe directly (runInShell: false) to avoid cmd.exe shell injection
+        final result = await Process.run(
+          'openwith.exe',
+          [filePath],
+          runInShell: false,
+        );
+        if (result.exitCode != 0) {
           await Process.run(
-            'cmd',
-            ['/c', 'start', '""', filePath],
-            runInShell: true,
+            'rundll32.exe',
+            ['shell32.dll,OpenAs_RunDLL', filePath],
+            runInShell: false,
           );
         }
       } else {
-        // Android / iOS — OpenFilex opens the OS native app chooser / default viewer with FileProvider
+        // Uses native ShellExecuteW on Windows and FileProvider on Android/iOS (no cmd.exe)
         final result = await OpenFilex.open(filePath);
         if (result.type == ResultType.noAppToOpen) {
           throw Exception('No application installed on your device to open this file.');
@@ -379,26 +371,23 @@ class _DocumentPreviewDialogState
     setState(() => _isOpeningExternal = true);
     try {
       final tempDir = await DownloadService.getDocumentTempDirectory();
-      final tempPath = '${tempDir.path}${Platform.pathSeparator}$_fileName';
+      final safeName = _fileName.replaceAll(RegExp(r'[<>:"/\\|?*\x00-\x1F]'), '_');
+      final tempPath = '${tempDir.path}${Platform.pathSeparator}$safeName';
       _editTempFile = File(tempPath);
       if (!await _editTempFile!.exists()) {
         final dio = Dio();
         await dio.download(_downloadUrl, tempPath);
       }
 
-      if (Platform.isWindows) {
-        await Process.run('cmd', ['/c', 'start', '""', tempPath], runInShell: true);
-      } else {
-        final result = await OpenFilex.open(tempPath);
-        if (result.type == ResultType.noAppToOpen) {
-          throw Exception('No application installed on your device to edit this file.');
-        } else if (result.type == ResultType.fileNotFound) {
-          throw Exception('File not found: $tempPath');
-        } else if (result.type == ResultType.permissionDenied) {
-          throw Exception('Permission denied to open file.');
-        } else if (result.type == ResultType.error) {
-          throw Exception(result.message);
-        }
+      final result = await OpenFilex.open(tempPath);
+      if (result.type == ResultType.noAppToOpen) {
+        throw Exception('No application installed on your device to edit this file.');
+      } else if (result.type == ResultType.fileNotFound) {
+        throw Exception('File not found: $tempPath');
+      } else if (result.type == ResultType.permissionDenied) {
+        throw Exception('Permission denied to open file.');
+      } else if (result.type == ResultType.error) {
+        throw Exception(result.message);
       }
 
       // Prompt user to upload the edited file as a new version
@@ -843,11 +832,23 @@ class _DocumentPreviewDialogState
           return _isPdf ? _buildPdfInfo(isMobile) : _buildExcelInfo(isMobile);
         }
         final pdfBytes = snapshot.data!;
-        return MinimalPdfPreviewView(
+        final preview = MinimalPdfPreviewView(
           buildPdf: (_) async => pdfBytes,
           isDark: isDark,
           errorFallback: _isPdf ? _buildPdfInfo(isMobile) : _buildExcelInfo(isMobile),
         );
+        if (_isExcel) {
+          return Column(
+            children: [
+              ExcelPreviewNoticeBanner(
+                isDark: isDark,
+                onOpenExternal: _isOpeningExternal ? null : _openExternalExcel,
+              ),
+              Expanded(child: preview),
+            ],
+          );
+        }
+        return preview;
       },
     );
   }

@@ -227,3 +227,77 @@ class MinimalPdfPreviewView extends StatelessWidget {
   }
 }
 
+/// Theme-aware disclaimer banner shown above converted Excel spreadsheet previews.
+class ExcelPreviewNoticeBanner extends StatelessWidget {
+  final bool isDark;
+  final VoidCallback? onOpenExternal;
+
+  const ExcelPreviewNoticeBanner({
+    super.key,
+    required this.isDark,
+    this.onOpenExternal,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = isDark ? const Color(0xFF2B2111) : const Color(0xFFFFFBEB);
+    final borderColor =
+        const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.45 : 0.40);
+    final accentColor = const Color(0xFFF59E0B);
+    final textColor =
+        isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        border: Border(
+          bottom: BorderSide(color: borderColor, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, size: 16, color: accentColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Preview only — layout, formulas, and formatting may differ from the exact Excel file.',
+              style: TextStyle(
+                color: textColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          if (onOpenExternal != null) ...[
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: onOpenExternal,
+              icon: Icon(Icons.open_in_new_rounded, size: 14, color: textColor),
+              label: Text(
+                'Open Exact File',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor:
+                    accentColor.withValues(alpha: isDark ? 0.22 : 0.14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+

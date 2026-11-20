@@ -495,9 +495,16 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
           );
         }
         final pdfBytes = snapshot.data!;
-        return MinimalPdfPreviewView(
-          buildPdf: (_) async => pdfBytes,
-          isDark: isDark,
+        return Column(
+          children: [
+            ExcelPreviewNoticeBanner(isDark: isDark),
+            Expanded(
+              child: MinimalPdfPreviewView(
+                buildPdf: (_) async => pdfBytes,
+                isDark: isDark,
+              ),
+            ),
+          ],
         );
       },
     );
