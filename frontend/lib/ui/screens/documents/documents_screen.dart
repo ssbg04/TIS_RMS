@@ -2033,7 +2033,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             int cols = isMobile
                 ? 2
                 : (c.maxWidth / 160.0).floor().clamp(2, 6);
-            final childAspect = isMobile ? 0.85 : 0.95;
+            final childAspect = isMobile ? 1.05 : 1.15;
             final grid = GridView.builder(
               padding: EdgeInsets.only(
                 left: isMobile ? 10 : 16,
@@ -2067,72 +2067,45 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     child: InkWell(
                       onTap: () => _openFolder(folder),
                       borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                          boxShadow: isMobile
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.03),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                        child: Center(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                StyledFolderIcon(
-                                  jhsCompleted: folder.jhsCompleted,
-                                  jhsTotal: folder.jhsTotal,
-                                  shsCompleted: folder.shsCompleted,
-                                  shsTotal: folder.shsTotal,
-                                  isMobile: isMobile,
-                                ),
-                                SizedBox(height: isMobile ? 8 : 10),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  child: Text(
-                                    folder.name,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: isMobile ? 12 : 13,
-                                      height: 1.2,
-                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    _buildStudentStatusChip(folder.studentStatus ?? 'Enrolled'),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '(${folder.documentCount ?? 0})',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            StyledFolderIcon(
+                              jhsCompleted: folder.jhsCompleted,
+                              jhsTotal: folder.jhsTotal,
+                              shsCompleted: folder.shsCompleted,
+                              shsTotal: folder.shsTotal,
+                              isMobile: isMobile,
                             ),
-                          ),
+                            SizedBox(height: isMobile ? 8 : 10),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                folder.name,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: isMobile ? 12 : 13,
+                                  height: 1.2,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${folder.documentCount ?? 0} ${(folder.documentCount ?? 0) == 1 ? 'item' : 'items'}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -2156,43 +2129,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           },
         );
       },
-    );
-  }
-
-  Widget _buildStudentStatusChip(String status) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final bg = switch (status) {
-      'Enrolled' => AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.10),
-      'Graduated' => Colors.blue.withValues(alpha: isDark ? 0.25 : 0.10),
-      'Transferred' => Colors.orange.withValues(alpha: isDark ? 0.25 : 0.10),
-      'Dropped' => Colors.red.withValues(alpha: isDark ? 0.25 : 0.10),
-      _ => isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
-    };
-
-    final fg = switch (status) {
-      'Enrolled' => isDark ? Colors.green.shade300 : AppColors.primaryGreen,
-      'Graduated' => isDark ? Colors.blue.shade300 : Colors.blue.shade700,
-      'Transferred' => isDark ? Colors.orange.shade300 : Colors.orange.shade800,
-      'Dropped' => isDark ? Colors.red.shade300 : Colors.red.shade700,
-      _ => isDark ? AppColors.darkTextPrimary : Colors.grey.shade700,
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: fg.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: fg,
-        ),
-      ),
     );
   }
 

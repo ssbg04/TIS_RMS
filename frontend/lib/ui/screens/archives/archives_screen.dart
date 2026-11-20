@@ -1417,7 +1417,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 crossAxisCount: cols,
                 crossAxisSpacing: isMobile ? 10 : 14,
                 mainAxisSpacing: isMobile ? 10 : 14,
-                childAspectRatio: isMobile ? 0.85 : 0.95,
+                childAspectRatio: isMobile ? 1.05 : 1.15,
               ),
               itemCount: paginatedFolders.length,
               itemBuilder: (ctx, i) {
@@ -1447,75 +1447,46 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                         }
                       },
                       borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                          boxShadow: isMobile
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.03),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                        child: Center(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                StyledFolderIcon(
-                                  jhsCompleted: folder.jhsCompleted,
-                                  jhsTotal: folder.jhsTotal,
-                                  shsCompleted: folder.shsCompleted,
-                                  shsTotal: folder.shsTotal,
-                                  isMobile: isMobile,
-                                  isArchived: true,
-                                ),
-                                SizedBox(height: isMobile ? 8 : 10),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  child: Text(
-                                    studentName,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: isMobile ? 12 : 13,
-                                      height: 1.2,
-                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    _buildStudentStatusChip(
-                                      folder.studentStatus ?? 'Archived',
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '(${folder.documentCount ?? 0})',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            StyledFolderIcon(
+                              jhsCompleted: 0,
+                              jhsTotal: 0,
+                              shsCompleted: 0,
+                              shsTotal: 0,
+                              isMobile: isMobile,
+                              isArchived: true,
                             ),
-                          ),
+                            SizedBox(height: isMobile ? 8 : 10),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                studentName,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: isMobile ? 12 : 13,
+                                  height: 1.2,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${folder.documentCount ?? 0} ${(folder.documentCount ?? 0) == 1 ? 'item' : 'items'}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
