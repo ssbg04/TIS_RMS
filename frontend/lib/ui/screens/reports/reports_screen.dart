@@ -290,17 +290,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       }
     });
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (ref.read(activeTabProvider) != 'Reports') return;
-        if (_searchFocusNode.hasFocus) {
-          _searchFocusNode.unfocus();
-          return;
-        }
-        ref.read(activeTabProvider.notifier).setTab('Dashboard');
-      },
+    return KeyedSubtree(
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {

@@ -203,11 +203,48 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           });
         }
       });
+      ref.read(tabBackRegistryProvider).register('Archives', _handleTabBack);
     });
+  }
+
+  bool _handleTabBack() {
+    if (!mounted) return false;
+    if (_isMultiSelectMode) {
+      setState(() {
+        _isMultiSelectMode = false;
+        _selectedDocumentIds.clear();
+        if (_openedFolderStudentId != null) {
+          _openedFolderStudentId = null;
+          _openedFolderName = null;
+          if (_tabController.index != 0) {
+            _tabController.index = 0;
+          }
+        }
+      });
+      ref.read(openedArchiveFolderProvider.notifier).setFolder(null);
+      ref.read(archiveDocumentQueryProvider.notifier).setStudentId(null);
+      return true;
+    }
+    if (_openedFolderStudentId != null) {
+      setState(() {
+        _openedFolderStudentId = null;
+        _openedFolderName = null;
+        if (_tabController.index != 0) {
+          _tabController.index = 0;
+        }
+      });
+      ref.read(openedArchiveFolderProvider.notifier).setFolder(null);
+      ref.read(archiveDocumentQueryProvider.notifier).setStudentId(null);
+      return true;
+    }
+    return false;
   }
 
   @override
   void dispose() {
+    try {
+      ref.read(tabBackRegistryProvider).unregister('Archives');
+    } catch (_) {}
     _searchListener?.close();
     _folderListener?.close();
     _tabListener?.close();
@@ -509,41 +546,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       child: Focus(
         focusNode: _shortcutFocusNode,
         autofocus: true,
-        child: PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (ref.read(activeTabProvider) != 'Archives') return;
-        if (_isMultiSelectMode) {
-          setState(() {
-            _isMultiSelectMode = false;
-            _selectedDocumentIds.clear();
-            if (_openedFolderStudentId != null) {
-              _openedFolderStudentId = null;
-              _openedFolderName = null;
-              if (_tabController.index != 0) {
-                _tabController.index = 0;
-              }
-            }
-          });
-          ref.read(openedArchiveFolderProvider.notifier).setFolder(null);
-          ref.read(archiveDocumentQueryProvider.notifier).setStudentId(null);
-          return;
-        }
-        if (_openedFolderStudentId != null) {
-          setState(() {
-            _openedFolderStudentId = null;
-            _openedFolderName = null;
-            if (_tabController.index != 0) {
-              _tabController.index = 0;
-            }
-          });
-          ref.read(openedArchiveFolderProvider.notifier).setFolder(null);
-          ref.read(archiveDocumentQueryProvider.notifier).setStudentId(null);
-          return;
-        }
-        ref.read(activeTabProvider.notifier).setTab('Dashboard');
-      },
+        child: KeyedSubtree(
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(

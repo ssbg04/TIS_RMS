@@ -62,6 +62,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
   Timer? _holdTimer;
   Timer? _drawerCloseTimer;
   bool _isDragging = false;
+  bool _isExitDialogOpen = false;
   late final AnimationController _drawerController;
   late final AnimationController _pageTransitionController;
 
@@ -585,6 +586,9 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         }
 
         if (activeTab != 'Dashboard') {
+          if (ref.read(tabBackRegistryProvider).tryHandle(activeTab)) {
+            return;
+          }
           if (activeTab == 'Students') {
             if (ref.read(studentMultiSelectProvider)) {
               ref.read(studentMultiSelectProvider.notifier).state = false;
@@ -606,44 +610,52 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           return;
         }
 
-        final shouldExit = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            title: const Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-                SizedBox(width: 10),
-                Text('Confirm Exit'),
-              ],
-            ),
-            content: const Text('Are you sure you want to exit the app?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text(
-                  'CANCEL',
-                  style: TextStyle(color: Colors.grey),
-                ),
+        if (_isExitDialogOpen) return;
+        _isExitDialogOpen = true;
+        try {
+          final shouldExit = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text(
-                  'EXIT',
-                  style: TextStyle(
-                    color: Colors.redAccent,
-                    fontWeight: FontWeight.bold,
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                  SizedBox(width: 10),
+                  Text('Confirm Exit'),
+                ],
+              ),
+              content: const Text('Are you sure you want to exit the app?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(color: Colors.grey),
                   ),
                 ),
-              ),
-            ],
-          ),
-        );
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text(
+                    'EXIT',
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
 
-        if (shouldExit == true) {
-          SystemNavigator.pop();
+          if (shouldExit == true) {
+            SystemNavigator.pop();
+          }
+        } finally {
+          if (mounted) {
+            _isExitDialogOpen = false;
+          }
         }
       },
       child: Builder(

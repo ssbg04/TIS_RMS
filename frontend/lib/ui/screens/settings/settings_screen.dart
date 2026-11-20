@@ -637,18 +637,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
     final profileAsync = ref.watch(profileProvider);
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (ref.read(activeTabProvider) != 'Settings') return;
-        final primaryFocus = FocusManager.instance.primaryFocus;
-        if (primaryFocus != null && primaryFocus.hasFocus) {
-          primaryFocus.unfocus();
-          return;
-        }
-        ref.read(activeTabProvider.notifier).setTab('Dashboard');
-      },
+    return KeyedSubtree(
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {

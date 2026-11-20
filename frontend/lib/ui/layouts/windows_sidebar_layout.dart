@@ -64,6 +64,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
   Timer? _holdTimer;
   late final AnimationController _pageTransitionController;
   late bool _isMinimized;
+  bool _isExitDialogOpen = false;
 
   @override
   void initState() {
@@ -397,49 +398,75 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
+        // If an editable text input has focus, unfocus it first before navigating
+        final primaryFocus = FocusManager.instance.primaryFocus;
+        if (primaryFocus != null &&
+            primaryFocus.hasFocus &&
+            primaryFocus.context != null) {
+          final isEditable = primaryFocus.context!.widget is EditableText ||
+              primaryFocus.context!
+                      .findAncestorWidgetOfExactType<EditableText>() !=
+                  null;
+          if (isEditable) {
+            primaryFocus.unfocus();
+            return;
+          }
+        }
+
         if (activeTab != 'Dashboard') {
+          if (ref.read(tabBackRegistryProvider).tryHandle(activeTab)) {
+            return;
+          }
           _selectTab('Dashboard');
           return;
         }
 
-        final shouldExit = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            title: const Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-                SizedBox(width: 10),
-                Text('Confirm Exit'),
-              ],
-            ),
-            content: const Text('Are you sure you want to exit the app?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text(
-                  'CANCEL',
-                  style: TextStyle(color: Colors.grey),
-                ),
+        if (_isExitDialogOpen) return;
+        _isExitDialogOpen = true;
+        try {
+          final shouldExit = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text(
-                  'EXIT',
-                  style: TextStyle(
-                    color: Colors.redAccent,
-                    fontWeight: FontWeight.bold,
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                  SizedBox(width: 10),
+                  Text('Confirm Exit'),
+                ],
+              ),
+              content: const Text('Are you sure you want to exit the app?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(color: Colors.grey),
                   ),
                 ),
-              ),
-            ],
-          ),
-        );
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text(
+                    'EXIT',
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
 
-        if (shouldExit == true) {
-          SystemNavigator.pop();
+          if (shouldExit == true) {
+            SystemNavigator.pop();
+          }
+        } finally {
+          if (mounted) {
+            _isExitDialogOpen = false;
+          }
         }
       },
       child: CallbackShortcuts(

@@ -144,11 +144,32 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           _applyViewTab(targetTab, clearSearch: targetSearch.isEmpty);
         }
       });
+      ref.read(tabBackRegistryProvider).register('Students', _handleTabBack);
     });
+  }
+
+  bool _handleTabBack() {
+    if (!mounted) return false;
+    if (_searchFocusNode.hasFocus) {
+      _searchFocusNode.unfocus();
+      return true;
+    }
+    if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
+      _updateSelection(() {
+        _showMultiSelect = false;
+        _selectedStudentIds.clear();
+      });
+      ref.read(studentMultiSelectProvider.notifier).state = false;
+      return true;
+    }
+    return false;
   }
 
   @override
   void dispose() {
+    try {
+      ref.read(tabBackRegistryProvider).unregister('Students');
+    } catch (_) {}
     _scrollController.dispose();
     _dragResetTimer?.cancel();
     _tabListener?.close();
@@ -1134,25 +1155,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       child: Focus(
         focusNode: _shortcutFocusNode,
         autofocus: true,
-        child: PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (ref.read(activeTabProvider) != 'Students') return;
-        if (_searchFocusNode.hasFocus) {
-          _searchFocusNode.unfocus();
-          return;
-        }
-        if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
-          _updateSelection(() {
-            _showMultiSelect = false;
-            _selectedStudentIds.clear();
-          });
-          ref.read(studentMultiSelectProvider.notifier).state = false;
-          return;
-        }
-        ref.read(activeTabProvider.notifier).setTab('Dashboard');
-      },
+        child: KeyedSubtree(
       child: _buildDragDropWrapper(
         context,
         child: Scaffold(

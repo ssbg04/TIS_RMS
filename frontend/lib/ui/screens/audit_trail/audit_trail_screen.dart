@@ -884,27 +884,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
 
     final hasActiveFilters = activeFilterCount > 0;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        final activeTab = ref.read(activeTabProvider);
-        if (activeTab != 'Activity History' && activeTab != 'History') return;
-        if (_searchFocusNode.hasFocus) {
-          _searchFocusNode.unfocus();
-          return;
-        }
-        final primaryFocus = FocusManager.instance.primaryFocus;
-        if (primaryFocus != null && primaryFocus.hasFocus) {
-          final isEditable = primaryFocus.context?.widget is EditableText ||
-              primaryFocus.context?.findAncestorWidgetOfExactType<EditableText>() != null;
-          if (isEditable) {
-            primaryFocus.unfocus();
-            return;
-          }
-        }
-        ref.read(activeTabProvider.notifier).setTab('Dashboard');
-      },
+    return KeyedSubtree(
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {

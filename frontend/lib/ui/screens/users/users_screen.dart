@@ -622,26 +622,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final userSearch = ref.watch(userSearchQueryProvider);
     final isAndroid = defaultTargetPlatform == TargetPlatform.android;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (ref.read(activeTabProvider) != 'Users') return;
-        if (_searchFocusNode.hasFocus) {
-          _searchFocusNode.unfocus();
-          return;
-        }
-        final primaryFocus = FocusManager.instance.primaryFocus;
-        if (primaryFocus != null && primaryFocus.hasFocus) {
-          final isEditable = primaryFocus.context?.widget is EditableText ||
-              primaryFocus.context?.findAncestorWidgetOfExactType<EditableText>() != null;
-          if (isEditable) {
-            primaryFocus.unfocus();
-            return;
-          }
-        }
-        ref.read(activeTabProvider.notifier).setTab('Dashboard');
-      },
+    return KeyedSubtree(
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {
