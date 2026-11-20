@@ -636,6 +636,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     });
     final profileAsync = ref.watch(profileProvider);
+    final pendingCategory = ref.watch(pendingSettingsCategoryProvider);
+
+    if (pendingCategory == 'profile' && profileAsync.valueOrNull != null) {
+      final targetUser = profileAsync.valueOrNull!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (ref.read(pendingSettingsCategoryProvider) != 'profile') return;
+        ref.read(pendingSettingsCategoryProvider.notifier).state = null;
+        if (MediaQuery.of(context).size.width < 800) {
+          _openSubpage(context, SettingsCategory.profile, targetUser);
+        } else {
+          setState(() => _selectedCategory = SettingsCategory.profile);
+        }
+      });
+    }
 
     return KeyedSubtree(
       child: GestureDetector(

@@ -36,6 +36,7 @@ import '../screens/students/widgets/student_bulk_actions.dart';
 import '../screens/documents/widgets/print_queue_modal.dart';
 import '../screens/documents/widgets/upload_ocr_modal.dart';
 import '../shared/widgets/server_connection_pill.dart';
+import '../../core/services/biometric_auth_service.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -95,6 +96,20 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           );
         }
       };
+
+      final pendingBioUser = ref.read(pendingBiometricPromptUsernameProvider);
+      if (pendingBioUser != null) {
+        ref.read(pendingBiometricPromptUsernameProvider.notifier).state = null;
+        Future.delayed(const Duration(milliseconds: 350), () {
+          if (mounted) {
+            BiometricAuthService.promptEnableIfEligible(
+              context,
+              ref,
+              pendingBioUser,
+            );
+          }
+        });
+      }
     });
   }
 
@@ -1406,40 +1421,64 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   : AppColors.borderLight,
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 10, 14),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 14),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 17,
-                    backgroundColor: AppColors.primaryGreen,
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          user?.fullName ?? 'Unknown User',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                            color: onSurface,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        ref.read(pendingSettingsCategoryProvider.notifier).state =
+                            'profile';
+                        _selectDrawerTab(
+                          'Settings',
+                          isSelected: isSettingsActive,
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
                         ),
-                        const SizedBox(height: 2),
-                        const ServerConnectionInline(),
-                      ],
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 17,
+                              backgroundColor: AppColors.primaryGreen,
+                              child: Text(
+                                initials,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    user?.fullName ?? 'Unknown User',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      color: onSurface,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const ServerConnectionInline(),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 4),

@@ -41,3 +41,9 @@ class TabBackRegistry {
 final tabBackRegistryProvider = Provider<TabBackRegistry>((ref) {
   return TabBackRegistry();
 });
+
+/// Pending username to prompt for biometric enrollment once Dashboard is shown.
+final pendingBiometricPromptUsernameProvider = StateProvider<String?>((ref) => null);
+
+/// Optional target category to open automatically when navigating to Settings.
+final pendingSettingsCategoryProvider = StateProvider<String?>((ref) => null);

@@ -1,6 +1,10 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import '../constants/app_colors.dart';
+import '../../ui/providers/auth_provider.dart';
 
 class BiometricAuthService {
   BiometricAuthService._();
@@ -133,6 +137,85 @@ class BiometricAuthService {
       );
     } catch (_) {
       return false;
+    }
+  }
+
+  /// Shows the biometric enrollment modal on Dashboard if the device supports
+  /// biometrics, hasn't enrolled yet, and the user hasn't chosen "Don't Ask".
+  static Future<void> promptEnableIfEligible(
+    BuildContext context,
+    WidgetRef ref,
+    String username,
+  ) async {
+    if (!await isSupported() || !context.mounted) return;
+    if (await hasSavedCredentials() || !context.mounted) return;
+    if (await wasPromptDeclined() || !context.mounted) return;
+
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.fingerprint_rounded, color: AppColors.primaryGreen),
+            SizedBox(width: 10),
+            Expanded(child: Text('Enable Biometric Login?')),
+          ],
+        ),
+        content: const Text(
+          'Use your fingerprint or device biometrics to sign in faster next time on this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('never'),
+            child: const Text('Don\'t Ask'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('later'),
+            child: const Text('Not Now'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop('enable'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Enable'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'enable') {
+      final verified = await authenticate(
+        reason: 'Scan your fingerprint or face to enable biometric sign-in',
+      );
+      if (!verified || !context.mounted) return;
+
+      try {
+        final token = await ref.read(authProvider.notifier).registerBiometrics();
+        await saveBiometricToken(username, token);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Sign in with biometrics enabled on this device.'),
+              backgroundColor: AppColors.primaryGreen,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Failed to register biometrics: $e');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to enable biometrics: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } else if (result == 'never') {
+      await setPromptDeclined(true);
     }
   }
 }

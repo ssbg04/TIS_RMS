@@ -26,6 +26,7 @@ import '../shared/widgets/abstract_background.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/connected_users_provider.dart';
 import '../shared/widgets/server_connection_pill.dart';
+import '../../core/services/biometric_auth_service.dart';
 
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -87,6 +88,20 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
           );
         }
       };
+
+      final pendingBioUser = ref.read(pendingBiometricPromptUsernameProvider);
+      if (pendingBioUser != null) {
+        ref.read(pendingBiometricPromptUsernameProvider.notifier).state = null;
+        Future.delayed(const Duration(milliseconds: 350), () {
+          if (mounted) {
+            BiometricAuthService.promptEnableIfEligible(
+              context,
+              ref,
+              pendingBioUser,
+            );
+          }
+        });
+      }
     });
   }
 

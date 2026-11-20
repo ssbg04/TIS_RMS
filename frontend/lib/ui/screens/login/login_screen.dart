@@ -205,58 +205,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     );
   }
 
-  Future<void> _promptEnableBiometric(String username) async {
-    if (!_biometricSupported || !mounted) return;
-    if (_hasBiometricCredentials) return;
-    if (await BiometricAuthService.wasPromptDeclined() || !mounted) return;
-
-    final result = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.fingerprint_rounded, color: AppColors.primaryGreen),
-            SizedBox(width: 10),
-            Expanded(child: Text('Enable Biometric Login?')),
-          ],
-        ),
-        content: const Text(
-          'Use your fingerprint or device biometrics to sign in faster next time on this device.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop('never'),
-            child: const Text('Don\'t Ask'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop('later'),
-            child: const Text('Not Now'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop('enable'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Enable'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == 'enable') {
-      try {
-        final token = await ref.read(authProvider.notifier).registerBiometrics();
-        await BiometricAuthService.saveBiometricToken(username, token);
-      } catch (e) {
-        debugPrint('Failed to register biometrics: $e');
-      }
-    } else if (result == 'never') {
-      await BiometricAuthService.setPromptDeclined(true);
-    }
-  }
-
   Future<void> _handleBiometricLogin() async {
     if (_isBiometricAuthenticating) return;
     setState(() => _isBiometricAuthenticating = true);
@@ -309,7 +257,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       await prefs.remove('saved_password');
     }
 
-    await _promptEnableBiometric(username);
+    ref.read(pendingBiometricPromptUsernameProvider.notifier).state = username;
     if (mounted) _navigateToHome();
   }
 
