@@ -134,6 +134,7 @@ class AuthRepository {
           'token': biometricToken,
           'platform': ApiConstants.clientPlatform,
           'device_name': ApiConstants.clientDeviceName,
+          'device_id': ApiConstants.clientDeviceId,
         },
       );
 
@@ -185,6 +186,7 @@ class AuthRepository {
         data: {
           'platform': ApiConstants.clientPlatform,
           'device_name': ApiConstants.clientDeviceName,
+          'device_id': ApiConstants.clientDeviceId,
         },
       );
       final data = response.data as Map;
@@ -212,6 +214,8 @@ class AuthRepository {
         data: {
           'token': ?token,
           'platform': ApiConstants.clientPlatform,
+          'device_name': ApiConstants.clientDeviceName,
+          'device_id': ApiConstants.clientDeviceId,
         },
       );
     } catch (_) {}

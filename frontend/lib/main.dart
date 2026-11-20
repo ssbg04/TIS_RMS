@@ -12,6 +12,7 @@ import 'ui/screens/splash/splash_screen.dart';
 import 'ui/shared/widgets/global_connectivity_banner.dart';
 import 'core/navigation/navigation_service.dart';
 // Core Imports
+import 'core/network/api_constants.dart';
 import 'core/theme/app_theme.dart'; // Add this import
 import 'core/constants/app_colors.dart';
 import 'core/services/notification_service.dart';
@@ -78,6 +79,7 @@ void main() async {
 
   await NotificationService().initialize();
   await ForegroundSyncService.stop();
+  await ApiConstants.initDeviceInfo();
 
   // Initialize user preferences for sound and vibration (both default to disabled)
   try {

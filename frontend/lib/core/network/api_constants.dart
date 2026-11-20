@@ -1,4 +1,6 @@
 import 'dart:io' show Platform, HttpClient;
+import 'dart:math' show Random;
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
@@ -15,8 +17,65 @@ class ApiConstants {
   // Runtime-mutable base URL — set by ServerDiscoveryService before first use.
   // Default: tunnel domain or discovered local server.
   static String _baseUrl = tunnelUrl;
+  static String _deviceId = '';
+  static String _deviceName = '';
 
   static String get baseUrl => _baseUrl;
+  static String get clientDeviceId => _deviceId;
+
+  /// Initializes a persistent per-install device ID and a human-readable device
+  /// model name so multiple Android/Desktop devices under one user never collide.
+  static Future<void> initDeviceInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      var savedId = prefs.getString('client_device_id');
+      if (savedId == null || savedId.isEmpty) {
+        final rng = Random.secure();
+        savedId = List.generate(
+          32,
+          (_) => rng.nextInt(16).toRadixString(16),
+        ).join();
+        await prefs.setString('client_device_id', savedId);
+      }
+      _deviceId = savedId;
+    } catch (_) {}
+
+    if (kIsWeb) {
+      _deviceName = 'Web Browser';
+      return;
+    }
+
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final info = await deviceInfo.androidInfo;
+        final brand = info.manufacturer.trim();
+        final model = info.model.trim();
+        final combined = [brand, model]
+            .where((s) => s.isNotEmpty)
+            .join(' ')
+            .replaceAll(RegExp(r'[^\x20-\x7E]'), '')
+            .trim();
+        if (combined.isNotEmpty) {
+          _deviceName = combined;
+        }
+      } else if (Platform.isWindows) {
+        final info = await deviceInfo.windowsInfo;
+        final name = info.computerName
+            .replaceAll(RegExp(r'[^\x20-\x7E]'), '')
+            .trim();
+        if (name.isNotEmpty) {
+          _deviceName = name;
+        }
+      } else if (Platform.isIOS) {
+        final info = await deviceInfo.iosInfo;
+        final name = info.utsname.machine.trim();
+        if (name.isNotEmpty) {
+          _deviceName = name;
+        }
+      }
+    } catch (_) {}
+  }
 
   static String get clientPlatform {
     if (kIsWeb) return 'web';
@@ -31,6 +90,7 @@ class ApiConstants {
   }
 
   static String get clientDeviceName {
+    if (_deviceName.isNotEmpty) return _deviceName;
     if (kIsWeb) return 'Web Browser';
     try {
       if (Platform.isWindows) {
@@ -190,6 +250,9 @@ class ApiConstants {
           }
           options.headers['X-Platform'] ??= clientPlatform;
           options.headers['X-Device-Name'] ??= clientDeviceName;
+          if (_deviceId.isNotEmpty) {
+            options.headers['X-Device-Id'] ??= _deviceId;
+          }
           options.headers['Accept'] ??= 'application/json, text/plain, */*';
           options.headers['User-Agent'] ??= 'TIS-RMS-Client/1.0 ($clientPlatform)';
 
