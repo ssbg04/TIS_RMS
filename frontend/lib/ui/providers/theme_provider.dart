@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _kThemeModeKey = 'theme_mode';
+const _kHighContrastKey = 'high_contrast_mode';
 
 /// Provides the persisted [ThemeMode] for the app.
 /// Reads from and writes to [SharedPreferences].
@@ -55,4 +56,34 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 
 final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
   ThemeModeNotifier.new,
+);
+
+/// Provides the persisted high-contrast mode toggle for the app.
+/// Reads from and writes to [SharedPreferences].
+class HighContrastNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    _loadFromPrefs();
+    return false;
+  }
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getBool(_kHighContrastKey) ?? false;
+    state = stored;
+  }
+
+  /// Set high-contrast mode and persist the preference.
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kHighContrastKey, enabled);
+  }
+
+  /// Toggle high-contrast mode and persist the preference.
+  Future<void> toggle() => setEnabled(!state);
+}
+
+final highContrastProvider = NotifierProvider<HighContrastNotifier, bool>(
+  HighContrastNotifier.new,
 );

@@ -14,7 +14,6 @@ import 'core/navigation/navigation_service.dart';
 // Core Imports
 import 'core/network/api_constants.dart';
 import 'core/theme/app_theme.dart'; // Add this import
-import 'core/constants/app_colors.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/background_sync_service.dart';
 import 'core/services/foreground_sync_service.dart';
@@ -121,6 +120,7 @@ class TisRmsApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final isHighContrast = ref.watch(highContrastProvider);
 
     return InactivityWrapper(
       navigatorKey: navigatorKey,
@@ -129,8 +129,12 @@ class TisRmsApp extends ConsumerWidget {
         title: 'TIS RMS',
         debugShowCheckedModeBanner: false,
 
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
+        theme: isHighContrast
+            ? AppTheme.highContrastLightTheme
+            : AppTheme.lightTheme,
+        darkTheme: isHighContrast
+            ? AppTheme.highContrastDarkTheme
+            : AppTheme.darkTheme,
         themeMode: themeMode,
         themeAnimationDuration: const Duration(milliseconds: 300),
         themeAnimationCurve: Curves.easeInOutCubic,
@@ -150,9 +154,7 @@ class TisRmsApp extends ConsumerWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOutCubic,
-              color: isDark
-                  ? AppColors.darkPageBackground
-                  : AppColors.pageBackground,
+              color: Theme.of(context).scaffoldBackgroundColor,
               child: SafeArea(
                 child: Stack(
                   children: [

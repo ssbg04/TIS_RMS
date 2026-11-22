@@ -190,8 +190,10 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
     final String? category = tab['category'] as String?;
     final IconData icon = tab['icon'] as IconData;
     final IconData activeIcon = (tab['activeIcon'] as IconData?) ?? icon;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final onSurface = theme.colorScheme.onSurface;
+    final primaryColor = theme.colorScheme.primary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,7 +208,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
             child: Text(
               category.toUpperCase(),
               style: TextStyle(
-                color: onSurface.withValues(alpha: 0.42),
+                color: onSurface.withValues(alpha: 0.68),
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.1,
@@ -250,7 +252,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                               margin: const EdgeInsets.only(left: 4),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppColors.primaryGreen
+                                    ? primaryColor
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(2),
                               ),
@@ -259,7 +261,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                             Icon(
                               isSelected ? activeIcon : icon,
                               color: isSelected
-                                  ? AppColors.primaryGreen
+                                  ? primaryColor
                                   : onSurface.withValues(alpha: 0.62),
                               size: 19,
                             ),
@@ -273,7 +275,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                                       ? FontWeight.w600
                                       : FontWeight.w500,
                                   color: isSelected
-                                      ? AppColors.primaryGreen
+                                      ? primaryColor
                                       : onSurface.withValues(alpha: 0.82),
                                 ),
                                 maxLines: 1,
@@ -295,7 +297,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                                 height: isSelected ? 18 : 0,
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? AppColors.primaryGreen
+                                      ? primaryColor
                                       : Colors.transparent,
                                   borderRadius: BorderRadius.circular(2),
                                 ),
@@ -305,7 +307,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                               child: Icon(
                                 isSelected ? activeIcon : icon,
                                 color: isSelected
-                                    ? AppColors.primaryGreen
+                                    ? primaryColor
                                     : onSurface.withValues(alpha: 0.62),
                                 size: 21,
                               ),
@@ -747,8 +749,10 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
     bool showExpanded,
     String activeTab,
   ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final onSurface = theme.colorScheme.onSurface;
+    final primaryColor = theme.colorScheme.primary;
     final user = ref.watch(authProvider).valueOrNull;
     final fullName = user?.fullName ?? 'Unknown User';
     final initials =
@@ -822,7 +826,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                               : Icons.settings_outlined,
                           size: 18,
                           color: isSettingsActive
-                              ? AppColors.primaryGreen
+                              ? primaryColor
                               : onSurface.withValues(alpha: 0.62),
                         ),
                       ),
@@ -887,7 +891,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                                   width: 3,
                                   height: 18,
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen,
+                                    color: primaryColor,
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 ),
@@ -898,7 +902,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout>
                                   : Icons.settings_outlined,
                               size: 20,
                               color: isSettingsActive
-                                  ? AppColors.primaryGreen
+                                  ? primaryColor
                                   : onSurface.withValues(alpha: 0.62),
                             ),
                           ],

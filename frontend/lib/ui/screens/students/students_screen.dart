@@ -23,6 +23,7 @@ import '../../providers/setup_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/archives_provider.dart';
+import '../settings/teacher_management_screen.dart';
 
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
@@ -1338,9 +1339,18 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Left: Segmented Tabs (Enrolled vs All Students)
-            _buildViewTabSwitcher(context),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: _buildViewTabSwitcher(context),
+                ),
+              ),
+            ),
 
-            const Spacer(),
+            const SizedBox(width: 8),
 
             if (widget.userRole != 'teacher') ...[
               SizedBox(
@@ -1405,6 +1415,76 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   ),
                 ),
               ),
+            ],
+
+            // Graduation & Academic Settings quick-access (Admin only)
+            if (widget.userRole == 'admin') ...[
+              const SizedBox(width: 6),
+              if (isDesktop)
+                Tooltip(
+                  message: 'Graduation & Academic Settings',
+                  child: SizedBox(
+                    height: 36,
+                    child: OutlinedButton.icon(
+                      onPressed: () => TeacherManagementModal.open(
+                        context,
+                        initialTabIndex: 2,
+                      ),
+                      icon: const Icon(Icons.school_outlined, size: 16),
+                      label: const Text(
+                        'Graduation',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.primaryGreen,
+                        side: BorderSide(
+                          color: isDark
+                              ? AppColors.darkBorder
+                              : AppColors.primaryGreen.withValues(alpha: 0.5),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Tooltip(
+                  message: 'Graduation & Academic Settings',
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: OutlinedButton(
+                      onPressed: () => TeacherManagementModal.open(
+                        context,
+                        initialTabIndex: 2,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.primaryGreen,
+                        side: BorderSide(
+                          color: isDark
+                              ? AppColors.darkBorder
+                              : AppColors.primaryGreen.withValues(alpha: 0.5),
+                        ),
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(36, 36),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                      child: const Icon(Icons.school_outlined, size: 18),
+                    ),
+                  ),
+                ),
             ],
           ],
         ),

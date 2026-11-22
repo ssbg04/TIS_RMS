@@ -6,6 +6,8 @@ class AppColors {
 
   // Primary Brand Colors
   static const Color primaryGreen = Color(0xFF1C8248);
+  /// High-contrast green for text and icons on dark surfaces (>= 6.8:1).
+  static const Color primaryGreenLight = Color(0xFF34D399);
   static const Color darkGreen = Color(0xFF085F32);
   static const Color fourPs = Color(0xFF2E3192);
 
@@ -15,14 +17,14 @@ class AppColors {
   ); // Light gray background
   static const Color surfaceWhite = Colors.white; // Cards, Dialogs
   static const Color inputBackground = Color(0xFFE5E5E5);
-  static const Color borderLight = Color(0xFFE5E7EB);
+  static const Color borderLight = Color(0xFFD1D5DB);
   static const Color hoverLight = Color(0xFFF3F4F6);
   static const Color overlayLight = Color(0x7F000000);
 
   // ── Light Theme Text Colors ──────────────────────────────────
   static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF666666);
-  static const Color textMuted = Color(0xFF999999);
+  static const Color textSecondary = Color(0xFF4B5550);
+  static const Color textMuted = Color(0xFF5E6862);
 
   // ── Status Colors ────────────────────────────────────────────
   static const Color error = Colors.redAccent;
@@ -44,9 +46,9 @@ class AppColors {
 
   // ── Dark Theme Text Colors ───────────────────────────────────
   static const Color darkTextPrimary = Color(0xFFE7ECE7);
-  static const Color darkTextSecondary = Color(0xFF9EAEA4);
-  static const Color darkTextMuted = Color(0xFF67746A);
+  static const Color darkTextSecondary = Color(0xFFB5C4BA);
+  static const Color darkTextMuted = Color(0xFF92A599);
 
   // ── Dark Theme Borders & Dividers ───────────────────────────
-  static const Color darkBorder = Color(0xFF35443B);
+  static const Color darkBorder = Color(0xFF45584D);
 }

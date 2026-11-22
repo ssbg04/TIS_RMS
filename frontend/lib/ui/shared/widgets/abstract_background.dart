@@ -1,5 +1,8 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../providers/theme_provider.dart';
 
 /// An adaptive backdrop widget that displays the appropriate high-resolution
 /// cropped backdrop based on the current theme (Light / Dark) and orientation (Landscape / Portrait).
@@ -9,18 +12,18 @@ import 'package:flutter/material.dart';
 /// - Light Portrait:  `assets/images/backdrop_light_portrait.webp`
 /// - Dark Landscape:  `assets/images/backdrop_dark_landscape.webp`
 /// - Dark Portrait:   `assets/images/backdrop_dark_portrait.webp`
-class AbstractBackground extends StatelessWidget {
+class AbstractBackground extends ConsumerWidget {
   final Widget child;
   final bool withOverlay;
-  final double overlayOpacity;
+  final double? overlayOpacity;
   final double blurSigma;
 
   const AbstractBackground({
     super.key,
     required this.child,
-    this.withOverlay = false,
-    this.overlayOpacity = 0.0,
-    this.blurSigma = 2.5,
+    this.withOverlay = true,
+    this.overlayOpacity,
+    this.blurSigma = 4.0,
   });
 
   /// Helper to get the correct asset path based on brightness and orientation
@@ -40,8 +43,9 @@ class AbstractBackground extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final highContrast = ref.watch(highContrastProvider);
     final mediaQuery = MediaQuery.of(context);
     final isLandscape = mediaQuery.orientation == Orientation.landscape;
 
@@ -49,6 +53,16 @@ class AbstractBackground extends StatelessWidget {
       isDark: isDark,
       isLandscape: isLandscape,
     );
+
+    final defaultOpacity = highContrast
+        ? (isDark ? 0.88 : 0.90)
+        : (isDark ? 0.42 : 0.58);
+    final rawOpacity = overlayOpacity ?? defaultOpacity;
+    final effectiveOpacity = highContrast
+        ? rawOpacity.clamp(0.85, 1.0)
+        : rawOpacity;
+    final scrimColor =
+        isDark ? AppColors.darkPageBackground : AppColors.pageBackground;
 
     return Stack(
       fit: StackFit.expand,
@@ -79,11 +93,10 @@ class AbstractBackground extends StatelessWidget {
             ),
           ),
         ),
-        if (withOverlay && overlayOpacity > 0)
+        if (withOverlay && effectiveOpacity > 0)
           Positioned.fill(
             child: Container(
-              color: (isDark ? Colors.black : Colors.white)
-                  .withValues(alpha: overlayOpacity),
+              color: scrimColor.withValues(alpha: effectiveOpacity),
             ),
           ),
         child,

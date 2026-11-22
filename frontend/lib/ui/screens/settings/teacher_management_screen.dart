@@ -9,6 +9,7 @@ import '../../shared/buttons/primary_button.dart';
 import '../../shared/widgets/app_error_state.dart';
 import '../../providers/users_provider.dart';
 import '../../providers/setup_provider.dart';
+import '../../providers/system_settings_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../../domain/entities/setup_models.dart';
 import '../../../domain/entities/system_user.dart';
@@ -16,6 +17,7 @@ import '../../providers/student_provider.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/modals/custom_modal.dart';
+import 'widgets/academic_graduation_section.dart';
 import 'widgets/bulk_academic_import_modal.dart';
 import 'widgets/section_roster_modal.dart';
 
@@ -26,12 +28,17 @@ const List<int> kGradeLevels = [7, 8, 9, 10, 11, 12];
 // TEACHER MANAGEMENT MODAL (entry point — replaces full screen)
 // ============================================================
 class TeacherManagementModal extends ConsumerStatefulWidget {
-  const TeacherManagementModal({super.key});
+  final int initialTabIndex;
 
-  static void open(BuildContext context) {
+  const TeacherManagementModal({super.key, this.initialTabIndex = 0});
+
+  static void open(BuildContext context, {int initialTabIndex = 0}) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const TeacherManagementModal()),
+      MaterialPageRoute(
+        builder: (_) =>
+            TeacherManagementModal(initialTabIndex: initialTabIndex),
+      ),
     );
   }
 
@@ -45,13 +52,17 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
   late TabController _tabController;
   Timer? _pollingTimer;
 
-  // Tab indices: 0=Academic Structure, 1=Teacher Advisers
-  static const int _tabCount = 2;
+  // Tab indices: 0=Academic Structure, 1=Teacher Advisers, 2=Graduation & Archiving
+  static const int _tabCount = 3;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabCount, vsync: this);
+    _tabController = TabController(
+      length: _tabCount,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 2),
+    );
 
     // Initial fetch
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -71,6 +82,7 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
     ref.invalidate(academicYearsListProvider);
     ref.invalidate(sectionsListProvider);
     ref.invalidate(gradeLevelsListProvider);
+    ref.invalidate(systemSettingsProvider);
   }
 
   @override
@@ -85,6 +97,8 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
     final screenSize = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isNarrow = screenSize.width < 720;
+    final isMobile =
+        isNarrow || Theme.of(context).platform == TargetPlatform.android;
 
     final sectionsAsync = ref.watch(sectionsListProvider);
     final usersAsync = ref.watch(usersProvider);
@@ -112,9 +126,13 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: const [
-              _AcademicStructureTab(),
-              _TeacherAdvisersTab(),
+            children: [
+              const _AcademicStructureTab(),
+              const _TeacherAdvisersTab(),
+              SingleChildScrollView(
+                padding: EdgeInsets.all(isMobile ? 16 : 24),
+                child: const AcademicGraduationSection(),
+              ),
             ],
           ),
         ),
@@ -444,26 +462,52 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
           dividerColor: Colors.transparent,
           labelColor: AppColors.primaryGreen,
           unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          labelPadding: EdgeInsets.symmetric(horizontal: isNarrow ? 6 : 12),
+          labelStyle: TextStyle(
+            fontSize: isNarrow ? 11.5 : 13,
+            fontWeight: FontWeight.bold,
+          ),
           tabs: [
             Tab(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.account_tree_outlined, size: 16),
-                  const SizedBox(width: 8),
-                  Text(isNarrow ? 'Structure' : 'Academic Structure'),
-                ],
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.account_tree_outlined, size: isNarrow ? 14 : 16),
+                    SizedBox(width: isNarrow ? 4 : 8),
+                    Text(isNarrow ? 'Structure' : 'Academic Structure'),
+                  ],
+                ),
               ),
             ),
             Tab(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.badge_outlined, size: 16),
-                  const SizedBox(width: 8),
-                  Text(isNarrow ? 'Advisers' : 'Teacher Advisers'),
-                ],
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.badge_outlined, size: isNarrow ? 14 : 16),
+                    SizedBox(width: isNarrow ? 4 : 8),
+                    Text(isNarrow ? 'Advisers' : 'Teacher Advisers'),
+                  ],
+                ),
+              ),
+            ),
+            Tab(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.school_outlined, size: isNarrow ? 14 : 16),
+                    SizedBox(width: isNarrow ? 4 : 8),
+                    Text(isNarrow ? 'Graduation' : 'Graduation & Archiving'),
+                  ],
+                ),
               ),
             ),
           ],

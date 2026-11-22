@@ -1401,8 +1401,10 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     List<Map<String, dynamic>> navPrimary,
     List<Map<String, dynamic>> navSecondary,
   ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final onSurface = theme.colorScheme.onSurface;
+    final primaryColor = theme.colorScheme.primary;
     final user = ref.watch(authProvider).valueOrNull;
     final initials =
         user != null && user.firstName.isNotEmpty && user.lastName.isNotEmpty
@@ -1465,7 +1467,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                           fontSize: 10.5,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.1,
-                          color: onSurface.withValues(alpha: 0.42),
+                          color: onSurface.withValues(alpha: 0.68),
                         ),
                       ),
                     ),
@@ -1480,7 +1482,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                           fontSize: 10.5,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.1,
-                          color: onSurface.withValues(alpha: 0.42),
+                          color: onSurface.withValues(alpha: 0.68),
                         ),
                       ),
                     ),
@@ -1583,7 +1585,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                 : Icons.settings_outlined,
                             size: 19,
                             color: isSettingsActive
-                                ? AppColors.primaryGreen
+                                ? primaryColor
                                 : onSurface.withValues(alpha: 0.6),
                           ),
                         ),
@@ -1628,8 +1630,10 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     final icon = tab['icon'] as IconData;
     final activeIcon = tab['activeIcon'] as IconData? ?? icon;
     final isSelected = label == activeTab;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final onSurface = theme.colorScheme.onSurface;
+    final primaryColor = theme.colorScheme.primary;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1.5),
@@ -1667,7 +1671,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   height: isSelected ? 18 : 0,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? AppColors.primaryGreen
+                        ? primaryColor
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(2),
                   ),
@@ -1676,7 +1680,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                 Icon(
                   isSelected ? activeIcon : icon,
                   color: isSelected
-                      ? AppColors.primaryGreen
+                      ? primaryColor
                       : onSurface.withValues(alpha: 0.58),
                   size: 19,
                 ),
@@ -1689,7 +1693,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.w500,
                       color: isSelected
-                          ? AppColors.primaryGreen
+                          ? primaryColor
                           : onSurface.withValues(alpha: 0.8),
                     ),
                     maxLines: 1,
