@@ -31,6 +31,7 @@ import '../capstone_members/capstone_members_screen.dart';
 import '../documentation/documentation_screen.dart';
 import '../setup/setup_wizard_screen.dart';
 import 'widgets/report_issue_modal.dart';
+import '../../shared/dialogs/privacy_compliance_dialog.dart';
 import '../../../domain/entities/user_model.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
@@ -607,21 +608,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 }
 
   Widget _buildDesktopMasterDetail(UserModel user, bool isDark) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p24, AppSizes.p24, AppSizes.p48),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1200),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSizes.p24),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
                 width: 280,
-                child: _buildDesktopSidebar(user, isDark),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: AppSizes.p24),
+                  child: _buildDesktopSidebar(user, isDark),
+                ),
               ),
               const SizedBox(width: 24),
               Expanded(
-                child: _buildActiveDetail(user, isDark),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(0, AppSizes.p24, 0, AppSizes.p48),
+                  child: _buildActiveDetail(user, isDark),
+                ),
               ),
             ],
           ),
@@ -2526,7 +2533,90 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
         const SizedBox(height: 16),
 
-        // ── 2. Developer & Technical Support ──
+        // ── 2. Privacy Notice & Regulatory Compliance ──
+        _buildFunctionalCard(
+          isDark: isDark,
+          icon: Icons.verified_user_outlined,
+          title: 'Privacy Notice & Regulatory Compliance',
+          subtitle: 'ISO Standards & Philippine Laws (R.A. 10173, DepEd Orders)',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'TIS-RMS operates under international software, security, and records management standards alongside Philippine statutory and DepEd data governance mandates.',
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.45,
+                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                ),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final standard in const [
+                      'ISO/IEC 25010',
+                      'ISO/IEC 27001',
+                      'ISO 15489-1',
+                      'ISO 9241-210',
+                      'R.A. 10173 Data Privacy Act',
+                      'DepEd Order No. 58, s. 2017 & No. 4, s. 2014',
+                      'R.A. 9470',
+                      'R.A. 10175',
+                      'R.A. 8792',
+                    ])
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.16 : 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          standard,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : AppColors.primaryGreen,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () => PrivacyComplianceDialog.show(context),
+                icon: const Icon(Icons.policy_outlined, size: 15),
+                label: const Text('Read Full Privacy Notice'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ── 3. Developer & Technical Support ──
         _buildFunctionalCard(
           isDark: isDark,
           icon: Icons.support_agent_rounded,

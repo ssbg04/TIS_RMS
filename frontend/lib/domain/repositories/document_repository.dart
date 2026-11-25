@@ -369,6 +369,51 @@ class DocumentRepository {
     }
   }
 
+  /// Uploads a local file as a new document in the student's folder.
+  Future<int> uploadDocumentFile({
+    required int studentId,
+    required String documentType,
+    int? requirementId,
+    required String filePath,
+    String? customFileName,
+    void Function(int, int)? onSendProgress,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      final rawFileName = filePath.split(RegExp(r'[\\/]')).last;
+      final ext = rawFileName.contains('.') ? rawFileName.split('.').last : '';
+      final effectiveFileName =
+          (customFileName != null && customFileName.trim().isNotEmpty)
+              ? customFileName.trim()
+              : (ext.isNotEmpty ? '$documentType.$ext' : documentType);
+
+      final formData = FormData.fromMap({
+        'studentId': studentId.toString(),
+        'documentType': documentType,
+        'requirementId': ?requirementId?.toString(),
+        'originalFileName': rawFileName,
+        'document': await MultipartFile.fromFile(
+          filePath,
+          filename: effectiveFileName,
+        ),
+      });
+
+      final response = await _dio.post(
+        '/documents/upload',
+        data: formData,
+        options: options,
+        onSendProgress: onSendProgress,
+      );
+      final id = (response.data is Map && response.data['id'] != null)
+          ? (response.data['id'] as num).toInt()
+          : 0;
+      return id;
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to upload document.';
+      throw Exception(msg);
+    }
+  }
+
   Future<void> bulkDeleteDocuments(List<int> ids) async {
     try {
       final options = await _getAuthOptions();

@@ -18,6 +18,7 @@ import 'package:frontend/ui/providers/navigation_provider.dart';
 import 'package:dio/dio.dart';
 import '../../shared/dialogs/disconnected_dialog.dart';
 import '../../shared/dialogs/error_dialog.dart';
+import '../../shared/dialogs/privacy_compliance_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/widgets/abstract_background.dart';
 import '../../../core/utils/validators.dart';
@@ -1190,6 +1191,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               }),
             ),
           ],
+          const SizedBox(height: AppSizes.p12),
+          Center(
+            child: TextButton.icon(
+              onPressed: () => PrivacyComplianceDialog.show(context),
+              icon: Icon(
+                Icons.verified_user_outlined,
+                size: AppSizes.iconSmall,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              label: Text(
+                'Privacy Notice & Compliance (R.A. 10173 · ISO)',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.p12,
+                  vertical: AppSizes.p8,
+                ),
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
         ],
       ),
       ),

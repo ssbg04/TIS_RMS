@@ -6,10 +6,12 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/entities/setup_models.dart';
 import '../../../../domain/entities/ocr_result_model.dart';
+import '../../../../domain/entities/document_requirement_model.dart';
 import '../../../../domain/repositories/student_repository.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../providers/ocr_provider.dart';
 import '../../../providers/student_provider.dart';
+import '../../../providers/document_provider.dart';
 import '../../documents/widgets/document_preview_modal.dart';
 import '../../../shared/inputs/document_source_picker.dart';
 import 'ocr_enrollment_validation_modal.dart';
@@ -59,6 +61,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   final List<OcrEnrollmentPrefill> _ocrSavedEnrollments = [];
 
   File? _ocrScannedFile;
+  String? _ocrScannedDocType;
+  bool _saveOcrDocumentToRecords = true;
 
   static const _extSuggestions = [
     'JR.',
@@ -319,6 +323,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     }
 
     if (docType == null || !mounted) return;
+    _ocrScannedDocType = docType;
+    _saveOcrDocumentToRecords = true;
     setState(() {
       _isLoading = true;
     });
@@ -435,7 +441,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     setState(() => _isLoading = true);
     try {
       final notifier = ref.read(studentMutationProvider.notifier);
-      await notifier.createStudent(
+      final studentId = await notifier.createStudent(
         lrn: _lrnController.text.trim(),
         firstName: _firstNameController.text.trim(),
         middleName: _middleNameController.text.trim().isEmpty
@@ -453,6 +459,52 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         trackStrand: _trackStrand,
         is4ps: _is4ps,
       );
+
+      // If user kept the toggle enabled, upload scanned OCR document to new student's folder
+      if (_saveOcrDocumentToRecords && _ocrScannedFile != null && mounted) {
+        try {
+          final docRepo = ref.read(documentRepositoryProvider);
+          final docType = _ocrScannedDocType ?? 'SF9';
+
+          int? reqId;
+          try {
+            final reqs = ref.read(documentRequirementsProvider).asData?.value ?? [];
+            final match = reqs.cast<DocumentRequirementModel?>().firstWhere(
+              (r) {
+                if (r == null) return false;
+                final rName = r.name.toLowerCase();
+                final dType = docType.toLowerCase();
+                if (dType == 'sf9') {
+                  return rName.contains('sf9') ||
+                      rName.contains('sf-9') ||
+                      rName.contains('138') ||
+                      rName.contains('report card');
+                } else if (dType == 'sf10') {
+                  return rName.contains('sf10') ||
+                      rName.contains('sf-10') ||
+                      rName.contains('137') ||
+                      rName.contains('permanent record');
+                }
+                return rName.contains(dType);
+              },
+              orElse: () => null,
+            );
+            reqId = match?.id;
+          } catch (_) {}
+
+          await docRepo.uploadDocumentFile(
+            studentId: studentId,
+            documentType: docType,
+            requirementId: reqId,
+            filePath: _ocrScannedFile!.path,
+          );
+
+          ref.invalidate(documentPageProvider);
+          ref.invalidate(studentFoldersProvider);
+        } catch (uploadErr) {
+          debugPrint('[AddStudentModal] Failed to upload OCR document: $uploadErr');
+        }
+      }
 
       if (!mounted) return;
       ref.invalidate(studentPageProvider);
@@ -756,6 +808,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                   onPressed: () => setState(() {
                                     _errorMessage = null;
                                     _ocrScannedFile = null;
+                                    _ocrScannedDocType = null;
+                                    _saveOcrDocumentToRecords = true;
                                     _ocrSavedEnrollments.clear();
                                     _lrnController.clear();
                                     _firstNameController.clear();
@@ -982,6 +1036,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     AsyncValue<List<GradeLevelModel>> gradeLevelsAsync,
     AsyncValue<List<SectionModel>> sectionsAsync,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (yearsAsync.isLoading ||
         gradeLevelsAsync.isLoading ||
         sectionsAsync.isLoading) {
@@ -1274,6 +1329,60 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
               ),
               onChanged: (val) =>
                   _trackStrand = val.trim().isEmpty ? null : val.trim(),
+            ),
+          ],
+          if (_ocrScannedFile != null) ...[
+            const SizedBox(height: AppSizes.p20),
+            Container(
+              decoration: BoxDecoration(
+                color: _saveOcrDocumentToRecords
+                    ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.12 : 0.06)
+                    : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50),
+                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                border: Border.all(
+                  color: _saveOcrDocumentToRecords
+                      ? AppColors.primaryGreen.withValues(alpha: 0.35)
+                      : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                ),
+              ),
+              child: SwitchListTile(
+                value: _saveOcrDocumentToRecords,
+                activeThumbColor: AppColors.primaryGreen,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                title: Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_upload_outlined,
+                      size: 20,
+                      color: _saveOcrDocumentToRecords
+                          ? AppColors.primaryGreen
+                          : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Save scanned file as student document',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4, left: 28),
+                  child: Text(
+                    'Automatically archives "${_ocrScannedFile!.path.split(RegExp(r'[/\\]')).last}" as ${_ocrScannedDocType ?? "SF9/SF10"} in the student\'s folder.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                onChanged: (val) => setState(() => _saveOcrDocumentToRecords = val),
+              ),
             ),
           ],
           if (_errorMessage != null) ...[

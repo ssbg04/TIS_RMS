@@ -895,6 +895,7 @@ class _RecentActivitiesScreenState
       case 'CREATE':
         return isDark ? Colors.green.shade300 : AppColors.primaryGreen;
       case 'DELETE':
+      case 'FAILED_LOGIN':
         return isDark ? Colors.red.shade300 : Colors.red;
       case 'UPDATE':
         return isDark ? Colors.orange.shade300 : Colors.orange;

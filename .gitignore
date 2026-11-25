@@ -3,13 +3,16 @@
 .openpost
 /assets
 
-backend/
 backend_build
 installers/
 
-backend/node_modules
-backend/bin/cloudflared.exe
-backend/bin/LibreOffice
+# Backend dependencies, binaries, runtime state, and temp folders
+backend/node_modules/
+backend/ghostscript/
+backend/tesseract/
+backend/bin/
+backend/temp_backup/
+backend/brain/
 backend/logs/
 requirements
 TIS*
@@ -26,20 +29,24 @@ data/
 # Whitelist documentation assets
 !documentation/**
 !frontend/assets/**
-# Environment secrets
+# Environment & credential secrets
 backend/.env
 backend/.env.*
 !backend/.example.env
 backend/*firebase*.json
+backend/*adminsdk*.json
+backend/*service-account*.json
 frontend/android/app/google-services.json
 **/google-services.json
-backend/brain
 frontend/brain
 documentation/TODO.md
 documentation/source_docs/
 
 # Database and runtime data folder (never commit)
 backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+backend/*.db-*
 backend/data/
 backend/uploads/
 

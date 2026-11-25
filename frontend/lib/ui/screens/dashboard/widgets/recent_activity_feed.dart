@@ -303,6 +303,9 @@ class RecentActivityFeed extends ConsumerWidget {
     } else if (act.contains('VERIF') || desc.toLowerCase().contains('verif')) {
       icon = Icons.verified_outlined;
       color = const Color(0xFF1565C0);
+    } else if (act.contains('FAILED_LOGIN')) {
+      icon = Icons.gpp_bad_outlined;
+      color = AppColors.error;
     } else if (act.contains('DELETE') || desc.toLowerCase().contains('delet')) {
       icon = Icons.delete_outline_rounded;
       color = AppColors.error;

@@ -107,7 +107,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
     if (act.contains('ARCHIVE') || act.contains('INACTIVE')) {
       return const Color(0xFFF59E0B); // Amber / Orange
     }
-    if (act.contains('DELETE') || act.contains('DROP')) {
+    if (act.contains('DELETE') || act.contains('DROP') || act.contains('FAILED_LOGIN')) {
       return const Color(0xFFEF4444); // Red
     }
     return AppColors.primaryGreen;
@@ -123,6 +123,9 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
     }
     if (act.contains('ARCHIVE') || act.contains('INACTIVE')) {
       return Icons.archive_outlined;
+    }
+    if (act.contains('FAILED_LOGIN')) {
+      return Icons.gpp_bad_outlined;
     }
     if (act.contains('DELETE')) {
       return Icons.delete_outline_rounded;
@@ -180,6 +183,9 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
     } else if (desc.startsWith('UPDATE enrollment')) {
       plainAction = 'updated enrollment details';
       target = desc.replaceAll(RegExp(r'UPDATE enrollment \d+ student'), 'Student').trim();
+    } else if (act == 'FAILED_LOGIN' || desc.startsWith('Failed login lockout')) {
+      plainAction = 'locked out after failed logins';
+      target = desc;
     } else if (desc.startsWith('Password reset completed')) {
       plainAction = 'completed password reset';
       target = desc.contains('for') ? desc.split('for').last.trim() : '';
